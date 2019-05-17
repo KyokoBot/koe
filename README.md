@@ -2,6 +2,8 @@
 
 Tiny, minimal dependency and embeddable Discord voice library for JVM based on [Netty](https://netty.io), aiming for high performance and reduced garbage collection.
 
+[Get it on JitPack](https://jitpack.io/#moe.kyokobot/koe)
+
 #### Dependencies
 - Netty
 - Java 11+ (could be backported to Java 8 with minor code changes)
