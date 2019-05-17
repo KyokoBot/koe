@@ -6,7 +6,7 @@ class DefaultEncryptionModes {
     private DefaultEncryptionModes() {
         //
     }
-    
+
     static final Map<String, EncryptionMode> encryptionModes;
 
     static {
