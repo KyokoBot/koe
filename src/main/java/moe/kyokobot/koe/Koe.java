@@ -17,7 +17,7 @@ public class Koe {
      */
     @NotNull
     public KoeClient newClient(long clientId) {
-        return new KoeClient(clientId);
+        return new KoeClient(clientId, options);
     }
 
     /**

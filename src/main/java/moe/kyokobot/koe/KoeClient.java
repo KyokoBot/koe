@@ -11,10 +11,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class KoeClient implements Closeable {
     private final long clientId;
+    private final KoeOptions options;
     private final Map<Long, VoiceConnection> connections;
 
-    public KoeClient(long clientId) {
+    public KoeClient(long clientId, KoeOptions options) {
         this.clientId = clientId;
+        this.options = options;
+
         this.connections = new ConcurrentHashMap<>();
     }
 
