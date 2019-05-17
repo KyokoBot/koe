@@ -1,4 +1,10 @@
 package moe.kyokobot.koe.gateway;
 
-public interface VoiceGatewayConnection {
+import java.io.Closeable;
+
+public interface VoiceGatewayConnection extends Closeable {
+    boolean isOpen();
+
+    @Override
+    void close();
 }

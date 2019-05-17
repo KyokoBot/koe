@@ -1,5 +1,6 @@
 package moe.kyokobot.koe;
 
+import moe.kyokobot.koe.gateway.VoiceGatewayConnection;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -12,7 +13,9 @@ public class VoiceConnection implements Closeable {
     private final KoeClient client;
     private final long guildId;
 
+    private VoiceGatewayConnection connection;
     private VoiceServerInfo info;
+
     private volatile int ssrc;
 
     public VoiceConnection(@NotNull KoeClient client, long guildId) {
@@ -26,6 +29,12 @@ public class VoiceConnection implements Closeable {
         this.info = info;
 
         return future;
+    }
+
+    public void disconnect() {
+        if (connection != null && connection.isOpen()) {
+            connection.close();
+        }
     }
 
     public long getGuildId() {
