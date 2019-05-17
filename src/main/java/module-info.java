@@ -1,5 +1,6 @@
 module moe.kyokobot.koe {
     requires io.netty.all;
+    requires org.slf4j;
     requires annotations;
     
     exports moe.kyokobot.koe;

@@ -6,6 +6,7 @@ Tiny, minimal dependency and embeddable Discord voice library for JVM based on [
 
 #### Dependencies
 - Netty
+- slf4j
 - Java 11+ (could be backported to Java 8 with minor code changes)
 
 #### Non-goals / won't do
