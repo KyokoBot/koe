@@ -1,5 +1,6 @@
 package moe.kyokobot.koe;
 
+import moe.kyokobot.koe.gateway.GatewayVersion;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -21,15 +22,11 @@ public class KoeClient implements Closeable {
         this.connections = new ConcurrentHashMap<>();
     }
 
-    public long getClientId() {
-        return clientId;
-    }
-
     @NotNull
     public VoiceConnection createConnection(long guildId) {
         return connections.computeIfAbsent(guildId, this::createVoiceConnection);
     }
-
+    
     @Nullable
     public VoiceConnection getConnection(long guildId) {
         return connections.get(guildId);
@@ -62,5 +59,19 @@ public class KoeClient implements Closeable {
 
     private VoiceConnection createVoiceConnection(long id) {
         return new VoiceConnection(this, id);
+    }
+
+    public long getClientId() {
+        return clientId;
+    }
+
+    @NotNull
+    public KoeOptions getOptions() {
+        return options;
+    }
+
+    @NotNull
+    public GatewayVersion getGatewayVersion() {
+        return options.getGatewayVersion();
     }
 }
