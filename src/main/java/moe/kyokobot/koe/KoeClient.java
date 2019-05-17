@@ -26,7 +26,7 @@ public class KoeClient implements Closeable {
     public VoiceConnection createConnection(long guildId) {
         return connections.computeIfAbsent(guildId, this::createVoiceConnection);
     }
-    
+
     @Nullable
     public VoiceConnection getConnection(long guildId) {
         return connections.get(guildId);
