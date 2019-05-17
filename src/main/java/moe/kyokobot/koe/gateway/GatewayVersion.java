@@ -4,7 +4,7 @@ import moe.kyokobot.koe.VoiceConnection;
 
 public enum GatewayVersion {
     V3(null),
-    V4(null);
+    V4(VoiceGatewayV4Connection::new);
 
     private final VoiceGatewayConnectionFactory factory;
 
