@@ -17,18 +17,22 @@ public class VoiceServerInfo {
         this.token = Objects.requireNonNull(token);
     }
 
+    @NotNull
     public String getSessionId() {
         return sessionId;
     }
 
+    @NotNull
     public String getEndpoint() {
         return endpoint;
     }
 
+    @NotNull
     public String getToken() {
         return token;
     }
 
+    @NotNull
     public static Builder builder() {
         return new Builder();
     }
