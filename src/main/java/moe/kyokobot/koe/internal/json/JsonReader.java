@@ -1,5 +1,7 @@
 package moe.kyokobot.koe.internal.json;
 
+import io.netty.buffer.ByteBuf;
+
 import java.io.InputStream;
 import java.io.StringReader;
 import java.util.Arrays;
@@ -45,7 +47,7 @@ public final class JsonReader {
 		 * A null value.
 		 */
 		NULL,
-	};
+	}
 
 	/**
 	 * Create a {@link JsonReader} from an {@link InputStream}.
@@ -59,6 +61,10 @@ public final class JsonReader {
 	 */
 	public static JsonReader from(String s) throws JsonParserException {
 		return new JsonReader(new JsonTokener(new StringReader(s)));
+	}
+
+	public static JsonReader from(ByteBuf buf) throws JsonParserException {
+		return new JsonReader(new JsonTokener(buf));
 	}
 
 	/**

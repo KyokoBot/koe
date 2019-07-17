@@ -1,6 +1,7 @@
-package moe.kyokobot.koe.crypto;
+package moe.kyokobot.koe.internal.crypto;
 
 import io.netty.buffer.ByteBuf;
+import moe.kyokobot.koe.crypto.EncryptionMode;
 
 public class XS20P1305EncryptionMode implements EncryptionMode {
     @Override
