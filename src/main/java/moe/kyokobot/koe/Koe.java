@@ -1,32 +1,21 @@
 package moe.kyokobot.koe;
 
+import moe.kyokobot.koe.internal.KoeImpl;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Objects;
-
-public class Koe {
-    private final KoeOptions options;
-
-    public Koe(@NotNull KoeOptions options) {
-        this.options = Objects.requireNonNull(options);
-    }
-
+public interface Koe {
     /**
      * @param clientId the ID of the user or bot which will connect to Discord voice servers.
      * @return a new Koe client
      */
     @NotNull
-    public KoeClient newClient(long clientId) {
-        return new KoeClient(clientId, options);
-    }
+    KoeClient newClient(long clientId);
 
     /**
      * @return Options of current Koe instance
      */
     @NotNull
-    public KoeOptions getOptions() {
-        return options;
-    }
+    KoeOptions getOptions();
 
     /**
      * Create a new Koe instance with given options.
@@ -35,8 +24,8 @@ public class Koe {
      * @return A new Koe instance.
      */
     @NotNull
-    public static Koe koe(@NotNull KoeOptions options) {
-        return new Koe(options);
+    static Koe koe(@NotNull KoeOptions options) {
+        return new KoeImpl(options);
     }
 
     /**
@@ -45,7 +34,7 @@ public class Koe {
      * @return A new Koe instance.
      */
     @NotNull
-    public static Koe koe() {
-        return new Koe(KoeOptions.defaultOptions());
+    static Koe koe() {
+        return new KoeImpl(KoeOptions.defaultOptions());
     }
 }

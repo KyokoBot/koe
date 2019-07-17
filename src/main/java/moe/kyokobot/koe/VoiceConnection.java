@@ -1,5 +1,6 @@
 package moe.kyokobot.koe;
 
+import moe.kyokobot.koe.audio.AudioSender;
 import moe.kyokobot.koe.gateway.VoiceGatewayConnection;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -18,6 +19,7 @@ public class VoiceConnection implements Closeable {
 
     private VoiceGatewayConnection gatewayConnection;
     private VoiceServerInfo info;
+    private AudioSender sender;
 
     public VoiceConnection(@NotNull KoeClient client, long guildId) {
         this.client = Objects.requireNonNull(client);
@@ -51,6 +53,11 @@ public class VoiceConnection implements Closeable {
         return client.getOptions();
     }
 
+    @NotNull
+    public AudioSender getSender() {
+        return sender;
+    }
+
     public long getGuildId() {
         return guildId;
     }
@@ -63,6 +70,10 @@ public class VoiceConnection implements Closeable {
     @Nullable
     public VoiceServerInfo getVoiceServerInfo() {
         return info;
+    }
+
+    public void setSender(AudioSender sender) {
+        this.sender = sender;
     }
 
     @Override

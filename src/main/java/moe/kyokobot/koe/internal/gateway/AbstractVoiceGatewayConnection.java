@@ -17,6 +17,9 @@ import io.netty.handler.ssl.SslHandler;
 import moe.kyokobot.koe.VoiceConnection;
 import moe.kyokobot.koe.VoiceServerInfo;
 import moe.kyokobot.koe.gateway.VoiceGatewayConnection;
+import moe.kyokobot.koe.internal.NettyBootstrapFactory;
+import moe.kyokobot.koe.internal.json.JsonObject;
+import moe.kyokobot.koe.internal.json.JsonParser;
 import moe.kyokobot.koe.internal.util.NettyFutureWrapper;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -49,10 +52,9 @@ public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConn
         try {
             this.connection = Objects.requireNonNull(connection);
             this.voiceServerInfo = Objects.requireNonNull(voiceServerInfo);
-            this.websocketURI = new URI(String.format("wss://%s/?v=%d", voiceServerInfo.getEndpoint(), version));
-            this.bootstrap = new Bootstrap()
-                    .group(connection.getOptions().getEventLoopGroup())
-                    .channel(connection.getOptions().getSocketChannelClass())
+            this.websocketURI = new URI(String.format("wss://%s:443/?v=%d",
+                    voiceServerInfo.getEndpoint().replace(":80", ""), version));
+            this.bootstrap = NettyBootstrapFactory.socket(connection.getOptions())
                     .handler(new WebSocketInitializer());
             this.sslContext = SslContextBuilder.forClient().build();
             this.connectFuture = new CompletableFuture<>();
@@ -69,7 +71,7 @@ public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConn
         logger.debug("Connecting to {}", websocketURI);
 
         var chFuture = bootstrap.connect(websocketURI.getHost(), websocketURI.getPort());
-        chFuture.addListener(new NettyFutureWrapper<Void>(future));
+        chFuture.addListener(new NettyFutureWrapper<>(future));
         future.thenAccept(v -> this.channel = chFuture.channel());
 
         return connectFuture;
@@ -91,6 +93,18 @@ public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConn
         return open;
     }
 
+    protected abstract void handlePayload(JsonObject object);
+
+    protected void sendPayload(int op, JsonObject d) {
+        sendRaw(new JsonObject().add("op", op).add("d", d));
+    }
+
+    protected void sendRaw(JsonObject object) {
+        if (channel != null && channel.isOpen()) {
+            channel.writeAndFlush(new TextWebSocketFrame(object.toString()));
+        }
+    }
+
     private class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> {
         private final WebSocketClientHandshaker handshaker;
 
@@ -107,6 +121,7 @@ public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConn
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
             var ch = ctx.channel();
+            System.out.println(msg);
 
             if (!handshaker.isHandshakeComplete()) {
                 try {
@@ -127,7 +142,9 @@ public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConn
             }
 
             if (msg instanceof TextWebSocketFrame) {
-
+                var object = JsonParser.object().from(((TextWebSocketFrame) msg).content());
+                ((TextWebSocketFrame) msg).release();
+                handlePayload(object);
             } else if (msg instanceof CloseWebSocketFrame) {
                 var frame = (CloseWebSocketFrame) msg;
                 if (logger.isDebugEnabled()) {

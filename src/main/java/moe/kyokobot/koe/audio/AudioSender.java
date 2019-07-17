@@ -6,10 +6,10 @@ public interface AudioSender {
     /**
      * @return If true, Koe will request audio data by calling {@link #retrieve(ByteBuf)} method.
      */
-    boolean hasAudioData();
+    boolean canSendFrame();
 
     /**
-     * If {@link #hasAudioData()} returns true, Koe will attempt to retrieve raw 20ms Opus frame, by calling this method
+     * If {@link #canSendFrame()} returns true, Koe will attempt to retrieve raw 20ms Opus frame, by calling this method
      * with target {@link ByteBuf} where the data should be written to. Do not call {@link ByteBuf#release()} - memory
      * management is already handled by Koe itself. Also in case if no data gets written to the buffer, audio packet
      * won't be sent.

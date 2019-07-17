@@ -194,6 +194,16 @@ public class JsonObject extends HashMap<String, Object> {
 		return default_;
 	}
 
+	public JsonObject add(String key, Object value) {
+		put(key, value);
+		return this;
+	}
+
+	public JsonObject addAsString(String key, long value) {
+		put(key, String.valueOf(value));
+		return this;
+	}
+
 	/**
 	 * Returns true if the object has an element at that key (even if that element is null).
 	 */
@@ -227,5 +237,10 @@ public class JsonObject extends HashMap<String, Object> {
 	 */
 	public boolean isString(String key) {
 		return get(key) instanceof String;
+	}
+
+	@Override
+	public String toString() {
+		return JsonWriter.string(this);
 	}
 }
