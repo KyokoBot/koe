@@ -15,5 +15,6 @@
     </root>
 
     <logger name="moe.kyokobot" level="debug"/>
+    <logger name="moe.kyokobot.koe" level="trace"/>
     <logger name="io.netty" level="warn"/>
 </configuration>

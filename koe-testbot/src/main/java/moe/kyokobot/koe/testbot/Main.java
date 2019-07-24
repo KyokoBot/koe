@@ -38,7 +38,7 @@ public class Main {
     public static void main(String... args) {
         var token = System.getenv("TOKEN");
         catnip = Catnip.catnip(token);
-        koe = new Koe(KoeOptions.defaultOptions());
+        koe = Koe.koe(KoeOptions.defaultOptions());
         playerManager = new DefaultAudioPlayerManager();
         var listenMoeTrack = (AudioTrack) new HttpAudioSourceManager()
                 .loadItem(null, new AudioReference("https://listen.moe/opus", "Listen.moe"));
