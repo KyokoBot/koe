@@ -4,9 +4,12 @@ import moe.kyokobot.koe.VoiceConnection;
 import moe.kyokobot.koe.VoiceServerInfo;
 import moe.kyokobot.koe.crypto.EncryptionMode;
 import moe.kyokobot.koe.internal.json.JsonObject;
+import moe.kyokobot.koe.internal.udp.RTPConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -16,11 +19,11 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
     private final VoiceConnection connection;
     private final VoiceServerInfo voiceServerInfo;
 
-    private volatile int ssrc;
-    private volatile String ip;
-    private volatile int port;
+    private volatile short ssrc;
+    private volatile SocketAddress address;
     private volatile List<String> encryptionModes;
     private volatile EncryptionMode mode;
+    private volatile RTPConnection rtpConnection;
 
     public VoiceGatewayV4Connection(VoiceConnection connection, VoiceServerInfo voiceServerInfo) {
         super(connection, voiceServerInfo, 4);
@@ -32,7 +35,6 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
     @Override
     protected void handlePayload(JsonObject object) {
         logger.trace("-> {}", object);
-        System.out.println(object);
 
         var op = object.getInt("op");
         var data = object.getObject("d");
@@ -51,14 +53,14 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
                 break;
             }
             case Op.READY: {
-                ssrc = data.getInt("ssrc");
-                port = data.getInt("port");
-                ip = data.getString("ip");
+                var port = data.getInt("port");
+                var ip = data.getString("ip");
+                ssrc = (short) data.getInt("ssrc");
                 encryptionModes = data.getArray("modes")
                         .stream()
                         .map(o -> (String) o)
                         .collect(Collectors.toList());
-
+                address = new InetSocketAddress(ip, port);
                 logger.debug("Voice READY, ssrc: {}", ssrc);
                 setupUDPConnection();
                 break;
@@ -68,5 +70,19 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
 
     private void setupUDPConnection() {
         mode = EncryptionMode.select(encryptionModes);
+        rtpConnection = new RTPConnection(connection, mode, address, ssrc);
+        rtpConnection.connect().thenAccept(ourAddress -> {
+            logger.debug("Connected, our external address is: {}", ourAddress);
+            // select protocol
+        });
+    }
+
+    @Override
+    public void close() {
+        if (rtpConnection != null) {
+            rtpConnection.close();
+        }
+
+        super.close();
     }
 }
