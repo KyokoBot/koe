@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -35,10 +36,10 @@ public class RTPConnection implements Closeable {
         this.ssrc = ssrc;
     }
 
-    public CompletionStage<SocketAddress> connect() {
+    public CompletionStage<InetSocketAddress> connect() {
         logger.debug("Connecting to {}...", serverAddress);
 
-        var future = new CompletableFuture<SocketAddress>();
+        var future = new CompletableFuture<InetSocketAddress>();
         bootstrap.handler(new RTPInitializer(this, future))
                 .connect(serverAddress)
                 .addListener(res -> {
@@ -58,9 +59,9 @@ public class RTPConnection implements Closeable {
 
     private static class RTPInitializer extends ChannelInitializer<DatagramChannel> {
         private final RTPConnection connection;
-        private final CompletableFuture<SocketAddress> future;
+        private final CompletableFuture<InetSocketAddress> future;
 
-        private RTPInitializer(RTPConnection connection, CompletableFuture<SocketAddress> future) {
+        private RTPInitializer(RTPConnection connection, CompletableFuture<InetSocketAddress> future) {
             this.connection = connection;
             this.future = future;
         }

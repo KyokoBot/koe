@@ -14,6 +14,7 @@ import io.netty.handler.codec.http.websocketx.*;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
+import io.netty.util.concurrent.EventExecutor;
 import moe.kyokobot.koe.VoiceConnection;
 import moe.kyokobot.koe.VoiceServerInfo;
 import moe.kyokobot.koe.gateway.VoiceGatewayConnection;
@@ -43,7 +44,8 @@ public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConn
     private final SslContext sslContext;
     private final CompletableFuture<Void> connectFuture;
 
-    private Channel channel;
+    protected EventExecutor eventExecutor;
+    protected Channel channel;
     private volatile boolean open;
 
     public AbstractVoiceGatewayConnection(@NotNull VoiceConnection connection,
@@ -95,7 +97,9 @@ public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConn
 
     protected abstract void handlePayload(JsonObject object);
 
-    protected void sendPayload(int op, JsonObject d) {
+    protected abstract void handleClose(CloseWebSocketFrame frame);
+
+    protected void sendPayload(int op, Object d) {
         sendRaw(new JsonObject().add("op", op).add("d", d));
     }
 
@@ -114,14 +118,14 @@ public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConn
         }
 
         @Override
-        public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        public void channelActive(ChannelHandlerContext ctx) {
+            eventExecutor = ctx.executor();
             handshaker.handshake(ctx.channel());
         }
 
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
             var ch = ctx.channel();
-            System.out.println(msg);
 
             if (!handshaker.isHandshakeComplete()) {
                 try {
@@ -142,8 +146,10 @@ public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConn
             }
 
             if (msg instanceof TextWebSocketFrame) {
-                var object = JsonParser.object().from(((TextWebSocketFrame) msg).content());
-                ((TextWebSocketFrame) msg).release();
+                var frame = (TextWebSocketFrame) msg;
+                var object = JsonParser.object().from(frame.content());
+                logger.trace("-> {}", object);
+                frame.release();
                 handlePayload(object);
             } else if (msg instanceof CloseWebSocketFrame) {
                 var frame = (CloseWebSocketFrame) msg;
@@ -151,6 +157,7 @@ public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConn
                     logger.debug("Websocket closed, code: {}, reason: {}", frame.statusCode(), frame.reasonText());
                 }
                 AbstractVoiceGatewayConnection.this.open = false;
+                handleClose(frame);
             }
         }
 

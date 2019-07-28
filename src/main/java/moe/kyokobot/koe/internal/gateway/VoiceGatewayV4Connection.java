@@ -1,5 +1,6 @@
 package moe.kyokobot.koe.internal.gateway;
 
+import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import moe.kyokobot.koe.VoiceConnection;
 import moe.kyokobot.koe.VoiceServerInfo;
 import moe.kyokobot.koe.crypto.EncryptionMode;
@@ -11,6 +12,8 @@ import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.List;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
@@ -24,6 +27,7 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
     private volatile List<String> encryptionModes;
     private volatile EncryptionMode mode;
     private volatile RTPConnection rtpConnection;
+    private ScheduledFuture heartbeatFuture;
 
     public VoiceGatewayV4Connection(VoiceConnection connection, VoiceServerInfo voiceServerInfo) {
         super(connection, voiceServerInfo, 4);
@@ -34,15 +38,15 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
 
     @Override
     protected void handlePayload(JsonObject object) {
-        logger.trace("-> {}", object);
-
         var op = object.getInt("op");
-        var data = object.getObject("d");
 
         switch (op) {
             case Op.HELLO: {
+                var data = object.getObject("d");
                 int interval = data.getInt("heartbeat_interval");
+
                 logger.debug("Received HELLO, heartbeat interval: {}", interval);
+                setupHeartbeats(interval);
 
                 logger.debug("Identifying...");
                 sendPayload(Op.IDENTIFY, new JsonObject()
@@ -53,6 +57,7 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
                 break;
             }
             case Op.READY: {
+                var data = object.getObject("d");
                 var port = data.getInt("port");
                 var ip = data.getString("ip");
                 ssrc = (short) data.getInt("ssrc");
@@ -65,15 +70,45 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
                 setupUDPConnection();
                 break;
             }
+            case Op.SESSION_DESCRIPTION: {
+                var data = object.getObject("d");
+                logger.debug("Got session description: {}", data);
+            }
         }
+    }
+
+    @Override
+    protected void handleClose(CloseWebSocketFrame frame) {
+        if (this.heartbeatFuture != null) {
+            heartbeatFuture.cancel(true);
+        }
+    }
+
+    private void setupHeartbeats(int interval) {
+        if (eventExecutor != null) {
+            heartbeatFuture = eventExecutor.scheduleAtFixedRate(this::heartbeat, interval, interval, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    private void heartbeat() {
+        sendPayload(Op.HEARTBEAT, System.currentTimeMillis());
     }
 
     private void setupUDPConnection() {
         mode = EncryptionMode.select(encryptionModes);
+        logger.debug("Selected preferred encryption mode: {}", mode);
+
         rtpConnection = new RTPConnection(connection, mode, address, ssrc);
         rtpConnection.connect().thenAccept(ourAddress -> {
             logger.debug("Connected, our external address is: {}", ourAddress);
             // select protocol
+
+            sendPayload(Op.SELECT_PROTOCOL, new JsonObject()
+                    .add("protocol", "udp")
+                    .add("data", new JsonObject()
+                            .add("address", ourAddress.getAddress().getHostAddress())
+                            .add("port", ourAddress.getPort())
+                            .add("mode", mode.getName())));
         });
     }
 
