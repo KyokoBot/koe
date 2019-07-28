@@ -7,6 +7,8 @@ import java.util.List;
 public interface EncryptionMode {
     void box(ByteBuf opus, ByteBuf output);
 
+    String getName();
+
     static EncryptionMode select(List<String> modes) {
         for (String mode : modes) {
             var impl = DefaultEncryptionModes.encryptionModes.get(mode);
