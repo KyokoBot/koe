@@ -4,6 +4,7 @@ import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import moe.kyokobot.koe.VoiceConnection;
 import moe.kyokobot.koe.VoiceServerInfo;
 import moe.kyokobot.koe.crypto.EncryptionMode;
+import moe.kyokobot.koe.internal.json.JsonArray;
 import moe.kyokobot.koe.internal.json.JsonObject;
 import moe.kyokobot.koe.internal.udp.RTPConnection;
 import org.slf4j.Logger;
@@ -18,6 +19,12 @@ import java.util.stream.Collectors;
 
 public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
     private static final Logger logger = LoggerFactory.getLogger(VoiceGatewayV4Connection.class);
+    private static final JsonArray SUPPORTED_CODECS;
+
+    static {
+        SUPPORTED_CODECS = new JsonArray();
+        SUPPORTED_CODECS.add(new JsonObject().add("name", "opus").add("type", "audio").add("priority", 1000).add("payload_type", 120));
+    }
 
     private final VoiceConnection connection;
     private final VoiceServerInfo voiceServerInfo;
@@ -104,7 +111,9 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
             // select protocol
 
             sendPayload(Op.SELECT_PROTOCOL, new JsonObject()
-                    .add("protocol", "udp")
+                    .add("protocol", "udp") // ["udp", "webrtc"]
+                    .add("port", ourAddress.getPort())
+                    .add("mode", mode.getName())
                     .add("data", new JsonObject()
                             .add("address", ourAddress.getAddress().getHostAddress())
                             .add("port", ourAddress.getPort())

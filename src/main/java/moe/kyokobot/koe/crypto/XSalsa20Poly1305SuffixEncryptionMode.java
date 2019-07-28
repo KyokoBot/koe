@@ -1,4 +1,4 @@
-package moe.kyokobot.koe.internal.crypto;
+package moe.kyokobot.koe.crypto;
 
 import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.crypto.EncryptionMode;
