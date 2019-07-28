@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -29,11 +30,12 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
     private final VoiceConnection connection;
     private final VoiceServerInfo voiceServerInfo;
 
-    private volatile short ssrc;
-    private volatile SocketAddress address;
-    private volatile List<String> encryptionModes;
-    private volatile EncryptionMode mode;
-    private volatile RTPConnection rtpConnection;
+    private short ssrc;
+    private SocketAddress address;
+    private List<String> encryptionModes;
+    private EncryptionMode mode;
+    private RTPConnection rtpConnection;
+    private UUID rtcConnectionId;
     private ScheduledFuture heartbeatFuture;
 
     public VoiceGatewayV4Connection(VoiceConnection connection, VoiceServerInfo voiceServerInfo) {
@@ -74,7 +76,7 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
                         .collect(Collectors.toList());
                 address = new InetSocketAddress(ip, port);
                 logger.debug("Voice READY, ssrc: {}", ssrc);
-                setupUDPConnection();
+                selectProtocol("udp");
                 break;
             }
             case Op.SESSION_DESCRIPTION: {
@@ -101,24 +103,37 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
         sendPayload(Op.HEARTBEAT, System.currentTimeMillis());
     }
 
-    private void setupUDPConnection() {
+    private void selectProtocol(String protocol) {
         mode = EncryptionMode.select(encryptionModes);
         logger.debug("Selected preferred encryption mode: {}", mode);
+        rtcConnectionId = UUID.randomUUID();
+        logger.debug("Generated new connection id: {}", rtcConnectionId);
 
-        rtpConnection = new RTPConnection(connection, mode, address, ssrc);
-        rtpConnection.connect().thenAccept(ourAddress -> {
-            logger.debug("Connected, our external address is: {}", ourAddress);
-            // select protocol
+        // known values: ["udp", "webrtc"]
+        if (protocol.equals("udp")) {
+            rtpConnection = new RTPConnection(connection, mode, address, ssrc);
+            rtpConnection.connect().thenAccept(ourAddress -> {
+                logger.debug("Connected, our external address is: {}", ourAddress);
 
-            sendPayload(Op.SELECT_PROTOCOL, new JsonObject()
-                    .add("protocol", "udp") // ["udp", "webrtc"]
-                    .add("port", ourAddress.getPort())
-                    .add("mode", mode.getName())
-                    .add("data", new JsonObject()
-                            .add("address", ourAddress.getAddress().getHostAddress())
-                            .add("port", ourAddress.getPort())
-                            .add("mode", mode.getName())));
-        });
+                var udpInfo = new JsonObject()
+                        .add("address", ourAddress.getAddress().getHostAddress())
+                        .add("port", ourAddress.getPort())
+                        .add("mode", mode.getName());
+
+                sendPayload(Op.SELECT_PROTOCOL, new JsonObject()
+                        .add("protocol", "udp")
+                        .add("rtc_connection_id", rtcConnectionId.toString())
+                        .add("data", udpInfo)
+                        .combine(udpInfo));
+
+                sendPayload(Op.CLIENT_CONNECT, new JsonObject()
+                        .add("audio_ssrc", ssrc)
+                        .add("video_ssrc", 0)
+                        .add("rtx_ssrc", 0));
+            });
+        } else if (protocol.equals("webrtc")) {
+            throw new IllegalArgumentException("WebRTC protocol is not supported yet!");
+        }
     }
 
     @Override

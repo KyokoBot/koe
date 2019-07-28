@@ -204,6 +204,14 @@ public class JsonObject extends HashMap<String, Object> {
 		return this;
 	}
 
+	public JsonObject combine(JsonObject object) {
+		object.forEach((key, value) -> {
+			if (!containsKey(key)) {
+				put(key, value);
+			}
+		});
+	}
+
 	/**
 	 * Returns true if the object has an element at that key (even if that element is null).
 	 */
