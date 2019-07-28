@@ -18,7 +18,7 @@ Tiny, minimal dependency and embeddable library implementing Discord voice proto
 #### Non-goals / won't do
 
 - Encoding - Koe only implements voice server communication, not voice handling itself, so it only accepts Opus frames, you have set up an encoder yourself, use [lavaplayer](https://github.com/sedmelluq/lavaplayer), libav/ffmpeg or anything else.
-- Voice receiving support - [it's not supported by Discord anyway](https://github.com/discordapp/discord-api-docs/issues/808#issuecomment-458863743), although someone could implement it by registering a Netty channel handler in the pipeline.
+- Voice receiving support - [it's not supported by Discord anyway](https://github.com/discordapp/discord-api-docs/issues/808#issuecomment-458863743), although someone could implement it by registering hooks.
 
 #### Credits
 
