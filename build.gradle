@@ -1,0 +1,18 @@
+allprojects {
+    apply plugin: 'maven'
+    apply plugin: 'java'
+
+    group = 'moe.kyokobot'
+    version = '1.0.0-SNAPSHOT'
+
+    sourceCompatibility = 11
+    targetCompatibility = 11
+
+    repositories {
+        mavenLocal()
+
+        maven { url "https://jcenter.bintray.com/" }
+        maven { url "http://repo.maven.apache.org/maven2" }
+        maven { url "https://jitpack.io/" }
+    }
+}
