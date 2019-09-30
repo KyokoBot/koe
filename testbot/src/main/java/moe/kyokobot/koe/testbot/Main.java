@@ -1,14 +1,20 @@
 package moe.kyokobot.koe.testbot;
 
 import com.mewna.catnip.Catnip;
+import com.mewna.catnip.entity.channel.TextChannel;
 import com.mewna.catnip.entity.channel.VoiceChannel;
+import com.mewna.catnip.entity.guild.Guild;
 import com.mewna.catnip.entity.util.Permission;
 import com.mewna.catnip.shard.DiscordEvent;
+import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.source.http.HttpAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceManager;
+import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager;
+import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
+import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioReference;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.playback.MutableAudioFrame;
@@ -26,6 +32,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import static com.sedmelluq.discord.lavaplayer.format.StandardAudioDataFormats.DISCORD_OPUS;
@@ -37,28 +47,34 @@ public class Main {
     private static Koe koe;
     private static KoeClient koeClient;
     private static AudioPlayerManager playerManager;
+    private static Map<Guild, AudioPlayer> playerMap = new ConcurrentHashMap<>();
 
     public static void main(String... args) {
         var token = System.getenv("TOKEN");
         catnip = Catnip.catnip(token);
         koe = Koe.koe(KoeOptions.defaultOptions());
         playerManager = new DefaultAudioPlayerManager();
-        var audioTrack = (AudioTrack) new SoundCloudAudioSourceManager()
-                .loadItem(null, new AudioReference("https://soundcloud.com/100gecs/money-machine", "Listen.moe"));
+        playerManager.registerSourceManager(new YoutubeAudioSourceManager());
+        playerManager.registerSourceManager(new SoundCloudAudioSourceManager());
+        playerManager.registerSourceManager(new HttpAudioSourceManager());
 
         catnip.observe(DiscordEvent.READY)
                 .subscribe(ready -> koeClient = koe.newClient(catnip.selfUser().idAsLong()));
 
         catnip.observe(DiscordEvent.VOICE_STATE_UPDATE)
                 .filter(state -> state.userIdAsLong() == catnip.selfUser().idAsLong() && state.channelIdAsLong() == 0)
-                .subscribe(leave -> {
-                    koeClient.destroyConnection(leave.guildIdAsLong());
-                });
+                .subscribe(leave -> koeClient.destroyConnection(leave.guildIdAsLong()));
 
         catnip.observe(DiscordEvent.MESSAGE_CREATE)
                 .filter(message -> message.guildIdAsLong() != 0
                         && !message.author().bot()
-                        && message.content().equals("!join"))
+                        && message.content().equals("!ping"))
+                .subscribe(message -> message.channel().sendMessage("Pong!"));
+
+        catnip.observe(DiscordEvent.MESSAGE_CREATE)
+                .filter(message -> message.guildIdAsLong() != 0
+                        && !message.author().bot()
+                        && message.content().startsWith("!play "))
                 .subscribe(message -> {
                     if (koeClient == null) return;
 
@@ -73,20 +89,28 @@ public class Main {
                         return;
                     }
 
-                    var conn = koeClient.createConnection(voiceState.guildIdAsLong());
-                    message.channel().sendMessage("Joined channel `" + voiceState.channel().name() + "`!");
-                    connect(voiceState.channel());
+                    var channel = Objects.requireNonNull(voiceState.channel());
 
-                    var player = playerManager.createPlayer();
-                    player.playTrack(audioTrack.makeClone());
-                    conn.setAudioSender(new ListenMoeSender(player));
+                    if (koeClient.getConnection(voiceState.guildIdAsLong()) == null) {
+                        var conn = koeClient.createConnection(voiceState.guildIdAsLong());
+                        var player = playerMap.computeIfAbsent(message.guild(), n -> playerManager.createPlayer());
+                        conn.setAudioSender(new AudioSender(player));
+                        connect(channel);
+                        message.channel().sendMessage("Joined channel `" + channel.name() + "`!");
+                    } else {
+                        catnip.openVoiceConnection(channel.guildIdAsLong(), channel.idAsLong());
+                    }
+
+                    resolve(message.guild(), message.channel().asTextChannel(), message.content().substring(6));
                 });
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            logger.info("Shutting down...");
-            koeClient.close();
-            catnip.shutdown(true);
             try {
+                logger.info("Shutting down...");
+                koeClient.getConnections().forEach((guild, conn) -> catnip.closeVoiceConnection(guild));
+                koeClient.close();
+                Thread.sleep(250);
+                catnip.shutdown(true);
                 Thread.sleep(500);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -121,12 +145,41 @@ public class Main {
         catnip.openVoiceConnection(channel.guildIdAsLong(), channel.idAsLong());
     }
 
-    private static class ListenMoeSender implements AudioFrameProvider {
+    private static void resolve(Guild guild, TextChannel channel, String args) {
+        var player = playerMap.computeIfAbsent(guild, n -> playerManager.createPlayer());
+
+        playerManager.loadItem(args, new AudioLoadResultHandler() {
+            @Override
+            public void trackLoaded(AudioTrack track) {
+                player.playTrack(track);
+                channel.sendMessage("**Now playing:** " + track.getInfo().title);
+            }
+
+            @Override
+            public void playlistLoaded(AudioPlaylist playlist) {
+                var track = playlist.getTracks().get(0);
+                player.playTrack(track);
+                channel.sendMessage("**Now playing:** " + track.getInfo().title);
+            }
+
+            @Override
+            public void noMatches() {
+                channel.sendMessage("**Error:** No matches found!");
+            }
+
+            @Override
+            public void loadFailed(FriendlyException exception) {
+                channel.sendMessage("**Error:** " + exception.getMessage());
+            }
+        });
+    }
+
+    private static class AudioSender implements AudioFrameProvider {
         private final AudioPlayer player;
         private final MutableAudioFrame frame;
         private final ByteBuffer frameBuffer;
 
-        ListenMoeSender(AudioPlayer player) {
+        AudioSender(AudioPlayer player) {
             this.player = player;
             this.frame = new MutableAudioFrame();
             this.frameBuffer = ByteBuffer.allocate(DISCORD_OPUS.maximumChunkSize());
