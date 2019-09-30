@@ -1,9 +1,6 @@
 package moe.kyokobot.koe.internal;
 
-import moe.kyokobot.koe.KoeClient;
-import moe.kyokobot.koe.KoeOptions;
-import moe.kyokobot.koe.VoiceConnection;
-import moe.kyokobot.koe.VoiceServerInfo;
+import moe.kyokobot.koe.*;
 import moe.kyokobot.koe.audio.AudioFrameProvider;
 import moe.kyokobot.koe.codec.Codec;
 import moe.kyokobot.koe.codec.CodecType;
@@ -24,6 +21,7 @@ public class VoiceConnectionImpl implements VoiceConnection {
 
     private final KoeClientImpl client;
     private final long guildId;
+    private final EventDispatcher dispatcher;
 
     private VoiceGatewayConnection gatewayConnection;
     private ConnectionHandler connectionHandler;
@@ -35,6 +33,7 @@ public class VoiceConnectionImpl implements VoiceConnection {
     public VoiceConnectionImpl(@NotNull KoeClientImpl client, long guildId) {
         this.client = Objects.requireNonNull(client);
         this.guildId = guildId;
+        this.dispatcher = new EventDispatcher();
         this.audioCodec = OpusCodec.INSTANCE;
         this.poller = audioCodec.createFramePoller(this);
     }
@@ -128,10 +127,6 @@ public class VoiceConnectionImpl implements VoiceConnection {
         }
     }
 
-    public void setConnectionHandler(ConnectionHandler connectionHandler) {
-        this.connectionHandler = connectionHandler;
-    }
-
     @Override
     public void startFramePolling() {
         if (poller == null || poller.isPolling()) {
@@ -151,8 +146,26 @@ public class VoiceConnectionImpl implements VoiceConnection {
     }
 
     @Override
+    public void registerListener(KoeEventListener listener) {
+        dispatcher.register(listener);
+    }
+
+    @Override
+    public void unregisterListener(KoeEventListener listener) {
+        dispatcher.unregister(listener);
+    }
+
+    @Override
     public void close() {
         disconnect();
         client.removeConnection(guildId);
+    }
+
+    public EventDispatcher getDispatcher() {
+        return dispatcher;
+    }
+
+    public void setConnectionHandler(ConnectionHandler connectionHandler) {
+        this.connectionHandler = connectionHandler;
     }
 }

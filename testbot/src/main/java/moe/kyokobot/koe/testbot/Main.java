@@ -15,15 +15,11 @@ import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceM
 import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
-import com.sedmelluq.discord.lavaplayer.track.AudioReference;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.playback.MutableAudioFrame;
 import io.netty.buffer.ByteBuf;
 import io.reactivex.Observable;
-import moe.kyokobot.koe.Koe;
-import moe.kyokobot.koe.KoeClient;
-import moe.kyokobot.koe.KoeOptions;
-import moe.kyokobot.koe.VoiceServerInfo;
+import moe.kyokobot.koe.*;
 import moe.kyokobot.koe.audio.AudioFrameProvider;
 import moe.kyokobot.koe.codec.Codec;
 import moe.kyokobot.koe.codec.OpusCodec;
@@ -34,7 +30,6 @@ import org.slf4j.LoggerFactory;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -95,6 +90,7 @@ public class Main {
                         var conn = koeClient.createConnection(voiceState.guildIdAsLong());
                         var player = playerMap.computeIfAbsent(message.guild(), n -> playerManager.createPlayer());
                         conn.setAudioSender(new AudioSender(player));
+                        conn.registerListener(new ExampleListener());
                         connect(channel);
                         message.channel().sendMessage("Joined channel `" + channel.name() + "`!");
                     } else {
@@ -197,6 +193,23 @@ public class Main {
             if (codec.getPayloadType() == OpusCodec.PAYLOAD_TYPE) {
                 buf.writeBytes(frame.getData());
             }
+        }
+    }
+
+    private static class ExampleListener extends KoeEventAdapter {
+        @Override
+        public void userConnected(String id, int audioSSRC, int videoSSRC) {
+            logger.info("An user with id {} joined the channel!", id);
+        }
+
+        @Override
+        public void userDisconnected(String id) {
+            logger.info("An user with id {} left the channel!", id);
+        }
+
+        @Override
+        public void gatewayClosed(int code, String reason) {
+            logger.info("Voice gateway closed with code {}: {}", code, reason);
         }
     }
 }
