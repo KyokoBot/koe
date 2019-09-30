@@ -1,4 +1,5 @@
 target/
+.gradle/
 pom.xml.tag
 pom.xml.releaseBackup
 pom.xml.versionsBackup
@@ -47,6 +48,9 @@ buildNumber.properties
 .idea/modules
 *.iml
 *.ipr
+
+*/build/
+*/out/
 
 # CMake
 cmake-build-*/
