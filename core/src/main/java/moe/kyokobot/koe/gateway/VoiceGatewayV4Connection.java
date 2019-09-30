@@ -79,6 +79,7 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
                         .collect(Collectors.toList());
                 address = new InetSocketAddress(ip, port);
 
+                connection.getDispatcher().gatewayReady((InetSocketAddress) address, ssrc);
                 logger.debug("Voice READY, ssrc: {}", ssrc);
                 selectProtocol("udp");
                 break;
@@ -96,7 +97,22 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
                 sendSpeaking(false);
                 sendSpeaking(true);
 
+                connection.getDispatcher().sessionDescription(data);
                 connection.getConnectionHandler().handleSessionDescription(data);
+                break;
+            }
+            case Op.CLIENT_CONNECT : {
+                var data = object.getObject("d");
+                var user = data.getString("user_id");
+                var audioSsrc = data.getInt("audio_ssrc", 0);
+                var videoSsrc = data.getInt("video_ssrc", 0);
+                connection.getDispatcher().userConnected(user, audioSsrc, videoSsrc);
+                break;
+            }
+            case Op.CLIENT_DISCONNECT : {
+                var data = object.getObject("d");
+                var user = data.getString("user_id");
+                connection.getDispatcher().userDisconnected(user);
                 break;
             }
         }
@@ -107,6 +123,8 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
         if (this.heartbeatFuture != null) {
             heartbeatFuture.cancel(true);
         }
+
+        connection.getDispatcher().gatewayClosed(frame.statusCode(), frame.reasonText());
     }
 
     @Override
@@ -140,6 +158,7 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
             var conn = new DiscordUDPConnection(connection, address, ssrc);
             conn.connect().thenAccept(ourAddress -> {
                 logger.debug("Connected, our external address is: {}", ourAddress);
+                connection.getDispatcher().externalIPDiscovered(ourAddress);
 
                 var udpInfo = new JsonObject()
                         .add("address", ourAddress.getAddress().getHostAddress())

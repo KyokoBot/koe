@@ -42,6 +42,10 @@ public interface VoiceConnection extends Closeable {
 
     void stopFramePolling();
 
+    void registerListener(KoeEventListener listener);
+
+    void unregisterListener(KoeEventListener listener);
+
     @Override
     void close();
 }
