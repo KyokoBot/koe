@@ -131,12 +131,14 @@ public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConn
             var ch = ctx.channel();
 
             if (!handshaker.isHandshakeComplete()) {
-                try {
-                    handshaker.finishHandshake(ch, (FullHttpResponse) msg);
-                    AbstractVoiceGatewayConnection.this.open = true;
-                    connectFuture.complete(null);
-                } catch (WebSocketHandshakeException e) {
-                    connectFuture.completeExceptionally(e);
+                if (msg instanceof FullHttpResponse) {
+                    try {
+                        handshaker.finishHandshake(ch, (FullHttpResponse) msg);
+                        AbstractVoiceGatewayConnection.this.open = true;
+                        connectFuture.complete(null);
+                    } catch (WebSocketHandshakeException e) {
+                        connectFuture.completeExceptionally(e);
+                    }
                 }
                 return;
             }
