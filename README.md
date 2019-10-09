@@ -11,7 +11,7 @@ Tiny, minimal dependency and embeddable library implementing Discord voice proto
 
 #### Features
 
-- Support for voice gateway v3 and v4.
+- Support for voice gateway ~~v3 and~~ v4.
 - Easily extendable for stuff such as support for codecs other than Opus or video sending, if Discord ever decides to support it on bots.
 - Basic RTCP support for measuring packet loss and other stuff.
 
