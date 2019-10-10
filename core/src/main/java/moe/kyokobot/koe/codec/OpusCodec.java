@@ -61,6 +61,7 @@ public class OpusCodec extends AbstractCodec {
                     int len = buf.writerIndex() - start;
                     connection.getConnectionHandler().sendFrame(OpusCodec.PAYLOAD_TYPE, timestamp.getAndAdd(960),
                             buf, len);
+                    buf.release();
                 }
             } catch (Exception e) {
                 logger.error("Sending frame failed", e);
