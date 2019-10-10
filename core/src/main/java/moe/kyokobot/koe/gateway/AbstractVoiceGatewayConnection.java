@@ -127,6 +127,11 @@ public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConn
         }
 
         @Override
+        public void channelInactive(ChannelHandlerContext ctx) {
+            handleClose(null);
+        }
+
+        @Override
         protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
             var ch = ctx.channel();
 
@@ -172,6 +177,7 @@ public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConn
                 connectFuture.completeExceptionally(cause);
             }
 
+            handleClose(null);
             ctx.close();
         }
     }

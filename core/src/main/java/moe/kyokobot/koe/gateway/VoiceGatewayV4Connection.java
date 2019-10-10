@@ -40,6 +40,7 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
     private List<String> encryptionModes;
     private UUID rtcConnectionId;
     private ScheduledFuture heartbeatFuture;
+    private volatile boolean closed;
 
     public VoiceGatewayV4Connection(VoiceConnection connection, VoiceServerInfo voiceServerInfo) {
         super(connection, voiceServerInfo, 4);
@@ -115,6 +116,8 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
                 connection.getDispatcher().userDisconnected(user);
                 break;
             }
+            default:
+                break;
         }
     }
 
@@ -124,7 +127,10 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
             heartbeatFuture.cancel(true);
         }
 
-        connection.getDispatcher().gatewayClosed(frame.statusCode(), frame.reasonText());
+        if (frame != null && !closed) {
+            closed = true;
+            connection.getDispatcher().gatewayClosed(frame.statusCode(), frame.reasonText());
+        }
     }
 
     @Override
@@ -184,10 +190,5 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
             // do ICE and then generate SDP with info like above?
             throw new IllegalArgumentException("WebRTC protocol is not supported yet!");
         }
-    }
-
-    @Override
-    public void close() {
-        super.close();
     }
 }
