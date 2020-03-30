@@ -50,7 +50,7 @@ public class Main {
         koe = Koe.koe(KoeOptions.defaultOptions());
         playerManager = new DefaultAudioPlayerManager();
         playerManager.registerSourceManager(new YoutubeAudioSourceManager());
-        playerManager.registerSourceManager(new SoundCloudAudioSourceManager());
+        playerManager.registerSourceManager(SoundCloudAudioSourceManager.createDefault());
         playerManager.registerSourceManager(new HttpAudioSourceManager());
 
         catnip.observe(DiscordEvent.READY)
