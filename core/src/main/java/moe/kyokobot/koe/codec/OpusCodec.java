@@ -53,13 +53,15 @@ public class OpusCodec extends AbstractCodec {
             }
 
             try {
-                if (connection.getSender() != null && connection.getConnectionHandler() != null
-                        && connection.getSender().canSendFrame()) {
+                var handler = connection.getConnectionHandler();
+                var sender = connection.getSender();
+                
+                if (sender != null && handler != null && sender.canSendFrame()) {
                     var buf = allocator.buffer();
                     int start = buf.writerIndex();
-                    connection.getSender().retrieve(OpusCodec.INSTANCE, buf);
+                    sender.retrieve(OpusCodec.INSTANCE, buf);
                     int len = buf.writerIndex() - start;
-                    connection.getConnectionHandler().sendFrame(OpusCodec.PAYLOAD_TYPE, timestamp.getAndAdd(960),
+                    handler.sendFrame(OpusCodec.PAYLOAD_TYPE, timestamp.getAndAdd(960),
                             buf, len);
                     buf.release();
                 }
