@@ -38,7 +38,7 @@ public class HolepunchHandler extends SimpleChannelInboundHandler<DatagramPacket
         if (!future.isDone()) {
             if (buf.readableBytes() != 74) return;
 
-            buf.skipBytes(6);
+            buf.skipBytes(8);
 
             var stringBuilder = new StringBuilder();
             byte b;
