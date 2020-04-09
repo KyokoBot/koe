@@ -178,7 +178,7 @@ public class Main {
         AudioSender(AudioPlayer player) {
             this.player = player;
             this.frame = new MutableAudioFrame();
-            this.frameBuffer = ByteBuffer.allocate(DISCORD_OPUS.maximumChunkSize());
+            this.frameBuffer = ByteBuffer.allocateDirect(DISCORD_OPUS.maximumChunkSize());
             frame.setBuffer(frameBuffer);
             frame.setFormat(DISCORD_OPUS);
         }
