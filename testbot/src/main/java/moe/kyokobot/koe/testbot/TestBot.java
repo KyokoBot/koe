@@ -111,6 +111,14 @@ public class TestBot {
                     resolve(message.guild(), message.channel().asTextChannel(), message.content().substring(6));
                 });
 
+
+        catnip.observe(DiscordEvent.MESSAGE_CREATE)
+                .filter(message -> message.guildIdAsLong() != 0
+                        && !message.author().bot()
+                        && message.content().startsWith("!gcpress"))
+                .subscribe(message -> message.channel()
+                        .sendMessage("GC pressure generator enabled = " + GCPressureGenerator.toggle()));
+
         catnip.connect();
     }
 
