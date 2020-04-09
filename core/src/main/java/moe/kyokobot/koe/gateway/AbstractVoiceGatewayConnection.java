@@ -10,18 +10,24 @@ import io.netty.handler.codec.http.EmptyHttpHeaders;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpClientCodec;
 import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.websocketx.*;
+import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.WebSocketClientHandshaker;
+import io.netty.handler.codec.http.websocketx.WebSocketClientHandshakerFactory;
+import io.netty.handler.codec.http.websocketx.WebSocketHandshakeException;
+import io.netty.handler.codec.http.websocketx.WebSocketVersion;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.concurrent.EventExecutor;
-import moe.kyokobot.koe.VoiceConnection;
 import moe.kyokobot.koe.VoiceServerInfo;
 import moe.kyokobot.koe.internal.NettyBootstrapFactory;
+import moe.kyokobot.koe.internal.VoiceConnectionImpl;
 import moe.kyokobot.koe.internal.json.JsonObject;
 import moe.kyokobot.koe.internal.json.JsonParser;
 import moe.kyokobot.koe.internal.util.NettyFutureWrapper;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +42,7 @@ import java.util.concurrent.CompletableFuture;
 public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConnection {
     private static final Logger logger = LoggerFactory.getLogger(AbstractVoiceGatewayConnection.class);
 
-    private final VoiceConnection connection;
+    private final VoiceConnectionImpl connection;
     private final VoiceServerInfo voiceServerInfo;
     private final URI websocketURI;
     private final Bootstrap bootstrap;
@@ -46,8 +52,9 @@ public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConn
     protected EventExecutor eventExecutor;
     protected Channel channel;
     private volatile boolean open;
+    private volatile boolean closed = false;
 
-    public AbstractVoiceGatewayConnection(@NotNull VoiceConnection connection,
+    public AbstractVoiceGatewayConnection(@NotNull VoiceConnectionImpl connection,
                                           @NotNull VoiceServerInfo voiceServerInfo,
                                           int version) {
         try {
@@ -79,14 +86,20 @@ public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConn
     }
 
     @Override
-    public void close() {
+    public void close(int code, @Nullable String reason) {
         if (channel != null && channel.isOpen()) {
+            // Code 1006 must never be sent, according to RFC 6455
+            if (code != 1006) {
+                channel.writeAndFlush(new CloseWebSocketFrame(code, reason));
+            }
             channel.close();
         }
 
         if (!connectFuture.isDone()) {
             connectFuture.completeExceptionally(new NotYetConnectedException());
         }
+
+        onClose(code, reason, false);
     }
 
     @Override
@@ -96,7 +109,12 @@ public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConn
 
     protected abstract void handlePayload(JsonObject object);
 
-    protected abstract void handleClose(CloseWebSocketFrame frame);
+    protected void onClose(int code, @Nullable String reason, boolean remote) {
+        if (!closed) {
+            closed = true;
+            connection.getDispatcher().gatewayClosed(code, reason, remote);
+        }
+    }
 
     public abstract void sendSpeaking(boolean state);
 
@@ -128,7 +146,7 @@ public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConn
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) {
-            handleClose(null);
+            close(1006, "Abnormal closure");
         }
 
         @Override
@@ -167,7 +185,7 @@ public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConn
                     logger.debug("Websocket closed, code: {}, reason: {}", frame.statusCode(), frame.reasonText());
                 }
                 AbstractVoiceGatewayConnection.this.open = false;
-                handleClose(frame);
+                onClose(frame.statusCode(), frame.reasonText(), true);
             }
         }
 
@@ -177,7 +195,7 @@ public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConn
                 connectFuture.completeExceptionally(cause);
             }
 
-            handleClose(null);
+            close(4000, "Internal error");
             ctx.close();
         }
     }

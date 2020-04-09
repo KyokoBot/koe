@@ -11,7 +11,7 @@ public class KoeEventAdapter implements KoeEventListener {
     }
 
     @Override
-    public void gatewayClosed(int code, String reason) {
+    public void gatewayClosed(int code, String reason, boolean byRemote) {
         //
     }
 

@@ -1,9 +1,9 @@
 package moe.kyokobot.koe.gateway;
 
-import moe.kyokobot.koe.VoiceConnection;
 import moe.kyokobot.koe.VoiceServerInfo;
+import moe.kyokobot.koe.internal.VoiceConnectionImpl;
 
 @FunctionalInterface
 public interface VoiceGatewayConnectionFactory {
-    VoiceGatewayConnection create(VoiceConnection connection, VoiceServerInfo voiceServerInfo);
+    VoiceGatewayConnection create(VoiceConnectionImpl connection, VoiceServerInfo voiceServerInfo);
 }
