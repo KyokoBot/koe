@@ -1,7 +1,7 @@
 package moe.kyokobot.koe.gateway;
 
-import moe.kyokobot.koe.VoiceConnection;
 import moe.kyokobot.koe.VoiceServerInfo;
+import moe.kyokobot.koe.internal.VoiceConnectionImpl;
 
 public enum GatewayVersion {
     V3(null),
@@ -9,7 +9,7 @@ public enum GatewayVersion {
 
     private final VoiceGatewayConnectionFactory factory;
 
-    public VoiceGatewayConnection createConnection(VoiceConnection connection, VoiceServerInfo voiceServerInfo) {
+    public VoiceGatewayConnection createConnection(VoiceConnectionImpl connection, VoiceServerInfo voiceServerInfo) {
         return factory.create(connection, voiceServerInfo);
     }
 

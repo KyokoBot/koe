@@ -243,7 +243,7 @@ public class TestBot {
         }
 
         @Override
-        public void gatewayClosed(int code, String reason) {
+        public void gatewayClosed(int code, String reason, boolean byRemote) {
             logger.info("Voice gateway closed with code {}: {}", code, reason);
         }
     }

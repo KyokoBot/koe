@@ -35,9 +35,9 @@ public class EventDispatcher implements KoeEventListener {
     }
 
     @Override
-    public void gatewayClosed(int code, String reason) {
+    public void gatewayClosed(int code, String reason, boolean byRemote) {
         for (var listener : listeners) {
-            listener.gatewayClosed(code, reason);
+            listener.gatewayClosed(code, reason, byRemote);
         }
     }
 

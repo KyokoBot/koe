@@ -1,13 +1,12 @@
 package moe.kyokobot.koe.gateway;
 
-import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
-import moe.kyokobot.koe.VoiceConnection;
 import moe.kyokobot.koe.VoiceServerInfo;
 import moe.kyokobot.koe.crypto.EncryptionMode;
 import moe.kyokobot.koe.internal.VoiceConnectionImpl;
 import moe.kyokobot.koe.internal.handler.DiscordUDPConnection;
 import moe.kyokobot.koe.internal.json.JsonArray;
 import moe.kyokobot.koe.internal.json.JsonObject;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,9 +39,8 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
     private List<String> encryptionModes;
     private UUID rtcConnectionId;
     private ScheduledFuture heartbeatFuture;
-    private volatile boolean closed;
 
-    public VoiceGatewayV4Connection(VoiceConnection connection, VoiceServerInfo voiceServerInfo) {
+    public VoiceGatewayV4Connection(VoiceConnectionImpl connection, VoiceServerInfo voiceServerInfo) {
         super(connection, voiceServerInfo, 4);
 
         this.connection = (VoiceConnectionImpl) connection;
@@ -122,14 +120,10 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
     }
 
     @Override
-    protected void handleClose(CloseWebSocketFrame frame) {
+    protected void onClose(int code, @Nullable String reason, boolean remote) {
+        super.onClose(code, reason, remote);
         if (this.heartbeatFuture != null) {
             heartbeatFuture.cancel(true);
-        }
-
-        if (frame != null && !closed) {
-            closed = true;
-            connection.getDispatcher().gatewayClosed(frame.statusCode(), frame.reasonText());
         }
     }
 
