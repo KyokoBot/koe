@@ -1,13 +1,13 @@
 package moe.kyokobot.koe.gateway;
 
-import java.io.Closeable;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.concurrent.CompletableFuture;
 
-public interface VoiceGatewayConnection extends Closeable {
+public interface VoiceGatewayConnection {
     boolean isOpen();
 
     CompletableFuture<Void> start();
 
-    @Override
-    void close();
+    void close(int code, @Nullable String reason);
 }
