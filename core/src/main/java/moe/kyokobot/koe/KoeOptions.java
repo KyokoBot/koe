@@ -80,22 +80,10 @@ public class KoeOptions {
 
     @NotNull
     public static KoeOptions defaultOptions() {
-        boolean epoll = Epoll.isAvailable();
-        var eventLoop = epoll
-                ? new EpollEventLoopGroup()
-                : new NioEventLoopGroup();
-        var socketChannelClass = epoll
-                ? EpollSocketChannel.class
-                : NioSocketChannel.class;
+        return new KoeOptionsBuilder().create();
+    }
 
-        var datagramChannelClass = epoll
-                ? EpollDatagramChannel.class
-                : NioDatagramChannel.class;
-
-        var allocator = new PooledByteBufAllocator();
-        var gatewayVersion = GatewayVersion.V4;
-        var framePollerFactory = new NettyFramePollerFactory();
-
-        return new KoeOptions(eventLoop, socketChannelClass, datagramChannelClass, allocator, gatewayVersion, framePollerFactory, true);
+    public static KoeOptionsBuilder builder() {
+        return new KoeOptionsBuilder();
     }
 }
