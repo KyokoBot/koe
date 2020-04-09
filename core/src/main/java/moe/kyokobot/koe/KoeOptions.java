@@ -1,19 +1,10 @@
 package moe.kyokobot.koe;
 
 import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.epoll.Epoll;
-import io.netty.channel.epoll.EpollDatagramChannel;
-import io.netty.channel.epoll.EpollEventLoopGroup;
-import io.netty.channel.epoll.EpollSocketChannel;
-import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioDatagramChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
 import moe.kyokobot.koe.codec.FramePollerFactory;
-import moe.kyokobot.koe.codec.netty.NettyFramePollerFactory;
 import moe.kyokobot.koe.gateway.GatewayVersion;
 import org.jetbrains.annotations.NotNull;
 
@@ -78,6 +69,9 @@ public class KoeOptions {
         return highPacketPriority;
     }
 
+    /**
+     * @return An instance of {@link KoeOptions} with default options.
+     */
     @NotNull
     public static KoeOptions defaultOptions() {
         return new KoeOptionsBuilder().create();
