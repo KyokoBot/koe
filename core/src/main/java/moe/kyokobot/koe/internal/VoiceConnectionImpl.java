@@ -17,7 +17,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 
 public class VoiceConnectionImpl implements VoiceConnection {
-    private static final Logger logger = LoggerFactory.getLogger(VoiceConnection.class);
+    private static final Logger logger = LoggerFactory.getLogger(VoiceConnectionImpl.class);
 
     private final KoeClientImpl client;
     private final long guildId;
@@ -35,7 +35,7 @@ public class VoiceConnectionImpl implements VoiceConnection {
         this.guildId = guildId;
         this.dispatcher = new EventDispatcher();
         this.audioCodec = OpusCodec.INSTANCE;
-        this.poller = audioCodec.createFramePoller(this);
+        this.poller = client.getOptions().getFramePollerFactory().createFramePoller(this.audioCodec, this);
     }
 
     @Override
@@ -120,7 +120,7 @@ public class VoiceConnectionImpl implements VoiceConnection {
         stopFramePolling();
 
         this.audioCodec = audioCodec;
-        this.poller = audioCodec.createFramePoller(this);
+        this.poller = client.getOptions().getFramePollerFactory().createFramePoller(this.audioCodec, this);
 
         if (wasPolling) {
             startFramePolling();

@@ -1,21 +1,63 @@
 package moe.kyokobot.koe.codec;
 
-import moe.kyokobot.koe.VoiceConnection;
 import moe.kyokobot.koe.internal.json.JsonObject;
 import org.jetbrains.annotations.Nullable;
 
-public interface Codec {
-    String getName();
+import java.util.Objects;
 
-    byte getPayloadType();
+public abstract class Codec {
+    private final String name;
+    private final byte payloadType;
+    private final int priority;
+    private final CodecType type;
+    private final JsonObject jsonDescription;
 
-    int getPriority();
+    protected Codec(String name, byte payloadType, int priority, CodecType type) {
+        this.name = name;
+        this.payloadType = payloadType;
+        this.priority = priority;
+        this.type = type;
 
-    CodecType getType();
+        this.jsonDescription = new JsonObject()
+                .add("name", name)
+                .add("payload_type", payloadType)
+                .add("priority", priority)
+                .add("type", type.name().toLowerCase());
+    }
 
-    JsonObject getJsonDescription();
+    public String getName() {
+        return name;
+    }
 
-    FramePoller createFramePoller(VoiceConnection connection);
+    public byte getPayloadType() {
+        return payloadType;
+    }
+
+    public int getPriority() {
+        return priority;
+    }
+
+    public CodecType getType() {
+        return type;
+    }
+
+    public JsonObject getJsonDescription() {
+        return jsonDescription;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Codec that = (Codec) o;
+        return payloadType == that.payloadType &&
+                type == that.type;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(payloadType, type);
+    }
 
     /**
      * Gets audio codec description by name.
@@ -23,7 +65,7 @@ public interface Codec {
      * @return Codec instance or null if the codec is not found/supported by Koe.
      */
     @Nullable
-    static Codec getAudio(String name) {
+    public static Codec getAudio(String name) {
         return DefaultCodecs.audioCodecs.get(name);
     }
 
@@ -33,7 +75,7 @@ public interface Codec {
      * @return Codec instance or null if the codec is not found/supported by Koe.
      */
     @Nullable
-    static Codec getVideo(String name) {
+    public static Codec getVideo(String name) {
         return DefaultCodecs.audioCodecs.get(name);
     }
 
@@ -43,7 +85,7 @@ public interface Codec {
      * @return Codec instance or null if the codec is not found/supported by Koe.
      */
     @Nullable
-    static Codec getByPayload(byte payloadType) {
+    public static Codec getByPayload(byte payloadType) {
         for (var codec : DefaultCodecs.audioCodecs.values()) {
             if (codec.getPayloadType() == payloadType) {
                 return codec;
