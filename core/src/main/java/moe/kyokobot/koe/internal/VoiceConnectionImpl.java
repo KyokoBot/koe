@@ -55,7 +55,7 @@ public class VoiceConnectionImpl implements VoiceConnection {
         stopFramePolling();
 
         if (gatewayConnection != null && gatewayConnection.isOpen()) {
-            gatewayConnection.close();
+            gatewayConnection.close(1000, null);
             gatewayConnection = null;
         }
 
