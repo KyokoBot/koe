@@ -1,0 +1,5 @@
+dependencies {
+    compileOnly project(':core')
+    compileOnly group: 'org.jetbrains', name: 'annotations', version: '13.0'
+    implementation 'com.sedmelluq:udp-queue:1.1.0-linux64'
+}

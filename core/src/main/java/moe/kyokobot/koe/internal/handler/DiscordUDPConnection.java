@@ -18,7 +18,6 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.security.SecureRandom;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -103,8 +102,16 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
 
     @Override
     public void sendFrame(byte payloadType, int timestamp, ByteBuf data, int len) {
+        var buf = createPacket(payloadType, timestamp, data, len);
+        if (buf != null) {
+            //logger.debug("Sent frame PT = {}, TS = {}", payloadType, timestamp);
+            channel.writeAndFlush(buf);
+        }
+    }
+
+    public ByteBuf createPacket(byte payloadType, int timestamp, ByteBuf data, int len) {
         if (secretKey == null) {
-            return;
+            return null;
         }
 
         var buf = allocator.buffer();
@@ -112,14 +119,17 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
         RTPHeaderWriter.writeV2(buf, payloadType, nextSeq(), timestamp, ssrc);
         if (encryptionMode.box(data, len, buf, secretKey)) {
             //logger.debug("Sent frame PT = {}, TS = {}", payloadType, timestamp);
-            channel.writeAndFlush(buf);
+            return buf;
         } else {
             logger.debug("Encryption failed!");
+            buf.release();
             // handle failed encryption?
         }
+
+        return null;
     }
 
-    private char nextSeq() {
+    public char nextSeq() {
         if ((seq + 1) > 0xffff) {
             seq = 0;
         } else {
@@ -127,6 +137,22 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
         }
 
         return seq;
+    }
+
+    public byte[] getSecretKey() {
+        return secretKey;
+    }
+
+    public int getSsrc() {
+        return ssrc;
+    }
+
+    public EncryptionMode getEncryptionMode() {
+        return encryptionMode;
+    }
+
+    public SocketAddress getServerAddress() {
+        return serverAddress;
     }
 
     private static class Initializer extends ChannelInitializer<DatagramChannel> {
