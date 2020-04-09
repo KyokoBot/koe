@@ -27,7 +27,7 @@ public class KoeClientImpl implements KoeClient {
     @Override
     @NotNull
     public VoiceConnection createConnection(long guildId) {
-        return connections.computeIfAbsent(guildId, this::createVoiceConnection);
+        return connections.computeIfAbsent(guildId, this::newVoiceConnection);
     }
 
     @Override
@@ -63,8 +63,7 @@ public class KoeClientImpl implements KoeClient {
         }
     }
 
-    @Override
-    public VoiceConnection createVoiceConnection(long id) {
+    public VoiceConnection newVoiceConnection(long id) {
         return new VoiceConnectionImpl(this, id);
     }
 
