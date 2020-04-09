@@ -22,8 +22,6 @@ public interface KoeClient extends Closeable {
     @Override
     void close();
 
-    VoiceConnection createVoiceConnection(long id);
-
     long getClientId();
 
     @NotNull
