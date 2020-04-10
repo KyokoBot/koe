@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class UdpQueueFramePollerFactory implements FramePollerFactory {
-    private static final int DEFAULT_BUFFER_DURATION = 400;
+    public static final int DEFAULT_BUFFER_DURATION = 400;
     private static final int PACKET_INTERVAL = 20;
     private static final int MAXIMUM_PACKET_SIZE = 4096;
 
