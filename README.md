@@ -2,8 +2,7 @@
 
 Tiny, minimal dependency and embeddable library implementing Discord voice protocol built on [Netty](https://netty.io), aiming for high performance and reduced GC usage.
 
-[Get it on JitPack](https://jitpack.io/#moe.kyokobot/koe)
-
+I don't want your Testbot in my classpath
 #### Dependencies
 - Netty
 - slf4j
