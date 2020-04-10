@@ -2,7 +2,23 @@
 
 Tiny, minimal dependency and embeddable library implementing Discord voice protocol built on [Netty](https://netty.io), aiming for high performance and reduced GC usage.
 
-[Get it on JitPack](https://jitpack.io/#moe.kyokobot/koe)
+[Get it on JitPack](https://jitpack.io/#moe.kyokobot.koe/core)
+
+Example:
+
+```groovy
+repositories {
+    maven { url 'https://jitpack.io' }
+}
+
+// ...
+
+dependencies {
+    implementation 'moe.kyokobot.koe:core:VERSION'
+}
+```
+
+`VERSION` can be either a tag or a git commit hash.
 
 #### Dependencies
 - Netty
