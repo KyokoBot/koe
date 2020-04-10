@@ -5,7 +5,7 @@ import moe.kyokobot.koe.codec.Codec;
 
 public interface AudioFrameProvider {
     /**
-     * @return If true, Koe will request audio data by calling {@link #retrieve(ByteBuf)} method.
+     * @return If true, Koe will request audio data by calling {@link #retrieve(Codec, ByteBuf)} method.
      */
     boolean canSendFrame();
 
