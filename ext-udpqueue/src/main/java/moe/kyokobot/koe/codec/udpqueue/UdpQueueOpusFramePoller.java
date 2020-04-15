@@ -9,20 +9,26 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static moe.kyokobot.koe.codec.udpqueue.UdpQueueFramePollerFactory.MAXIMUM_PACKET_SIZE;
+import static moe.kyokobot.koe.codec.udpqueue.UdpQueueFramePollerFactory.PACKET_INTERVAL;
 
 public class UdpQueueOpusFramePoller extends AbstractFramePoller {
     private static final Logger logger = LoggerFactory.getLogger(UdpQueueOpusFramePoller.class);
 
-    private final long queueKey;
-    private final UdpQueueFramePollerFactory factory;
+    private final int bufferDuration;
+    private UdpQueueManager queueManager;
     private AtomicInteger timestamp;
+    private long lastFrame;
+    private long queueKey;
 
-    public UdpQueueOpusFramePoller(long queueKey, UdpQueueFramePollerFactory factory, VoiceConnection connection) {
+    public UdpQueueOpusFramePoller(int bufferDuration, VoiceConnection connection) {
         super(connection);
-        this.queueKey = queueKey;
-        this.factory = factory;
+        this.bufferDuration = bufferDuration;
         this.timestamp = new AtomicInteger();
+        this.queueKey = 0;
     }
 
     @Override
@@ -31,21 +37,34 @@ public class UdpQueueOpusFramePoller extends AbstractFramePoller {
             throw new IllegalStateException("Polling already started!");
         }
 
-        factory.addInstance(this);
         this.polling = true;
+        this.lastFrame = System.currentTimeMillis();
+        queueManager = new UdpQueueManager(bufferDuration / PACKET_INTERVAL,
+                TimeUnit.MILLISECONDS.toNanos(PACKET_INTERVAL), MAXIMUM_PACKET_SIZE);
+
+        Thread thread = new Thread(queueManager::process);
+        thread.setPriority((Thread.NORM_PRIORITY + Thread.MAX_PRIORITY) / 2);
+        thread.setDaemon(true);
+        thread.start();
+        eventLoop.execute(this::populateQueue);
     }
 
     @Override
     public void stop() {
         if (this.polling) {
-            factory.removeInstance(this);
+            this.polling = false;
+            queueManager.close();
+            queueManager = null;
         }
-        this.polling = false;
     }
 
-    void populateQueue(UdpQueueManager queueManager) {
-        int remaining = queueManager.getRemainingCapacity(queueKey);
-        //boolean emptyQueue = queueManager.getCapacity() - remaining > 0;
+    void populateQueue() {
+        if (!this.polling || queueManager == null) {
+            return;
+        }
+
+        var manager = this.queueManager;
+        int remaining = manager.getRemainingCapacity(queueKey);
 
         var handler = (DiscordUDPConnection) connection.getConnectionHandler();
         var sender = connection.getSender();
@@ -56,14 +75,31 @@ public class UdpQueueOpusFramePoller extends AbstractFramePoller {
                 int start = buf.writerIndex();
                 sender.retrieve(OpusCodec.INSTANCE, buf);
                 int len = buf.writerIndex() - start;
-                //handler.sendFrame(OpusCodec.PAYLOAD_TYPE, timestamp.getAndAdd(960), buf, len);
                 var packet = handler.createPacket(OpusCodec.PAYLOAD_TYPE, timestamp.getAndAdd(960), buf, len);
                 if (packet != null) {
-                    queueManager.queuePacket(queueKey, packet.nioBuffer(),
+                    manager.queuePacket(queueKey, packet.nioBuffer(),
                             (InetSocketAddress) handler.getServerAddress());
                 }
                 buf.release();
             }
         }
+
+        long frameDelay = 40 - (System.currentTimeMillis() - lastFrame);
+
+        if (frameDelay > 0) {
+            eventLoop.schedule(this::loop, frameDelay, TimeUnit.MILLISECONDS);
+        } else {
+            loop();
+        }
+    }
+
+    private void loop() {
+        if (System.currentTimeMillis() < lastFrame + 60) {
+            lastFrame += 40;
+        } else {
+            lastFrame = System.currentTimeMillis();
+        }
+
+        populateQueue();
     }
 }
