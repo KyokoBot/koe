@@ -1,7 +1,7 @@
 package moe.kyokobot.koe.internal;
 
 import moe.kyokobot.koe.*;
-import moe.kyokobot.koe.audio.AudioFrameProvider;
+import moe.kyokobot.koe.media.MediaFrameProvider;
 import moe.kyokobot.koe.codec.Codec;
 import moe.kyokobot.koe.codec.CodecType;
 import moe.kyokobot.koe.codec.FramePoller;
@@ -28,7 +28,7 @@ public class VoiceConnectionImpl implements VoiceConnection {
     private VoiceServerInfo info;
     private Codec audioCodec;
     private FramePoller poller;
-    private AudioFrameProvider sender;
+    private MediaFrameProvider sender;
 
     public VoiceConnectionImpl(@NotNull KoeClientImpl client, long guildId) {
         this.client = Objects.requireNonNull(client);
@@ -79,7 +79,7 @@ public class VoiceConnectionImpl implements VoiceConnection {
 
     @Override
     @Nullable
-    public AudioFrameProvider getSender() {
+    public MediaFrameProvider getSender() {
         return sender;
     }
 
@@ -106,7 +106,7 @@ public class VoiceConnectionImpl implements VoiceConnection {
     }
 
     @Override
-    public void setAudioSender(@Nullable AudioFrameProvider sender) {
+    public void setAudioSender(@Nullable MediaFrameProvider sender) {
         this.sender = sender;
     }
 
@@ -159,6 +159,13 @@ public class VoiceConnectionImpl implements VoiceConnection {
     public void close() {
         disconnect();
         client.removeConnection(guildId);
+    }
+
+    @Override
+    public void updateSpeakingState(int mask) {
+        if (this.gatewayConnection != null) {
+            this.gatewayConnection.updateSpeaking(mask);
+        }
     }
 
     public EventDispatcher getDispatcher() {

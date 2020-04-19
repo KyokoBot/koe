@@ -10,4 +10,6 @@ public interface VoiceGatewayConnection {
     CompletableFuture<Void> start();
 
     void close(int code, @Nullable String reason);
+
+    void updateSpeaking(int mask);
 }

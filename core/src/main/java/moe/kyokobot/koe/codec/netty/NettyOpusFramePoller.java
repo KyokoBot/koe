@@ -44,14 +44,16 @@ public class NettyOpusFramePoller extends AbstractFramePoller {
         try {
             var handler = connection.getConnectionHandler();
             var sender = connection.getSender();
+            var codec = OpusCodec.INSTANCE;
 
-            if (sender != null && handler != null && sender.canSendFrame()) {
+            if (sender != null && handler != null && sender.canSendFrame(codec)) {
                 var buf = allocator.buffer();
                 int start = buf.writerIndex();
-                sender.retrieve(OpusCodec.INSTANCE, buf);
+                sender.retrieve(codec, buf);
                 int len = buf.writerIndex() - start;
-                handler.sendFrame(OpusCodec.PAYLOAD_TYPE, timestamp.getAndAdd(960),
-                        buf, len);
+                if (len != 0) {
+                    handler.sendFrame(OpusCodec.PAYLOAD_TYPE, timestamp.getAndAdd(960), buf, len);
+                }
                 buf.release();
             }
         } catch (Exception e) {

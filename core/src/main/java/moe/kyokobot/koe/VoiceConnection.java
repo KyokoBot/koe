@@ -1,6 +1,6 @@
 package moe.kyokobot.koe;
 
-import moe.kyokobot.koe.audio.AudioFrameProvider;
+import moe.kyokobot.koe.media.MediaFrameProvider;
 import moe.kyokobot.koe.codec.Codec;
 import moe.kyokobot.koe.gateway.VoiceGatewayConnection;
 import moe.kyokobot.koe.handler.ConnectionHandler;
@@ -11,8 +11,17 @@ import java.io.Closeable;
 import java.util.concurrent.CompletionStage;
 
 public interface VoiceConnection extends Closeable {
+    /**
+     * Connects to Discord voice server using specified info.
+     * @param info Discord voice server connection information
+     * @return future which completes once Koe is connected to both voice gateway and can successfully
+     * send UDP packets, so you can send audio data.
+     */
     CompletionStage<Void> connect(VoiceServerInfo info);
 
+    /**
+     * Stops polling media frames, disconnects from the gateway and cleans everything up.
+     */
     void disconnect();
 
     @NotNull
@@ -22,7 +31,7 @@ public interface VoiceConnection extends Closeable {
     KoeOptions getOptions();
 
     @Nullable
-    AudioFrameProvider getSender();
+    MediaFrameProvider getSender();
 
     long getGuildId();
 
@@ -34,17 +43,30 @@ public interface VoiceConnection extends Closeable {
 
     ConnectionHandler getConnectionHandler();
 
-    void setAudioSender(@Nullable AudioFrameProvider sender);
+    void setAudioSender(@Nullable MediaFrameProvider sender);
 
     void setAudioCodec(@NotNull Codec audioCodec);
 
+    /**
+     * Starts polling media frames. Called automatically after connecting, you don't have to.
+     */
     void startFramePolling();
 
+    /**
+     * Stops polling media frames.
+     * @see VoiceConnection#startFramePolling()
+     */
     void stopFramePolling();
 
     void registerListener(KoeEventListener listener);
 
     void unregisterListener(KoeEventListener listener);
+
+    /**
+     * Sends speaking state notification to the gateway.
+     * @param mask new speaking state
+     */
+    void updateSpeakingState(int mask);
 
     @Override
     void close();

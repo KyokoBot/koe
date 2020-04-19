@@ -9,7 +9,6 @@ import org.jetbrains.annotations.Nullable;
 
 public class UdpQueueFramePollerFactory implements FramePollerFactory {
     public static final int DEFAULT_BUFFER_DURATION = 400;
-    public static final int PACKET_INTERVAL = 20;
     public static final int MAXIMUM_PACKET_SIZE = 4096;
 
     private final int bufferDuration;
