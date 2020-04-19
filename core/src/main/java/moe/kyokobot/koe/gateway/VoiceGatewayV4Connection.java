@@ -31,9 +31,6 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
                 .add("payload_type", 120));
     }
 
-    private final VoiceConnectionImpl connection;
-    private final VoiceServerInfo voiceServerInfo;
-
     private int ssrc;
     private SocketAddress address;
     private List<String> encryptionModes;
@@ -42,9 +39,6 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
 
     public VoiceGatewayV4Connection(VoiceConnectionImpl connection, VoiceServerInfo voiceServerInfo) {
         super(connection, voiceServerInfo, 4);
-
-        this.connection = (VoiceConnectionImpl) connection;
-        this.voiceServerInfo = voiceServerInfo;
     }
 
     @Override
@@ -60,7 +54,7 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
                 setupHeartbeats(interval);
 
                 logger.debug("Identifying...");
-                sendPayload(Op.IDENTIFY, new JsonObject()
+                sendInternalPayload(Op.IDENTIFY, new JsonObject()
                         .addAsString("server_id", connection.getGuildId())
                         .addAsString("user_id", connection.getClient().getClientId())
                         .add("session_id", voiceServerInfo.getSessionId())
@@ -93,14 +87,11 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
                     break;
                 }
 
-                sendSpeaking(false);
-                sendSpeaking(true);
-
                 connection.getDispatcher().sessionDescription(data);
                 connection.getConnectionHandler().handleSessionDescription(data);
                 break;
             }
-            case Op.CLIENT_CONNECT : {
+            case Op.CLIENT_CONNECT: {
                 var data = object.getObject("d");
                 var user = data.getString("user_id");
                 var audioSsrc = data.getInt("audio_ssrc", 0);
@@ -108,7 +99,7 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
                 connection.getDispatcher().userConnected(user, audioSsrc, videoSsrc);
                 break;
             }
-            case Op.CLIENT_DISCONNECT : {
+            case Op.CLIENT_DISCONNECT: {
                 var data = object.getObject("d");
                 var user = data.getString("user_id");
                 connection.getDispatcher().userDisconnected(user);
@@ -128,9 +119,9 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
     }
 
     @Override
-    public void sendSpeaking(boolean state) {
-        sendPayload(Op.SPEAKING, new JsonObject()
-                .add("speaking", state)
+    public void updateSpeaking(int mask) {
+        sendInternalPayload(Op.SPEAKING, new JsonObject()
+                .add("speaking", mask)
                 .add("delay", 0)
                 .add("ssrc", ssrc));
     }
@@ -143,7 +134,7 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
     }
 
     private void heartbeat() {
-        sendPayload(Op.HEARTBEAT, System.currentTimeMillis());
+        sendInternalPayload(Op.HEARTBEAT, System.currentTimeMillis());
     }
 
     private void selectProtocol(String protocol) {
@@ -165,14 +156,14 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
                         .add("port", ourAddress.getPort())
                         .add("mode", mode);
 
-                sendPayload(Op.SELECT_PROTOCOL, new JsonObject()
+                sendInternalPayload(Op.SELECT_PROTOCOL, new JsonObject()
                         .add("protocol", "udp")
                         .add("codecs", SUPPORTED_CODECS)
                         .add("rtc_connection_id", rtcConnectionId.toString())
                         .add("data", udpInfo)
                         .combine(udpInfo));
 
-                sendPayload(Op.CLIENT_CONNECT, new JsonObject()
+                sendInternalPayload(Op.CLIENT_CONNECT, new JsonObject()
                         .add("audio_ssrc", ssrc)
                         .add("video_ssrc", 0)
                         .add("rtx_ssrc", 0));

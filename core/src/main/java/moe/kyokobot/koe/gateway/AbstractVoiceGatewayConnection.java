@@ -42,12 +42,12 @@ import java.util.concurrent.CompletableFuture;
 public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConnection {
     private static final Logger logger = LoggerFactory.getLogger(AbstractVoiceGatewayConnection.class);
 
-    private final VoiceConnectionImpl connection;
-    private final VoiceServerInfo voiceServerInfo;
-    private final URI websocketURI;
-    private final Bootstrap bootstrap;
-    private final SslContext sslContext;
-    private final CompletableFuture<Void> connectFuture;
+    protected final VoiceConnectionImpl connection;
+    protected final VoiceServerInfo voiceServerInfo;
+    protected final URI websocketURI;
+    protected final Bootstrap bootstrap;
+    protected final SslContext sslContext;
+    protected final CompletableFuture<Void> connectFuture;
 
     protected EventExecutor eventExecutor;
     protected Channel channel;
@@ -116,9 +116,10 @@ public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConn
         }
     }
 
-    public abstract void sendSpeaking(boolean state);
+    @Override
+    public abstract void updateSpeaking(int mask);
 
-    protected void sendPayload(int op, Object d) {
+    public void sendInternalPayload(int op, Object d) {
         sendRaw(new JsonObject().add("op", op).add("d", d));
     }
 

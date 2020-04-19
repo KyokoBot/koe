@@ -104,7 +104,6 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
     public void sendFrame(byte payloadType, int timestamp, ByteBuf data, int len) {
         var buf = createPacket(payloadType, timestamp, data, len);
         if (buf != null) {
-            //logger.debug("Sent frame PT = {}, TS = {}", payloadType, timestamp);
             channel.writeAndFlush(buf);
         }
     }
@@ -118,7 +117,6 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
         buf.clear();
         RTPHeaderWriter.writeV2(buf, payloadType, nextSeq(), timestamp, ssrc);
         if (encryptionMode.box(data, len, buf, secretKey)) {
-            //logger.debug("Sent frame PT = {}, TS = {}", payloadType, timestamp);
             return buf;
         } else {
             logger.debug("Encryption failed!");

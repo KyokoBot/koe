@@ -19,13 +19,11 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.playback.MutableAudioFrame;
 import io.netty.buffer.ByteBuf;
 import io.reactivex.Observable;
-import moe.kyokobot.koe.Koe;
-import moe.kyokobot.koe.KoeClient;
-import moe.kyokobot.koe.KoeEventAdapter;
-import moe.kyokobot.koe.VoiceServerInfo;
-import moe.kyokobot.koe.audio.AudioFrameProvider;
+import moe.kyokobot.koe.*;
+import moe.kyokobot.koe.media.MediaFrameProvider;
 import moe.kyokobot.koe.codec.Codec;
 import moe.kyokobot.koe.codec.OpusCodec;
+import moe.kyokobot.koe.media.OpusAudioFrameProvider;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -100,7 +98,7 @@ public class TestBot {
                     if (koeClient.getConnection(voiceState.guildIdAsLong()) == null) {
                         var conn = koeClient.createConnection(voiceState.guildIdAsLong());
                         var player = playerMap.computeIfAbsent(message.guild(), n -> playerManager.createPlayer());
-                        conn.setAudioSender(new AudioSender(player));
+                        conn.setAudioSender(new AudioSender(player, conn));
                         conn.registerListener(new ExampleListener());
                         connect(channel);
                         message.channel().sendMessage("Joined channel `" + channel.name() + "`!");
@@ -205,29 +203,28 @@ public class TestBot {
         });
     }
 
-    private static class AudioSender implements AudioFrameProvider {
+    private static class AudioSender extends OpusAudioFrameProvider {
         private final AudioPlayer player;
         private final MutableAudioFrame frame;
         private final ByteBuffer frameBuffer;
 
-        AudioSender(AudioPlayer player) {
+        AudioSender(AudioPlayer player, VoiceConnection connection) {
+            super(connection);
             this.player = player;
             this.frame = new MutableAudioFrame();
-            this.frameBuffer = ByteBuffer.allocateDirect(DISCORD_OPUS.maximumChunkSize());
+            this.frameBuffer = ByteBuffer.allocate(DISCORD_OPUS.maximumChunkSize());
             frame.setBuffer(frameBuffer);
             frame.setFormat(DISCORD_OPUS);
         }
 
         @Override
-        public boolean canSendFrame() {
+        public boolean canProvide() {
             return player.provide(frame);
         }
 
         @Override
-        public void retrieve(Codec codec, ByteBuf buf) {
-            if (codec.getPayloadType() == OpusCodec.PAYLOAD_TYPE) {
-                buf.writeBytes(frame.getData());
-            }
+        public void retrieveOpusFrame(ByteBuf targetBuffer) {
+            targetBuffer.writeBytes(frameBuffer.array(), 0, frame.getDataLength());
         }
     }
 

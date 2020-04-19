@@ -6,11 +6,11 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Objects;
 
 public abstract class Codec {
-    private final String name;
-    private final byte payloadType;
-    private final int priority;
-    private final CodecType type;
-    private final JsonObject jsonDescription;
+    protected final String name;
+    protected final byte payloadType;
+    protected final int priority;
+    protected final CodecType type;
+    protected final JsonObject jsonDescription;
 
     protected Codec(String name, byte payloadType, int priority, CodecType type) {
         this.name = name;
@@ -50,8 +50,7 @@ public abstract class Codec {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Codec that = (Codec) o;
-        return payloadType == that.payloadType &&
-                type == that.type;
+        return payloadType == that.payloadType && type == that.type;
     }
 
     @Override
@@ -61,6 +60,7 @@ public abstract class Codec {
 
     /**
      * Gets audio codec description by name.
+     *
      * @param name the codec name
      * @return Codec instance or null if the codec is not found/supported by Koe.
      */
@@ -71,6 +71,7 @@ public abstract class Codec {
 
     /**
      * Gets video codec description by name.
+     *
      * @param name the codec name
      * @return Codec instance or null if the codec is not found/supported by Koe.
      */
@@ -81,6 +82,7 @@ public abstract class Codec {
 
     /**
      * Gets audio or video codec by payload type.
+     *
      * @param payloadType the payload type
      * @return Codec instance or null if the codec is not found/supported by Koe.
      */

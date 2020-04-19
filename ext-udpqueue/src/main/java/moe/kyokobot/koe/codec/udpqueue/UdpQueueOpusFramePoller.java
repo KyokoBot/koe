@@ -5,19 +5,15 @@ import moe.kyokobot.koe.VoiceConnection;
 import moe.kyokobot.koe.codec.AbstractFramePoller;
 import moe.kyokobot.koe.codec.OpusCodec;
 import moe.kyokobot.koe.internal.handler.DiscordUDPConnection;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static moe.kyokobot.koe.codec.OpusCodec.FRAME_DURATION;
 import static moe.kyokobot.koe.codec.udpqueue.UdpQueueFramePollerFactory.MAXIMUM_PACKET_SIZE;
-import static moe.kyokobot.koe.codec.udpqueue.UdpQueueFramePollerFactory.PACKET_INTERVAL;
 
 public class UdpQueueOpusFramePoller extends AbstractFramePoller {
-    private static final Logger logger = LoggerFactory.getLogger(UdpQueueOpusFramePoller.class);
-
     private final int bufferDuration;
     private UdpQueueManager queueManager;
     private AtomicInteger timestamp;
@@ -39,8 +35,8 @@ public class UdpQueueOpusFramePoller extends AbstractFramePoller {
 
         this.polling = true;
         this.lastFrame = System.currentTimeMillis();
-        queueManager = new UdpQueueManager(bufferDuration / PACKET_INTERVAL,
-                TimeUnit.MILLISECONDS.toNanos(PACKET_INTERVAL), MAXIMUM_PACKET_SIZE);
+        queueManager = new UdpQueueManager(bufferDuration / FRAME_DURATION,
+                TimeUnit.MILLISECONDS.toNanos(FRAME_DURATION), MAXIMUM_PACKET_SIZE);
 
         Thread thread = new Thread(queueManager::process);
         thread.setPriority((Thread.NORM_PRIORITY + Thread.MAX_PRIORITY) / 2);
@@ -68,17 +64,17 @@ public class UdpQueueOpusFramePoller extends AbstractFramePoller {
 
         var handler = (DiscordUDPConnection) connection.getConnectionHandler();
         var sender = connection.getSender();
+        var codec = OpusCodec.INSTANCE;
 
         for (int i = 0; i < remaining; i++) {
-            if (sender != null && handler != null && sender.canSendFrame()) {
+            if (sender != null && handler != null && sender.canSendFrame(codec)) {
                 var buf = allocator.buffer();
                 int start = buf.writerIndex();
-                sender.retrieve(OpusCodec.INSTANCE, buf);
+                sender.retrieve(codec, buf);
                 int len = buf.writerIndex() - start;
                 var packet = handler.createPacket(OpusCodec.PAYLOAD_TYPE, timestamp.getAndAdd(960), buf, len);
                 if (packet != null) {
-                    manager.queuePacket(queueKey, packet.nioBuffer(),
-                            (InetSocketAddress) handler.getServerAddress());
+                    manager.queuePacket(queueKey, packet.nioBuffer(), (InetSocketAddress) handler.getServerAddress());
                 }
                 buf.release();
             }
