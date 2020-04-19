@@ -11,21 +11,21 @@ public class UdpQueueFramePollerFactory implements FramePollerFactory {
     public static final int DEFAULT_BUFFER_DURATION = 400;
     public static final int MAXIMUM_PACKET_SIZE = 4096;
 
-    private final int bufferDuration;
+    private final QueueManagerPool pool;
 
     public UdpQueueFramePollerFactory() {
-        this(DEFAULT_BUFFER_DURATION);
+        this(DEFAULT_BUFFER_DURATION, Runtime.getRuntime().availableProcessors());
     }
 
-    public UdpQueueFramePollerFactory(int bufferDuration) {
-        this.bufferDuration = bufferDuration;
+    public UdpQueueFramePollerFactory(int bufferDuration, int poolSize) {
+        this.pool = new QueueManagerPool(poolSize, bufferDuration);
     }
 
     @Override
     @Nullable
     public FramePoller createFramePoller(Codec codec, VoiceConnection connection) {
         if (OpusCodec.INSTANCE.equals(codec)) {
-            return new UdpQueueOpusFramePoller(bufferDuration, connection);
+            return new UdpQueueOpusFramePoller(this.pool.getNextWrapper(), connection);
         }
         return null;
     }

@@ -1,6 +1,5 @@
 package moe.kyokobot.koe.codec.udpqueue;
 
-import com.sedmelluq.discord.lavaplayer.udpqueue.natives.UdpQueueManager;
 import moe.kyokobot.koe.VoiceConnection;
 import moe.kyokobot.koe.codec.AbstractFramePoller;
 import moe.kyokobot.koe.codec.OpusCodec;
@@ -10,21 +9,15 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static moe.kyokobot.koe.codec.OpusCodec.FRAME_DURATION;
-import static moe.kyokobot.koe.codec.udpqueue.UdpQueueFramePollerFactory.MAXIMUM_PACKET_SIZE;
-
 public class UdpQueueOpusFramePoller extends AbstractFramePoller {
-    private final int bufferDuration;
-    private UdpQueueManager queueManager;
+    private QueueManagerPool.UdpQueueWrapper manager;
     private AtomicInteger timestamp;
     private long lastFrame;
-    private long queueKey;
 
-    public UdpQueueOpusFramePoller(int bufferDuration, VoiceConnection connection) {
+    public UdpQueueOpusFramePoller(QueueManagerPool.UdpQueueWrapper manager, VoiceConnection connection) {
         super(connection);
-        this.bufferDuration = bufferDuration;
         this.timestamp = new AtomicInteger();
-        this.queueKey = 0;
+        this.manager = manager;
     }
 
     @Override
@@ -35,13 +28,6 @@ public class UdpQueueOpusFramePoller extends AbstractFramePoller {
 
         this.polling = true;
         this.lastFrame = System.currentTimeMillis();
-        queueManager = new UdpQueueManager(bufferDuration / FRAME_DURATION,
-                TimeUnit.MILLISECONDS.toNanos(FRAME_DURATION), MAXIMUM_PACKET_SIZE);
-
-        Thread thread = new Thread(queueManager::process);
-        thread.setPriority((Thread.NORM_PRIORITY + Thread.MAX_PRIORITY) / 2);
-        thread.setDaemon(true);
-        thread.start();
         eventLoop.execute(this::populateQueue);
     }
 
@@ -49,18 +35,15 @@ public class UdpQueueOpusFramePoller extends AbstractFramePoller {
     public void stop() {
         if (this.polling) {
             this.polling = false;
-            queueManager.close();
-            queueManager = null;
         }
     }
 
     void populateQueue() {
-        if (!this.polling || queueManager == null) {
+        if (!this.polling || manager == null) {
             return;
         }
 
-        var manager = this.queueManager;
-        int remaining = manager.getRemainingCapacity(queueKey);
+        int remaining = manager.getRemainingCapacity();
 
         var handler = (DiscordUDPConnection) connection.getConnectionHandler();
         var sender = connection.getSender();
@@ -74,7 +57,7 @@ public class UdpQueueOpusFramePoller extends AbstractFramePoller {
                 int len = buf.writerIndex() - start;
                 var packet = handler.createPacket(OpusCodec.PAYLOAD_TYPE, timestamp.getAndAdd(960), buf, len);
                 if (packet != null) {
-                    manager.queuePacket(queueKey, packet.nioBuffer(), (InetSocketAddress) handler.getServerAddress());
+                    manager.queuePacket(packet.nioBuffer(), (InetSocketAddress) handler.getServerAddress());
                 }
                 buf.release();
             }
