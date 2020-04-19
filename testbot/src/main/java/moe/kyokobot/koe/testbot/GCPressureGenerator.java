@@ -1,7 +1,5 @@
 package moe.kyokobot.koe.testbot;
 
-import moe.kyokobot.koe.KoeOptions;
-
 import java.util.ArrayList;
 
 public class GCPressureGenerator {
