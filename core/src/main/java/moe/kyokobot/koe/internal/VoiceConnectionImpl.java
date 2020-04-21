@@ -107,6 +107,9 @@ public class VoiceConnectionImpl implements VoiceConnection {
 
     @Override
     public void setAudioSender(@Nullable MediaFrameProvider sender) {
+        if (this.sender != null) {
+            this.sender.dispose();
+        }
         this.sender = sender;
     }
 
@@ -157,6 +160,9 @@ public class VoiceConnectionImpl implements VoiceConnection {
 
     @Override
     public void close() {
+        if (this.sender != null) {
+            this.sender.dispose();
+        }
         disconnect();
         client.removeConnection(guildId);
     }

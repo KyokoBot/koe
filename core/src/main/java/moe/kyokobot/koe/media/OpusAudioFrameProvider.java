@@ -1,6 +1,7 @@
 package moe.kyokobot.koe.media;
 
 import io.netty.buffer.ByteBuf;
+import moe.kyokobot.koe.KoeEventAdapter;
 import moe.kyokobot.koe.VoiceConnection;
 import moe.kyokobot.koe.codec.Codec;
 import moe.kyokobot.koe.codec.OpusCodec;
@@ -16,6 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
     private static final int SILENCE_FRAME_COUNT = 5;
     private final VoiceConnection connection;
+    private final Op12HackListener hackListener;
 
     // volatile because of multiple event loop threads accessing these fields.
     private AtomicInteger counter = new AtomicInteger();
@@ -26,6 +28,8 @@ public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
 
     public OpusAudioFrameProvider(VoiceConnection connection) {
         this.connection = Objects.requireNonNull(connection);
+        this.hackListener = new Op12HackListener();
+        this.connection.registerListener(this.hackListener);
     }
 
     public int getSpeakingMask() {
@@ -87,6 +91,20 @@ public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
             this.lastSpeaking = state;
             connection.updateSpeakingState(state ? this.speakingMask : 0);
         }
+    }
+
+    private class Op12HackListener extends KoeEventAdapter {
+        @Override
+        public void userConnected(String id, int audioSSRC, int videoSSRC) {
+            if (speaking) {
+                connection.updateSpeakingState(speakingMask);
+            }
+        }
+    }
+
+    @Override
+    public void dispose() {
+        this.connection.unregisterListener(this.hackListener);
     }
 
     /**
