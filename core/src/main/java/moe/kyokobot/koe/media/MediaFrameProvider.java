@@ -10,6 +10,11 @@ import moe.kyokobot.koe.codec.Codec;
  */
 public interface MediaFrameProvider {
     /**
+     * Called when this {@link MediaFrameProvider} should clean up it's event handlers and etc.
+     */
+    void dispose();
+
+    /**
      * @return If true, Koe will request media data for given {@link Codec} by
      * calling {@link #retrieve(Codec, ByteBuf)} method.
      */
