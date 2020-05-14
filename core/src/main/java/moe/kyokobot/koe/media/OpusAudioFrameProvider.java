@@ -6,6 +6,8 @@ import moe.kyokobot.koe.VoiceConnection;
 import moe.kyokobot.koe.codec.Codec;
 import moe.kyokobot.koe.codec.OpusCodec;
 import moe.kyokobot.koe.gateway.SpeakingFlags;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -15,6 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * checking codec type, sending silent frames and updating speaking state.
  */
 public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
+    private static final Logger logger = LoggerFactory.getLogger(OpusAudioFrameProvider.class);
     private static final int SILENCE_FRAME_COUNT = 5;
     private final VoiceConnection connection;
     private final Op12HackListener hackListener;
@@ -22,6 +25,7 @@ public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
     // volatile because of multiple event loop threads accessing these fields.
     private AtomicInteger counter = new AtomicInteger();
     private volatile long lastFramePolled = 0;
+    private volatile boolean lastProvide = false;
     private volatile boolean lastSpeaking = false;
     private volatile boolean speaking = false;
     private int speakingMask = SpeakingFlags.NORMAL;
@@ -50,7 +54,17 @@ public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
             return true;
         }
 
-        return canProvide();
+        boolean provide = canProvide();
+
+        if (lastProvide != provide) {
+            lastProvide = provide;
+            if (!provide) {
+                counter.set(SILENCE_FRAME_COUNT);
+                return true;
+            }
+        }
+
+        return provide;
     }
 
     @Override
@@ -62,6 +76,10 @@ public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
         if (counter.get() > 0) {
             counter.decrementAndGet();
             buf.writeBytes(OpusCodec.SILENCE_FRAME);
+
+            if (speaking) {
+                setSpeaking(false);
+            }
             return;
         }
 
@@ -74,6 +92,7 @@ public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
         }
 
         if (!written) {
+            logger.debug("Write silent frames");
             counter.set(SILENCE_FRAME_COUNT);
         }
 
@@ -89,6 +108,7 @@ public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
         this.speaking = state;
         if (this.speaking != this.lastSpeaking) {
             this.lastSpeaking = state;
+
             connection.updateSpeakingState(state ? this.speakingMask : 0);
         }
     }
