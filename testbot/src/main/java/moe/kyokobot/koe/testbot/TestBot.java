@@ -99,8 +99,6 @@ public class TestBot {
                         conn.registerListener(new ExampleListener());
                         connect(channel);
                         message.channel().sendMessage("Joined channel `" + channel.name() + "`!");
-                    } else {
-                        catnip.openVoiceConnection(channel.guildIdAsLong(), channel.idAsLong());
                     }
 
                     resolve(message.guild(), message.channel().asTextChannel(), message.content().substring(6));
