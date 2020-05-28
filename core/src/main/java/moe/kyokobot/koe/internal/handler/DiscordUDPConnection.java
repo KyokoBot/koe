@@ -97,7 +97,8 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
             this.secretKey[i] = (byte) (keyArray.getInt(i) & 0xff);
         }
 
-        connection.startFramePolling();
+        connection.startAudioFramePolling();
+        connection.startVideoFramePolling();
     }
 
     @Override

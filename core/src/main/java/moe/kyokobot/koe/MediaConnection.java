@@ -21,6 +21,7 @@ public interface MediaConnection extends Closeable {
 
     /**
      * Stops polling media frames, disconnects from the gateway and cleans everything up.
+     * @see #connect(VoiceServerInfo)
      */
     void disconnect();
 
@@ -32,6 +33,9 @@ public interface MediaConnection extends Closeable {
 
     @Nullable
     MediaFrameProvider getAudioSender();
+
+    @Nullable
+    MediaFrameProvider getVideoSender();
 
     long getGuildId();
 
@@ -48,15 +52,30 @@ public interface MediaConnection extends Closeable {
     void setAudioCodec(@NotNull Codec audioCodec);
 
     /**
-     * Starts polling media frames. Called automatically after connecting, you don't have to.
+     * Starts polling audio frames. Called automatically after connecting, you don't have to.
      */
-    void startFramePolling();
+    void startAudioFramePolling();
 
     /**
-     * Stops polling media frames.
-     * @see MediaConnection#startFramePolling()
+     * Stops polling audio frames.
+     * @see MediaConnection#startAudioFramePolling()
      */
-    void stopFramePolling();
+    void stopAudioFramePolling();
+
+    void setVideoSender(@Nullable MediaFrameProvider sender);
+
+    void setVideoCodec(@Nullable Codec videoCodec);
+
+    /**
+     * Starts polling video frames. Called automatically after connecting if codec has been set.
+     */
+    void startVideoFramePolling();
+
+    /**
+     * Stops polling video frames.
+     * @see MediaConnection#startAudioFramePolling()
+     */
+    void stopVideoFramePolling();
 
     void registerListener(KoeEventListener listener);
 
@@ -68,6 +87,9 @@ public interface MediaConnection extends Closeable {
      */
     void updateSpeakingState(int mask);
 
+    /**
+     * Closes and disposes this connection, cannot be used after this method is called.
+     */
     @Override
     void close();
 }

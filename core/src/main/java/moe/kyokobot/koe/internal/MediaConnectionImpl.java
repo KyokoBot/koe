@@ -1,20 +1,18 @@
 package moe.kyokobot.koe.internal;
 
 import moe.kyokobot.koe.*;
-import moe.kyokobot.koe.media.MediaFrameProvider;
 import moe.kyokobot.koe.codec.Codec;
 import moe.kyokobot.koe.codec.CodecType;
 import moe.kyokobot.koe.codec.FramePoller;
 import moe.kyokobot.koe.codec.OpusCodec;
 import moe.kyokobot.koe.gateway.MediaGatewayConnection;
 import moe.kyokobot.koe.handler.ConnectionHandler;
+import moe.kyokobot.koe.media.MediaFrameProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 
@@ -29,20 +27,25 @@ public class MediaConnectionImpl implements MediaConnection {
     private ConnectionHandler connectionHandler;
     private VoiceServerInfo info;
     private Codec audioCodec;
-    private FramePoller poller;
+    private Codec videoCodec;
+    private FramePoller audioPoller;
+    private FramePoller videoPoller;
     private MediaFrameProvider audioSender;
+    private MediaFrameProvider videoSender;
 
     public MediaConnectionImpl(@NotNull KoeClientImpl client, long guildId) {
         this.client = Objects.requireNonNull(client);
         this.guildId = guildId;
         this.dispatcher = new EventDispatcher();
         this.audioCodec = OpusCodec.INSTANCE;
-        this.poller = client.getOptions().getFramePollerFactory().createFramePoller(this.audioCodec, this);
+        this.audioPoller = client.getOptions().getFramePollerFactory().createFramePoller(this.audioCodec, this);
+        this.videoCodec = null;
+        this.videoPoller = null;
     }
 
     @Override
     public CompletionStage<Void> connect(VoiceServerInfo info) {
-        disconnect();
+        this.disconnect();
         var conn = client.getGatewayVersion().createConnection(this, info);
 
         return conn.start().thenAccept(nothing -> {
@@ -54,7 +57,8 @@ public class MediaConnectionImpl implements MediaConnection {
     @Override
     public void disconnect() {
         logger.debug("Disconnecting...");
-        stopFramePolling();
+        stopAudioFramePolling();
+        stopVideoFramePolling();
 
         if (gatewayConnection != null && gatewayConnection.isOpen()) {
             gatewayConnection.close(1000, null);
@@ -83,6 +87,12 @@ public class MediaConnectionImpl implements MediaConnection {
     @Nullable
     public MediaFrameProvider getAudioSender() {
         return audioSender;
+    }
+
+    @Override
+    @Nullable
+    public MediaFrameProvider getVideoSender() {
+        return videoSender;
     }
 
     @Override
@@ -121,33 +131,83 @@ public class MediaConnectionImpl implements MediaConnection {
             throw new IllegalArgumentException("Specified codec must be an audio codec!");
         }
 
-        boolean wasPolling = poller != null && poller.isPolling();
-        stopFramePolling();
+        boolean wasPolling = this.audioPoller != null && this.audioPoller.isPolling();
+        this.stopAudioFramePolling();
 
         this.audioCodec = audioCodec;
-        this.poller = client.getOptions().getFramePollerFactory().createFramePoller(this.audioCodec, this);
+        this.audioPoller = client.getOptions().getFramePollerFactory().createFramePoller(audioCodec, this);
 
         if (wasPolling) {
-            startFramePolling();
+            this.startAudioFramePolling();
         }
     }
 
     @Override
-    public void startFramePolling() {
-        if (poller == null || poller.isPolling()) {
+    public void startAudioFramePolling() {
+        if (this.audioPoller == null || this.audioPoller.isPolling()) {
             return;
         }
 
-        poller.start();
+        this.audioPoller.start();
     }
 
     @Override
-    public void stopFramePolling() {
-        if (poller == null || !poller.isPolling()) {
+    public void stopAudioFramePolling() {
+        if (this.audioPoller == null || !this.audioPoller.isPolling()) {
             return;
         }
 
-        poller.stop();
+        this.audioPoller.stop();
+    }
+
+    @Override
+    public void setVideoSender(@Nullable MediaFrameProvider sender) {
+        if (this.videoSender != null) {
+            this.videoSender.dispose();
+        }
+        this.videoSender = sender;
+    }
+
+    @Override
+    public void setVideoCodec(@Nullable Codec videoCodec) {
+        if (videoCodec == null) {
+            this.stopVideoFramePolling();
+            this.videoCodec = null;
+            this.videoPoller = null;
+            return;
+        }
+
+        if (videoCodec.getType() != CodecType.VIDEO) {
+            throw new IllegalArgumentException("Specified codec must be an video codec!");
+        }
+
+        boolean wasPolling = videoPoller != null && videoPoller.isPolling();
+        this.stopVideoFramePolling();
+
+        this.videoCodec = videoCodec;
+        this.videoPoller = client.getOptions().getFramePollerFactory().createFramePoller(videoCodec, this);
+
+        if (wasPolling) {
+            this.startVideoFramePolling();
+        }
+    }
+
+    @Override
+    public void startVideoFramePolling() {
+        if (this.videoPoller == null || this.videoPoller.isPolling()) {
+            return;
+        }
+
+        this.videoPoller.start();
+    }
+
+    @Override
+    public void stopVideoFramePolling() {
+        if (this.videoPoller == null || !this.videoPoller.isPolling()) {
+            return;
+        }
+
+        this.videoPoller.stop();
     }
 
     @Override
@@ -164,7 +224,14 @@ public class MediaConnectionImpl implements MediaConnection {
     public void close() {
         if (this.audioSender != null) {
             this.audioSender.dispose();
+            this.audioSender = null;
         }
+
+        if (this.videoSender != null) {
+            this.videoSender.dispose();
+            this.videoSender = null;
+        }
+
         disconnect();
         client.removeConnection(guildId);
     }
