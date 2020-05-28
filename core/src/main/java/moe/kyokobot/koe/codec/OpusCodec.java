@@ -7,6 +7,6 @@ public class OpusCodec extends Codec {
     public static final byte[] SILENCE_FRAME = new byte[] {(byte)0xF8, (byte)0xFF, (byte)0xFE};
 
     public OpusCodec() {
-        super("opus", PAYLOAD_TYPE, 100, CodecType.AUDIO);
+        super("opus", PAYLOAD_TYPE, 1000, CodecType.AUDIO);
     }
 }
