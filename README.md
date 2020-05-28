@@ -1,6 +1,6 @@
 # koe
 
-Tiny, minimal dependency and embeddable library implementing Discord voice protocol built on [Netty](https://netty.io), aiming for high performance and reduced GC usage.
+Tiny, minimal dependency and embeddable library implementing Discord media server protocols, built on [Netty](https://netty.io), aiming for high performance and reduced GC usage.
 
 [Get it on JitPack](https://jitpack.io/#moe.kyokobot.koe/core)
 
@@ -27,8 +27,9 @@ dependencies {
 
 #### Features
 
-- Support for voice gateway v4.
+- Supports voice gateway v4 and v5.
 - Easily extendable for stuff such as support for codecs other than Opus or video sending, if Discord ever decides to support it on bots.
+- Experimental video support.
 - Basic RTCP support for measuring packet loss and other stuff.
 
 #### Non-goals / won't do
