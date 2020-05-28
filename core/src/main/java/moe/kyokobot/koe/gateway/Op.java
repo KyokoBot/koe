@@ -20,4 +20,5 @@ public class Op {
     public static final int CLIENT_CONNECT = 12; // thx b1nzy
     public static final int CLIENT_DISCONNECT = 13;
     public static final int CODECS = 14;
+    public static final int VIDEO_SINK_WANTS = 15;
 }
