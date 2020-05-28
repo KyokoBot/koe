@@ -10,12 +10,7 @@ import io.netty.handler.codec.http.EmptyHttpHeaders;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpClientCodec;
 import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.WebSocketClientHandshaker;
-import io.netty.handler.codec.http.websocketx.WebSocketClientHandshakerFactory;
-import io.netty.handler.codec.http.websocketx.WebSocketHandshakeException;
-import io.netty.handler.codec.http.websocketx.WebSocketVersion;
+import io.netty.handler.codec.http.websocketx.*;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
@@ -80,7 +75,8 @@ public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConn
 
         var chFuture = bootstrap.connect(websocketURI.getHost(), websocketURI.getPort() == -1 ? 443 : websocketURI.getPort());
         chFuture.addListener(new NettyFutureWrapper<>(future));
-        future.thenAccept(v -> this.channel = chFuture.channel());
+        future.thenAccept(v -> this.channel = chFuture.channel())
+                .thenAccept(v -> this.identify());
 
         return connectFuture;
     }
@@ -106,6 +102,8 @@ public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConn
     public boolean isOpen() {
         return open;
     }
+
+    protected abstract void identify();
 
     protected abstract void handlePayload(JsonObject object);
 

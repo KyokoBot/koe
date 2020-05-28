@@ -18,8 +18,8 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
-    private static final Logger logger = LoggerFactory.getLogger(VoiceGatewayV4Connection.class);
+public class VoiceGatewayV5Connection extends AbstractVoiceGatewayConnection {
+    private static final Logger logger = LoggerFactory.getLogger(VoiceGatewayV5Connection.class);
     private static final JsonArray SUPPORTED_CODECS;
 
     static {
@@ -37,8 +37,8 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
     private UUID rtcConnectionId;
     private ScheduledFuture heartbeatFuture;
 
-    public VoiceGatewayV4Connection(VoiceConnectionImpl connection, VoiceServerInfo voiceServerInfo) {
-        super(connection, voiceServerInfo, 4);
+    public VoiceGatewayV5Connection(VoiceConnectionImpl connection, VoiceServerInfo voiceServerInfo) {
+        super(connection, voiceServerInfo, 5);
     }
 
     @Override
@@ -48,7 +48,8 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
                 .addAsString("server_id", connection.getGuildId())
                 .addAsString("user_id", connection.getClient().getClientId())
                 .add("session_id", voiceServerInfo.getSessionId())
-                .add("token", voiceServerInfo.getToken()));
+                .add("token", voiceServerInfo.getToken())
+                .add("video", true));
     }
 
     @Override
