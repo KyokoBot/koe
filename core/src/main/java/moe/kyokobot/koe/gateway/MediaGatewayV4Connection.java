@@ -1,8 +1,9 @@
 package moe.kyokobot.koe.gateway;
 
 import moe.kyokobot.koe.VoiceServerInfo;
+import moe.kyokobot.koe.codec.OpusCodec;
 import moe.kyokobot.koe.crypto.EncryptionMode;
-import moe.kyokobot.koe.internal.VoiceConnectionImpl;
+import moe.kyokobot.koe.internal.MediaConnectionImpl;
 import moe.kyokobot.koe.internal.handler.DiscordUDPConnection;
 import moe.kyokobot.koe.internal.json.JsonArray;
 import moe.kyokobot.koe.internal.json.JsonObject;
@@ -18,17 +19,13 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
-    private static final Logger logger = LoggerFactory.getLogger(VoiceGatewayV4Connection.class);
+public class MediaGatewayV4Connection extends AbstractMediaGatewayConnection {
+    private static final Logger logger = LoggerFactory.getLogger(MediaGatewayV4Connection.class);
     private static final JsonArray SUPPORTED_CODECS;
 
     static {
         SUPPORTED_CODECS = new JsonArray();
-        SUPPORTED_CODECS.add(new JsonObject()
-                .add("name", "opus")
-                .add("type", "audio")
-                .add("priority", 1000)
-                .add("payload_type", 120));
+        SUPPORTED_CODECS.add(OpusCodec.INSTANCE.getJsonDescription());
     }
 
     private int ssrc;
@@ -37,7 +34,7 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
     private UUID rtcConnectionId;
     private ScheduledFuture heartbeatFuture;
 
-    public VoiceGatewayV4Connection(VoiceConnectionImpl connection, VoiceServerInfo voiceServerInfo) {
+    public MediaGatewayV4Connection(MediaConnectionImpl connection, VoiceServerInfo voiceServerInfo) {
         super(connection, voiceServerInfo, 4);
     }
 
@@ -76,7 +73,7 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
                 address = new InetSocketAddress(ip, port);
 
                 connection.getDispatcher().gatewayReady((InetSocketAddress) address, ssrc);
-                logger.debug("Voice READY, ssrc: {}", ssrc);
+                logger.debug("Got READY, ssrc: {}", ssrc);
                 selectProtocol("udp");
                 break;
             }
@@ -99,7 +96,8 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
                 var user = data.getString("user_id");
                 var audioSsrc = data.getInt("audio_ssrc", 0);
                 var videoSsrc = data.getInt("video_ssrc", 0);
-                connection.getDispatcher().userConnected(user, audioSsrc, videoSsrc);
+                var rtxSsrc = data.getInt("rtx_ssrc", 0);
+                connection.getDispatcher().userConnected(user, audioSsrc, videoSsrc, rtxSsrc);
                 break;
             }
             case Op.CLIENT_DISCONNECT: {

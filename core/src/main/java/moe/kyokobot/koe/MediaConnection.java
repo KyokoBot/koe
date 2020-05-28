@@ -2,7 +2,7 @@ package moe.kyokobot.koe;
 
 import moe.kyokobot.koe.media.MediaFrameProvider;
 import moe.kyokobot.koe.codec.Codec;
-import moe.kyokobot.koe.gateway.VoiceGatewayConnection;
+import moe.kyokobot.koe.gateway.MediaGatewayConnection;
 import moe.kyokobot.koe.handler.ConnectionHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -10,7 +10,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.Closeable;
 import java.util.concurrent.CompletionStage;
 
-public interface VoiceConnection extends Closeable {
+public interface MediaConnection extends Closeable {
     /**
      * Connects to Discord voice server using specified info.
      * @param info Discord voice server connection information
@@ -31,12 +31,12 @@ public interface VoiceConnection extends Closeable {
     KoeOptions getOptions();
 
     @Nullable
-    MediaFrameProvider getSender();
+    MediaFrameProvider getAudioSender();
 
     long getGuildId();
 
     @Nullable
-    VoiceGatewayConnection getGatewayConnection();
+    MediaGatewayConnection getGatewayConnection();
 
     @Nullable
     VoiceServerInfo getVoiceServerInfo();
@@ -54,7 +54,7 @@ public interface VoiceConnection extends Closeable {
 
     /**
      * Stops polling media frames.
-     * @see VoiceConnection#startFramePolling()
+     * @see MediaConnection#startFramePolling()
      */
     void stopFramePolling();
 

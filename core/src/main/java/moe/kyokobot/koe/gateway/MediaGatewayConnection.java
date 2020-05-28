@@ -4,7 +4,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.CompletableFuture;
 
-public interface VoiceGatewayConnection {
+public interface MediaGatewayConnection {
     boolean isOpen();
 
     CompletableFuture<Void> start();
