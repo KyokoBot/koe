@@ -1,6 +1,6 @@
 package moe.kyokobot.koe.codec.netty;
 
-import moe.kyokobot.koe.VoiceConnection;
+import moe.kyokobot.koe.MediaConnection;
 import moe.kyokobot.koe.codec.AbstractFramePoller;
 import moe.kyokobot.koe.codec.OpusCodec;
 import org.slf4j.Logger;
@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class NettyOpusFramePoller extends AbstractFramePoller {
     private static final Logger logger = LoggerFactory.getLogger(NettyOpusFramePoller.class);
 
-    public NettyOpusFramePoller(VoiceConnection connection) {
+    public NettyOpusFramePoller(MediaConnection connection) {
         super(connection);
         this.timestamp = new AtomicInteger();
     }
@@ -43,7 +43,7 @@ public class NettyOpusFramePoller extends AbstractFramePoller {
 
         try {
             var handler = connection.getConnectionHandler();
-            var sender = connection.getSender();
+            var sender = connection.getAudioSender();
             var codec = OpusCodec.INSTANCE;
 
             if (sender != null && handler != null && sender.canSendFrame(codec)) {

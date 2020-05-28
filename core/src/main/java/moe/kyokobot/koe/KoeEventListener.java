@@ -10,7 +10,7 @@ public interface KoeEventListener {
 
     void gatewayClosed(int code, @Nullable String reason, boolean byRemote);
 
-    void userConnected(String id, int audioSSRC, int videoSSRC);
+    void userConnected(String id, int audioSSRC, int videoSSRC, int rtxSSRC);
 
     void userDisconnected(String id);
 

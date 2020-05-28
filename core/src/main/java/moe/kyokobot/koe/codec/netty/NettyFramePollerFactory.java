@@ -1,6 +1,6 @@
 package moe.kyokobot.koe.codec.netty;
 
-import moe.kyokobot.koe.VoiceConnection;
+import moe.kyokobot.koe.MediaConnection;
 import moe.kyokobot.koe.codec.Codec;
 import moe.kyokobot.koe.codec.FramePoller;
 import moe.kyokobot.koe.codec.FramePollerFactory;
@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 public class NettyFramePollerFactory implements FramePollerFactory {
-    private Map<Codec, Function<VoiceConnection, FramePoller>> codecMap;
+    private Map<Codec, Function<MediaConnection, FramePoller>> codecMap;
 
     public NettyFramePollerFactory() {
         codecMap = new HashMap<>();
@@ -21,7 +21,7 @@ public class NettyFramePollerFactory implements FramePollerFactory {
 
     @Override
     @Nullable
-    public FramePoller createFramePoller(Codec codec, VoiceConnection connection) {
+    public FramePoller createFramePoller(Codec codec, MediaConnection connection) {
         var constructor = codecMap.get(codec);
         if (constructor != null) {
             return constructor.apply(connection);

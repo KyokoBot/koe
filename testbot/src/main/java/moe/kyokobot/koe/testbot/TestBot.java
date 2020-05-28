@@ -203,7 +203,7 @@ public class TestBot {
         private final MutableAudioFrame frame;
         private final ByteBuffer frameBuffer;
 
-        AudioSender(AudioPlayer player, VoiceConnection connection) {
+        AudioSender(AudioPlayer player, MediaConnection connection) {
             super(connection);
             this.player = player;
             this.frame = new MutableAudioFrame();
