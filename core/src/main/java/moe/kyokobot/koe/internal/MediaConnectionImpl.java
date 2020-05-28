@@ -6,31 +6,33 @@ import moe.kyokobot.koe.codec.Codec;
 import moe.kyokobot.koe.codec.CodecType;
 import moe.kyokobot.koe.codec.FramePoller;
 import moe.kyokobot.koe.codec.OpusCodec;
-import moe.kyokobot.koe.gateway.VoiceGatewayConnection;
+import moe.kyokobot.koe.gateway.MediaGatewayConnection;
 import moe.kyokobot.koe.handler.ConnectionHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 
-public class VoiceConnectionImpl implements VoiceConnection {
-    private static final Logger logger = LoggerFactory.getLogger(VoiceConnectionImpl.class);
+public class MediaConnectionImpl implements MediaConnection {
+    private static final Logger logger = LoggerFactory.getLogger(MediaConnectionImpl.class);
 
     private final KoeClientImpl client;
     private final long guildId;
     private final EventDispatcher dispatcher;
 
-    private VoiceGatewayConnection gatewayConnection;
+    private MediaGatewayConnection gatewayConnection;
     private ConnectionHandler connectionHandler;
     private VoiceServerInfo info;
     private Codec audioCodec;
     private FramePoller poller;
-    private MediaFrameProvider sender;
+    private MediaFrameProvider audioSender;
 
-    public VoiceConnectionImpl(@NotNull KoeClientImpl client, long guildId) {
+    public MediaConnectionImpl(@NotNull KoeClientImpl client, long guildId) {
         this.client = Objects.requireNonNull(client);
         this.guildId = guildId;
         this.dispatcher = new EventDispatcher();
@@ -44,8 +46,8 @@ public class VoiceConnectionImpl implements VoiceConnection {
         var conn = client.getGatewayVersion().createConnection(this, info);
 
         return conn.start().thenAccept(nothing -> {
-            VoiceConnectionImpl.this.info = info;
-            VoiceConnectionImpl.this.gatewayConnection = conn;
+            MediaConnectionImpl.this.info = info;
+            MediaConnectionImpl.this.gatewayConnection = conn;
         });
     }
 
@@ -79,8 +81,8 @@ public class VoiceConnectionImpl implements VoiceConnection {
 
     @Override
     @Nullable
-    public MediaFrameProvider getSender() {
-        return sender;
+    public MediaFrameProvider getAudioSender() {
+        return audioSender;
     }
 
     @Override
@@ -90,7 +92,7 @@ public class VoiceConnectionImpl implements VoiceConnection {
 
     @Override
     @Nullable
-    public VoiceGatewayConnection getGatewayConnection() {
+    public MediaGatewayConnection getGatewayConnection() {
         return gatewayConnection;
     }
 
@@ -107,10 +109,10 @@ public class VoiceConnectionImpl implements VoiceConnection {
 
     @Override
     public void setAudioSender(@Nullable MediaFrameProvider sender) {
-        if (this.sender != null) {
-            this.sender.dispose();
+        if (this.audioSender != null) {
+            this.audioSender.dispose();
         }
-        this.sender = sender;
+        this.audioSender = sender;
     }
 
     @Override
@@ -160,8 +162,8 @@ public class VoiceConnectionImpl implements VoiceConnection {
 
     @Override
     public void close() {
-        if (this.sender != null) {
-            this.sender.dispose();
+        if (this.audioSender != null) {
+            this.audioSender.dispose();
         }
         disconnect();
         client.removeConnection(guildId);

@@ -1,8 +1,10 @@
 package moe.kyokobot.koe.gateway;
 
 import moe.kyokobot.koe.VoiceServerInfo;
+import moe.kyokobot.koe.codec.Codec;
+import moe.kyokobot.koe.codec.DefaultCodecs;
 import moe.kyokobot.koe.crypto.EncryptionMode;
-import moe.kyokobot.koe.internal.VoiceConnectionImpl;
+import moe.kyokobot.koe.internal.MediaConnectionImpl;
 import moe.kyokobot.koe.internal.handler.DiscordUDPConnection;
 import moe.kyokobot.koe.internal.json.JsonArray;
 import moe.kyokobot.koe.internal.json.JsonObject;
@@ -17,19 +19,10 @@ import java.util.UUID;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-public class VoiceGatewayV5Connection extends AbstractVoiceGatewayConnection {
-    private static final Logger logger = LoggerFactory.getLogger(VoiceGatewayV5Connection.class);
-    private static final JsonArray SUPPORTED_CODECS;
-
-    static {
-        SUPPORTED_CODECS = new JsonArray();
-        SUPPORTED_CODECS.add(new JsonObject()
-                .add("name", "opus")
-                .add("type", "audio")
-                .add("priority", 1000)
-                .add("payload_type", 120));
-    }
+public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
+    private static final Logger logger = LoggerFactory.getLogger(MediaGatewayV5Connection.class);
 
     private int ssrc;
     private SocketAddress address;
@@ -37,7 +30,7 @@ public class VoiceGatewayV5Connection extends AbstractVoiceGatewayConnection {
     private UUID rtcConnectionId;
     private ScheduledFuture heartbeatFuture;
 
-    public VoiceGatewayV5Connection(VoiceConnectionImpl connection, VoiceServerInfo voiceServerInfo) {
+    public MediaGatewayV5Connection(MediaConnectionImpl connection, VoiceServerInfo voiceServerInfo) {
         super(connection, voiceServerInfo, 5);
     }
 
@@ -100,13 +93,17 @@ public class VoiceGatewayV5Connection extends AbstractVoiceGatewayConnection {
                 var user = data.getString("user_id");
                 var audioSsrc = data.getInt("audio_ssrc", 0);
                 var videoSsrc = data.getInt("video_ssrc", 0);
-                connection.getDispatcher().userConnected(user, audioSsrc, videoSsrc);
+                var rtxSsrc = data.getInt("rtx_ssrc", 0);
+                connection.getDispatcher().userConnected(user, audioSsrc, videoSsrc, rtxSsrc);
                 break;
             }
             case Op.CLIENT_DISCONNECT: {
                 var data = object.getObject("d");
                 var user = data.getString("user_id");
                 connection.getDispatcher().userDisconnected(user);
+                break;
+            }
+            case Op.VIDEO_SINK_WANTS: {
                 break;
             }
             default:
@@ -160,9 +157,14 @@ public class VoiceGatewayV5Connection extends AbstractVoiceGatewayConnection {
                         .add("port", ourAddress.getPort())
                         .add("mode", mode);
 
+                var codecs = new JsonArray();
+                Stream.concat(DefaultCodecs.audioCodecs.values().stream(), DefaultCodecs.videoCodecs.values().stream())
+                        .map(Codec::getJsonDescription)
+                        .forEach(codecs::add);
+
                 sendInternalPayload(Op.SELECT_PROTOCOL, new JsonObject()
                         .add("protocol", "udp")
-                        .add("codecs", SUPPORTED_CODECS)
+                        .add("codecs", codecs)
                         .add("rtc_connection_id", rtcConnectionId.toString())
                         .add("data", udpInfo)
                         .combine(udpInfo));

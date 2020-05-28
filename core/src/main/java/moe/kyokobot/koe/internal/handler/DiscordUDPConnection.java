@@ -5,7 +5,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.DatagramChannel;
-import moe.kyokobot.koe.VoiceConnection;
+import moe.kyokobot.koe.MediaConnection;
 import moe.kyokobot.koe.codec.Codec;
 import moe.kyokobot.koe.crypto.EncryptionMode;
 import moe.kyokobot.koe.data.RTPHeaderWriter;
@@ -26,7 +26,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSocketAddress> {
     private static final Logger logger = LoggerFactory.getLogger(DiscordUDPConnection.class);
 
-    private final VoiceConnection connection;
+    private final MediaConnection connection;
     private final ByteBufAllocator allocator;
     private final SocketAddress serverAddress;
     private final Bootstrap bootstrap;
@@ -39,7 +39,7 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
 
     private volatile char seq;
 
-    public DiscordUDPConnection(VoiceConnection voiceConnection,
+    public DiscordUDPConnection(MediaConnection voiceConnection,
                                 SocketAddress serverAddress,
                                 int ssrc) {
         this.connection = voiceConnection;

@@ -2,7 +2,7 @@ package moe.kyokobot.koe.media;
 
 import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.KoeEventAdapter;
-import moe.kyokobot.koe.VoiceConnection;
+import moe.kyokobot.koe.MediaConnection;
 import moe.kyokobot.koe.codec.Codec;
 import moe.kyokobot.koe.codec.OpusCodec;
 import moe.kyokobot.koe.gateway.SpeakingFlags;
@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
     private static final Logger logger = LoggerFactory.getLogger(OpusAudioFrameProvider.class);
     private static final int SILENCE_FRAME_COUNT = 5;
-    private final VoiceConnection connection;
+    private final MediaConnection connection;
     private final Op12HackListener hackListener;
 
     // volatile because of multiple event loop threads accessing these fields.
@@ -30,7 +30,7 @@ public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
     private volatile boolean speaking = false;
     private int speakingMask = SpeakingFlags.NORMAL;
 
-    public OpusAudioFrameProvider(VoiceConnection connection) {
+    public OpusAudioFrameProvider(MediaConnection connection) {
         this.connection = Objects.requireNonNull(connection);
         this.hackListener = new Op12HackListener();
         this.connection.registerListener(this.hackListener);

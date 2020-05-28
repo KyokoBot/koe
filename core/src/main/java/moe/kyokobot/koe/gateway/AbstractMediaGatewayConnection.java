@@ -17,7 +17,7 @@ import io.netty.handler.ssl.SslHandler;
 import io.netty.util.concurrent.EventExecutor;
 import moe.kyokobot.koe.VoiceServerInfo;
 import moe.kyokobot.koe.internal.NettyBootstrapFactory;
-import moe.kyokobot.koe.internal.VoiceConnectionImpl;
+import moe.kyokobot.koe.internal.MediaConnectionImpl;
 import moe.kyokobot.koe.internal.json.JsonObject;
 import moe.kyokobot.koe.internal.json.JsonParser;
 import moe.kyokobot.koe.internal.util.NettyFutureWrapper;
@@ -34,10 +34,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
-public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConnection {
-    private static final Logger logger = LoggerFactory.getLogger(AbstractVoiceGatewayConnection.class);
+public abstract class AbstractMediaGatewayConnection implements MediaGatewayConnection {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractMediaGatewayConnection.class);
 
-    protected final VoiceConnectionImpl connection;
+    protected final MediaConnectionImpl connection;
     protected final VoiceServerInfo voiceServerInfo;
     protected final URI websocketURI;
     protected final Bootstrap bootstrap;
@@ -49,7 +49,7 @@ public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConn
     private volatile boolean open;
     private volatile boolean closed = false;
 
-    public AbstractVoiceGatewayConnection(@NotNull VoiceConnectionImpl connection,
+    public AbstractMediaGatewayConnection(@NotNull MediaConnectionImpl connection,
                                           @NotNull VoiceServerInfo voiceServerInfo,
                                           int version) {
         try {
@@ -156,7 +156,7 @@ public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConn
                 if (msg instanceof FullHttpResponse) {
                     try {
                         handshaker.finishHandshake(ch, (FullHttpResponse) msg);
-                        AbstractVoiceGatewayConnection.this.open = true;
+                        AbstractMediaGatewayConnection.this.open = true;
                         connectFuture.complete(null);
                     } catch (WebSocketHandshakeException e) {
                         connectFuture.completeExceptionally(e);
@@ -183,7 +183,7 @@ public abstract class AbstractVoiceGatewayConnection implements VoiceGatewayConn
                 if (logger.isDebugEnabled()) {
                     logger.debug("Websocket closed, code: {}, reason: {}", frame.statusCode(), frame.reasonText());
                 }
-                AbstractVoiceGatewayConnection.this.open = false;
+                AbstractMediaGatewayConnection.this.open = false;
                 onClose(frame.statusCode(), frame.reasonText(), true);
             }
         }

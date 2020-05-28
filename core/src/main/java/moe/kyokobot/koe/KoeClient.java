@@ -9,15 +9,15 @@ import java.util.Map;
 
 public interface KoeClient extends Closeable {
     @NotNull
-    VoiceConnection createConnection(long guildId);
+    MediaConnection createConnection(long guildId);
 
     @Nullable
-    VoiceConnection getConnection(long guildId);
+    MediaConnection getConnection(long guildId);
 
     void destroyConnection(long guildId);
 
     @NotNull
-    Map<Long, VoiceConnection> getConnections();
+    Map<Long, MediaConnection> getConnections();
 
     @Override
     void close();
