@@ -45,6 +45,16 @@ public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
     }
 
     @Override
+    public int getFrameInterval() {
+        return OpusCodec.FRAME_DURATION;
+    }
+
+    @Override
+    public void setFrameInterval(int interval) {
+        throw new UnsupportedOperationException("Only 20ms frames are supported.");
+    }
+
+    @Override
     public final boolean canSendFrame(Codec codec) {
         if (codec.getPayloadType() != OpusCodec.PAYLOAD_TYPE) {
             return false;
@@ -68,9 +78,9 @@ public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
     }
 
     @Override
-    public final void retrieve(Codec codec, ByteBuf buf) {
+    public final boolean retrieve(Codec codec, ByteBuf buf, AtomicInteger timestamp) {
         if (codec.getPayloadType() != OpusCodec.PAYLOAD_TYPE) {
-            return;
+            return false;
         }
 
         if (counter.get() > 0) {
@@ -80,7 +90,9 @@ public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
             if (speaking) {
                 setSpeaking(false);
             }
-            return;
+
+            timestamp.addAndGet(960);
+            return false;
         }
 
         int startIndex = buf.writerIndex();
@@ -92,7 +104,6 @@ public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
         }
 
         if (!written) {
-            logger.debug("Write silent frames");
             counter.set(SILENCE_FRAME_COUNT);
         }
 
@@ -102,6 +113,9 @@ public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
         if (changeTalking) {
             setSpeaking(written);
         }
+
+        timestamp.addAndGet(960);
+        return false;
     }
 
     private void setSpeaking(boolean state) {
@@ -115,7 +129,7 @@ public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
 
     private class Op12HackListener extends KoeEventAdapter {
         @Override
-        public void userConnected(String id, int audioSSRC, int videoSSRC) {
+        public void userConnected(String id, int audioSSRC, int videoSSRC, int rtxSSRC) {
             if (speaking) {
                 connection.updateSpeakingState(speakingMask);
             }

@@ -75,9 +75,7 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
 
         var chFuture = bootstrap.connect(websocketURI.getHost(), websocketURI.getPort() == -1 ? 443 : websocketURI.getPort());
         chFuture.addListener(new NettyFutureWrapper<>(future));
-        future.thenAccept(v -> this.channel = chFuture.channel())
-                .thenAccept(v -> this.identify());
-
+        future.thenAccept(v -> this.channel = chFuture.channel());
         return connectFuture;
     }
 
@@ -158,6 +156,7 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
                         handshaker.finishHandshake(ch, (FullHttpResponse) msg);
                         AbstractMediaGatewayConnection.this.open = true;
                         connectFuture.complete(null);
+                        AbstractMediaGatewayConnection.this.identify();
                     } catch (WebSocketHandshakeException e) {
                         connectFuture.completeExceptionally(e);
                     }

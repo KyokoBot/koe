@@ -104,6 +104,9 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
                 break;
             }
             case Op.VIDEO_SINK_WANTS: {
+                // According to client's source if (d.any < 100) the client should
+                // send video data with lowered bitrate.
+
                 break;
             }
             default:
@@ -168,6 +171,8 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
                         .add("rtc_connection_id", rtcConnectionId.toString())
                         .add("data", udpInfo)
                         .combine(udpInfo));
+
+                this.updateSpeaking(0);
 
                 sendInternalPayload(Op.CLIENT_CONNECT, new JsonObject()
                         .add("audio_ssrc", ssrc)
