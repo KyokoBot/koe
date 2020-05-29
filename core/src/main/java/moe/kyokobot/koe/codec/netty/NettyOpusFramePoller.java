@@ -14,11 +14,17 @@ public class NettyOpusFramePoller extends AbstractFramePoller {
 
     public NettyOpusFramePoller(MediaConnection connection) {
         super(connection);
-        this.timestamp = new AtomicInteger();
     }
 
-    private long lastFrame;
-    private AtomicInteger timestamp;
+    /**
+     * Last frame time in ms.
+     */
+    private long lastFrame = 0;
+
+    /**
+     * Current frame timestamp.
+     */
+    private AtomicInteger timestamp = new AtomicInteger();
 
     @Override
     public void start() {
@@ -49,10 +55,10 @@ public class NettyOpusFramePoller extends AbstractFramePoller {
             if (sender != null && handler != null && sender.canSendFrame(codec)) {
                 var buf = allocator.buffer();
                 int start = buf.writerIndex();
-                sender.retrieve(codec, buf);
+                sender.retrieve(codec, buf, timestamp);
                 int len = buf.writerIndex() - start;
                 if (len != 0) {
-                    handler.sendFrame(OpusCodec.PAYLOAD_TYPE, timestamp.getAndAdd(960), buf, len);
+                    handler.sendFrame(OpusCodec.PAYLOAD_TYPE, timestamp.get(), buf, len, false);
                 }
                 buf.release();
             }

@@ -19,10 +19,10 @@ public interface ConnectionHandler<R> {
     void handleSessionDescription(JsonObject object);
 
     default void sendFrame(Codec codec, int timestamp, ByteBuf data, int start) {
-        sendFrame(codec.getPayloadType(), timestamp, data, start);
+        sendFrame(codec.getPayloadType(), timestamp, data, start, false);
     }
 
     CompletionStage<R> connect();
 
-    void sendFrame(byte payloadType, int timestamp, ByteBuf data, int start);
+    void sendFrame(byte payloadType, int timestamp, ByteBuf data, int start, boolean extension);
 }
