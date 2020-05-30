@@ -1,10 +1,7 @@
 package moe.kyokobot.koe.codec.netty;
 
 import moe.kyokobot.koe.MediaConnection;
-import moe.kyokobot.koe.codec.Codec;
-import moe.kyokobot.koe.codec.FramePoller;
-import moe.kyokobot.koe.codec.FramePollerFactory;
-import moe.kyokobot.koe.codec.OpusCodec;
+import moe.kyokobot.koe.codec.*;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
@@ -17,6 +14,7 @@ public class NettyFramePollerFactory implements FramePollerFactory {
     public NettyFramePollerFactory() {
         codecMap = new HashMap<>();
         codecMap.put(OpusCodec.INSTANCE, NettyOpusFramePoller::new);
+        codecMap.put(H264Codec.INSTANCE, NettyH264FramePoller::new);
     }
 
     @Override
