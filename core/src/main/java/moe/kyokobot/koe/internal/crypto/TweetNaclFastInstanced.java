@@ -462,7 +462,14 @@ public final class TweetNaclFastInstanced {
         poly1305.finish(out, 16);
     }
 
-    public int cryptoSecretboxXSalsa20Poly1305(byte[] c, byte[] m, int d, byte[] n, byte[] k) {
+    public int cryptoSecretboxXSalsa20Poly1305NonSync(byte[] c, byte[] m, int d, byte[] n, byte[] k) {
+        if (d < 32) return -1;
+        cryptoStreamXor(c, m, d, n, k);
+        cryptoOnetimeAuth(c, c, d - 32, c);
+        return 0;
+    }
+
+    public synchronized int cryptoSecretboxXSalsa20Poly1305(byte[] c, byte[] m, int d, byte[] n, byte[] k) {
         if (d < 32) return -1;
         cryptoStreamXor(c, m, d, n, k);
         cryptoOnetimeAuth(c, c, d - 32, c);
