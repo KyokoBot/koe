@@ -2,7 +2,7 @@
  * MIT License
  *
  * Copyright (c) 2016 tom zhou,iwebpp@gmail.com
- * Copyright (c) 2019 Gabriel Konopiński (gabixdev)
+ * Copyright (c) 2019 Alula
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -344,11 +344,6 @@ public class Poly1305 {
         g0 = this.h[0] + 5;
         c = g0 >>> 13;
         g0 &= 0x1fff;
-        /*for (i = 1; i < 10; i++) {
-            g[i] = this.h[i] + c;
-            c = g[i] >>> 13;
-            g[i] &= 0x1fff;
-        }*/
 
         g1 = this.h[1] + c;
         c = g1 >>> 13;
@@ -375,15 +370,14 @@ public class Poly1305 {
         c = g8 >>> 13;
         g8 &= 0x1fff;
         g9 = this.h[9] + c;
-        //c = g9 >>> 13;
         g9 &= 0x1fff;
 
         g9 -= (1 << 13);
         g9 &= 0xffff;
 
         mask = (g9 >>> ((2 * 8) - 1)) - 1;
-        mask &= 0xffff;
-        //for (i = 0; i < 10; i++) g[i] &= mask;
+        //mask &= 0xffff;
+
         g0 &= mask;
         g1 &= mask;
         g2 &= mask;
@@ -396,7 +390,7 @@ public class Poly1305 {
         g9 &= mask;
 
         mask = ~mask;
-        //for (i = 0; i < 10; i++) this.h[i] = (this.h[i] & mask) | g[i];
+
         this.h[0] = (this.h[0] & mask) | g0;
         this.h[1] = (this.h[1] & mask) | g1;
         this.h[2] = (this.h[2] & mask) | g2;
