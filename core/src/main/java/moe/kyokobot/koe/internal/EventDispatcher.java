@@ -17,7 +17,7 @@ public class EventDispatcher implements KoeEventListener {
 
     void register(KoeEventListener listener) {
         if (Objects.requireNonNull(listener) == this) {
-            throw new IllegalArgumentException("Are you trying to register the dispatcher, srsly?");
+            throw new IllegalArgumentException("Are you trying to register the dispatcher, rly?");
         }
         
         listeners.add(listener);
@@ -42,9 +42,9 @@ public class EventDispatcher implements KoeEventListener {
     }
 
     @Override
-    public void userConnected(String id, int audioSSRC, int videoSSRC) {
+    public void userConnected(String id, int audioSSRC, int videoSSRC, int rtxSSRC) {
         for (var listener : listeners) {
-            listener.userConnected(id, audioSSRC, videoSSRC);
+            listener.userConnected(id, audioSSRC, videoSSRC, rtxSSRC);
         }
     }
 

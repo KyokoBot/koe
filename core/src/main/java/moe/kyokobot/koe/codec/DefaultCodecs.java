@@ -2,17 +2,24 @@ package moe.kyokobot.koe.codec;
 
 import java.util.Map;
 
-class DefaultCodecs {
+// todo: migrate to codec registry or something
+public class DefaultCodecs {
     private DefaultCodecs() {
         //
     }
 
-    static final Map<String, Codec> audioCodecs;
-    static final Map<String, Codec> videoCodecs;
+    public static final Map<String, Codec> audioCodecs;
+    public static final Map<String, Codec> videoCodecs;
 
     static {
-        audioCodecs = Map.of("opus", new OpusCodec());
+        audioCodecs = Map.of(
+                "opus", OpusCodec.INSTANCE
+        );
 
-        videoCodecs = Map.of();
+        videoCodecs = Map.of(
+                "H264", H264Codec.INSTANCE,
+                "VP8", VP8Codec.INSTANCE,
+                "VP9", VP9Codec.INSTANCE
+        );
     }
 }

@@ -203,7 +203,7 @@ public class TestBot {
         private final MutableAudioFrame frame;
         private final ByteBuffer frameBuffer;
 
-        AudioSender(AudioPlayer player, VoiceConnection connection) {
+        AudioSender(AudioPlayer player, MediaConnection connection) {
             super(connection);
             this.player = player;
             this.frame = new MutableAudioFrame();
@@ -225,7 +225,7 @@ public class TestBot {
 
     private static class ExampleListener extends KoeEventAdapter {
         @Override
-        public void userConnected(String id, int audioSSRC, int videoSSRC) {
+        public void userConnected(String id, int audioSSRC, int videoSSRC, int rtxSSRC) {
             logger.info("An user with id {} joined the channel!", id);
         }
 

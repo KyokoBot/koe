@@ -5,10 +5,10 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.DatagramChannel;
-import moe.kyokobot.koe.VoiceConnection;
+import moe.kyokobot.koe.MediaConnection;
 import moe.kyokobot.koe.codec.Codec;
 import moe.kyokobot.koe.crypto.EncryptionMode;
-import moe.kyokobot.koe.data.RTPHeaderWriter;
+import moe.kyokobot.koe.internal.util.RTPHeaderWriter;
 import moe.kyokobot.koe.handler.ConnectionHandler;
 import moe.kyokobot.koe.internal.NettyBootstrapFactory;
 import moe.kyokobot.koe.internal.json.JsonObject;
@@ -26,20 +26,19 @@ import java.util.concurrent.ThreadLocalRandom;
 public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSocketAddress> {
     private static final Logger logger = LoggerFactory.getLogger(DiscordUDPConnection.class);
 
-    private final VoiceConnection connection;
+    private final MediaConnection connection;
     private final ByteBufAllocator allocator;
     private final SocketAddress serverAddress;
     private final Bootstrap bootstrap;
     private final int ssrc;
 
     private EncryptionMode encryptionMode;
-    private Codec audioCodec;
     private DatagramChannel channel;
     private byte[] secretKey;
 
     private volatile char seq;
 
-    public DiscordUDPConnection(VoiceConnection voiceConnection,
+    public DiscordUDPConnection(MediaConnection voiceConnection,
                                 SocketAddress serverAddress,
                                 int ssrc) {
         this.connection = voiceConnection;
@@ -79,7 +78,7 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
         var audioCodecName = object.getString("audio_codec");
 
         encryptionMode = EncryptionMode.get(mode);
-        audioCodec = Codec.getAudio(audioCodecName);
+        var audioCodec = Codec.getAudio(audioCodecName);
 
         if (audioCodecName != null && audioCodec == null) {
             logger.warn("Unsupported audio codec type: {}, no audio data will be polled", audioCodecName);
@@ -97,25 +96,26 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
             this.secretKey[i] = (byte) (keyArray.getInt(i) & 0xff);
         }
 
-        connection.startFramePolling();
+        connection.startAudioFramePolling();
+        connection.startVideoFramePolling();
     }
 
     @Override
-    public void sendFrame(byte payloadType, int timestamp, ByteBuf data, int len) {
-        var buf = createPacket(payloadType, timestamp, data, len);
+    public void sendFrame(byte payloadType, int timestamp, ByteBuf data, int len, boolean extension) {
+        var buf = createPacket(payloadType, timestamp, data, len, extension);
         if (buf != null) {
             channel.writeAndFlush(buf);
         }
     }
 
-    public ByteBuf createPacket(byte payloadType, int timestamp, ByteBuf data, int len) {
+    public ByteBuf createPacket(byte payloadType, int timestamp, ByteBuf data, int len, boolean extension) {
         if (secretKey == null) {
             return null;
         }
 
         var buf = allocator.buffer();
         buf.clear();
-        RTPHeaderWriter.writeV2(buf, payloadType, nextSeq(), timestamp, ssrc);
+        RTPHeaderWriter.writeV2(buf, payloadType, nextSeq(), timestamp, ssrc, extension);
         if (encryptionMode.box(data, len, buf, secretKey)) {
             return buf;
         } else {

@@ -8,13 +8,19 @@ import java.util.Objects;
 public abstract class Codec {
     protected final String name;
     protected final byte payloadType;
+    protected final byte rtxPayloadType;
     protected final int priority;
     protected final CodecType type;
     protected final JsonObject jsonDescription;
 
     protected Codec(String name, byte payloadType, int priority, CodecType type) {
+        this(name, payloadType, (byte) 0, priority, type);
+    }
+
+    protected Codec(String name, byte payloadType, byte rtxPayloadType, int priority, CodecType type) {
         this.name = name;
         this.payloadType = payloadType;
+        this.rtxPayloadType = rtxPayloadType;
         this.priority = priority;
         this.type = type;
 
@@ -31,6 +37,10 @@ public abstract class Codec {
 
     public byte getPayloadType() {
         return payloadType;
+    }
+
+    public byte getRetransmissionPayloadType() {
+        return rtxPayloadType;
     }
 
     public int getPriority() {
