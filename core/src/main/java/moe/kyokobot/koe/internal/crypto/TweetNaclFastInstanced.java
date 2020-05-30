@@ -2,7 +2,7 @@
  * MIT License
  *
  * Copyright (c) 2016 tom zhou,iwebpp@gmail.com
- * Copyright (c) 2019 Gabriel Konopiński (gabixdev)
+ * Copyright (c) 2019 Alula
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -403,12 +403,12 @@ public final class TweetNaclFastInstanced {
         int u;
         int i;
 
-        for (int ii = 0; ii < 16; ii++) {
-            z[ii] = 0;
-            x[ii] = 0;
+        for (i = 0; i < 16; i++) {
+            z[i] = 0;
+            x[i] = 0;
         }
-        for (int ii = 16; ii < 64; ii++) {
-            x[ii] = 0;
+        for (i = 16; i < 64; i++) {
+            x[i] = 0;
         }
 
         //for (i = 0; i < 16; i++) z[i] = 0;
@@ -437,12 +437,14 @@ public final class TweetNaclFastInstanced {
     private final byte[] sn = new byte[8];
 
     private void cryptoStreamXor(byte[] c, byte[] m, long d, byte[] n, byte[] k) {
-        for (int ii = 0; ii < 8; ii++) {
-            str[ii] = 0;
-            sn[ii] = 0;
+        int i;
+
+        for (i = 0; i < 8; i++) {
+            str[i] = 0;
+            sn[i] = 0;
         }
-        for (int ii = 8; ii < 32; ii++) {
-            str[ii] = 0;
+        for (i = 8; i < 32; i++) {
+            str[i] = 0;
         }
 
         cryptoCoreHSalsa20(str, n, k);
