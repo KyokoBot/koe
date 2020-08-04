@@ -55,7 +55,7 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
         try {
             this.connection = Objects.requireNonNull(connection);
             this.voiceServerInfo = Objects.requireNonNull(voiceServerInfo);
-            this.websocketURI = new URI(String.format("wss://%s:443/?v=%d",
+            this.websocketURI = new URI(String.format("wss://%s/?v=%d",
                     voiceServerInfo.getEndpoint().replace(":80", ""), version));
             this.bootstrap = NettyBootstrapFactory.socket(connection.getOptions())
                     .handler(new WebSocketInitializer());
