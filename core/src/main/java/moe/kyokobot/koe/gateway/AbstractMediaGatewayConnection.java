@@ -73,7 +73,7 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
         var future = new CompletableFuture<Void>();
         logger.debug("Connecting to {}", websocketURI);
 
-        var chFuture = bootstrap.connect(websocketURI.getHost(), websocketURI.getPort());
+        var chFuture = bootstrap.connect(websocketURI.getHost(), websocketURI.getPort() == -1 ? 443 : websocketURI.getPort());
         chFuture.addListener(new NettyFutureWrapper<>(future));
         future.thenAccept(v -> this.channel = chFuture.channel());
         return connectFuture;
