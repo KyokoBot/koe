@@ -3,11 +3,11 @@ package moe.kyokobot.koe.codec.netty;
 import moe.kyokobot.koe.MediaConnection;
 import moe.kyokobot.koe.codec.AbstractFramePoller;
 import moe.kyokobot.koe.codec.OpusCodec;
+import moe.kyokobot.koe.media.IntReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class NettyOpusFramePoller extends AbstractFramePoller {
     private static final Logger logger = LoggerFactory.getLogger(NettyOpusFramePoller.class);
@@ -24,7 +24,7 @@ public class NettyOpusFramePoller extends AbstractFramePoller {
     /**
      * Current frame timestamp.
      */
-    private AtomicInteger timestamp = new AtomicInteger();
+    private final IntReference timestamp = new IntReference();
 
     @Override
     public void start() {
