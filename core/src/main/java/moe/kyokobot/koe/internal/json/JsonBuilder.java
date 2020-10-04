@@ -18,7 +18,6 @@ package moe.kyokobot.koe.internal.json;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Stack;
 
 /**
  * Builds a {@link JsonObject} or {@link JsonArray}.
