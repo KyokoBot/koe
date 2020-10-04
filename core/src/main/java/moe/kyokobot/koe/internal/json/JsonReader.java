@@ -11,13 +11,13 @@ import java.util.BitSet;
  * Streaming reader for JSON documents.
  */
 public final class JsonReader {
-	private JsonTokener tokener;
+	private final JsonTokener tokener;
 	private int token;
-	private BitSet states = new BitSet();
+	private final BitSet states = new BitSet();
 	private int stateIndex = 0;
 	private boolean inObject;
 	private boolean first = true;
-	private StringBuilder key = new StringBuilder();
+	private final StringBuilder key = new StringBuilder();
 
 	/**
 	 * The type of value that the {@link JsonReader} is positioned over.

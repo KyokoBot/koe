@@ -452,7 +452,7 @@ public final class TweetNaclFastInstanced {
         cryptoStreamSalsa20Xor(c, m, d, sn, str);
     }
 
-    private Poly1305 poly1305 = new Poly1305();
+    private final Poly1305 poly1305 = new Poly1305();
 
     private void cryptoOnetimeAuth(
             byte[] out,
