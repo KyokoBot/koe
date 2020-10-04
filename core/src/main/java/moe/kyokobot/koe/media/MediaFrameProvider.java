@@ -27,12 +27,12 @@ public interface MediaFrameProvider {
 
     /**
      * @return If true, Koe will request media data for given {@link Codec} by
-     * calling {@link #retrieve(Codec, ByteBuf)} method.
+     * calling {@link #retrieve(Codec, ByteBuf, moe.kyokobot.koe.media.IntReference)} method.
      */
     boolean canSendFrame(Codec codec);
 
     /**
-     * If {@link #canSendFrame()} returns true, Koe will attempt to retrieve an media frame encoded with specified
+     * If {@link #canSendFrame(Codec)} returns true, Koe will attempt to retrieve an media frame encoded with specified
      * {@link Codec} type, by calling this method with target {@link ByteBuf} where the data should be written to.
      * Do not call {@link ByteBuf#release()} - memory management is already handled by Koe itself. In case if no
      * data gets written to the buffer, audio packet won't be sent.
