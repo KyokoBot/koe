@@ -38,8 +38,8 @@ public final class JsonParser {
     private Object value;
     private int token;
 
-    private JsonTokener tokener;
-    private boolean lazyNumbers;
+    private final JsonTokener tokener;
+    private final boolean lazyNumbers;
 
     /**
      * Returns a type-safe parser context for a {@link JsonObject}, {@link JsonArray} or "any" type from which you can

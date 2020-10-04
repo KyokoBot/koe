@@ -41,7 +41,7 @@ public class JsonArray extends ArrayList<Object> {
 	/**
 	 * Creates an empty {@link JsonArray} from the given collection of objects.
 	 */
-	public JsonArray(Collection<? extends Object> collection) {
+	public JsonArray(Collection<?> collection) {
 		super(collection);
 	}
 
@@ -49,8 +49,7 @@ public class JsonArray extends ArrayList<Object> {
 	 * Creates a {@link JsonArray} from an array of contents.
 	 */
 	public static JsonArray from(Object... contents) {
-		JsonArray array = new JsonArray(Arrays.asList(contents));
-		return array;
+		return new JsonArray(Arrays.asList(contents));
 	}
 
 	/**

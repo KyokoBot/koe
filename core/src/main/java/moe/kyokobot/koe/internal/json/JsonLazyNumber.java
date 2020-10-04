@@ -7,8 +7,8 @@ import java.math.BigDecimal;
  */
 @SuppressWarnings("serial")
 class JsonLazyNumber extends Number {
-	private String value;
-	private boolean isDouble;
+	private final String value;
+	private final boolean isDouble;
 
 	public JsonLazyNumber(String number, boolean isDoubleValue) {
 		this.value = number;
