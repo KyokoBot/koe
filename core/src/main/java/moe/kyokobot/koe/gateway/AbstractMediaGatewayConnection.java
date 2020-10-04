@@ -46,8 +46,8 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
 
     protected EventExecutor eventExecutor;
     protected Channel channel;
-    private volatile boolean open;
-    private volatile boolean closed = false;
+    private boolean open;
+    private boolean closed = false;
 
     public AbstractMediaGatewayConnection(@NotNull MediaConnectionImpl connection,
                                           @NotNull VoiceServerInfo voiceServerInfo,
@@ -188,7 +188,7 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
         }
 
         @Override
-        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
             if (!connectFuture.isDone()) {
                 connectFuture.completeExceptionally(cause);
             }

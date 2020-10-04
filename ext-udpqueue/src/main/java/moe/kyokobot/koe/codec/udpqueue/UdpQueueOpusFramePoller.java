@@ -4,19 +4,18 @@ import moe.kyokobot.koe.MediaConnection;
 import moe.kyokobot.koe.codec.AbstractFramePoller;
 import moe.kyokobot.koe.codec.OpusCodec;
 import moe.kyokobot.koe.internal.handler.DiscordUDPConnection;
+import moe.kyokobot.koe.media.IntReference;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class UdpQueueOpusFramePoller extends AbstractFramePoller {
-    private QueueManagerPool.UdpQueueWrapper manager;
-    private AtomicInteger timestamp;
+    private final QueueManagerPool.UdpQueueWrapper manager;
+    private final IntReference timestamp = new IntReference();
     private long lastFrame;
 
     public UdpQueueOpusFramePoller(QueueManagerPool.UdpQueueWrapper manager, MediaConnection connection) {
         super(connection);
-        this.timestamp = new AtomicInteger();
         this.manager = manager;
     }
 
