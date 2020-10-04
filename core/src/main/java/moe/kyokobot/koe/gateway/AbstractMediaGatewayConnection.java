@@ -142,7 +142,7 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
         }
 
         @Override
-        public void channelInactive(ChannelHandlerContext ctx) {
+        public void channelInactive(@NotNull ChannelHandlerContext ctx) {
             close(1006, "Abnormal closure");
         }
 
@@ -200,7 +200,7 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
 
     private class WebSocketInitializer extends ChannelInitializer<SocketChannel> {
         @Override
-        protected void initChannel(SocketChannel ch) throws Exception {
+        protected void initChannel(SocketChannel ch) {
             var pipeline = ch.pipeline();
             var engine = sslContext.newEngine(ch.alloc());
             pipeline.addLast("ssl", new SslHandler(engine));

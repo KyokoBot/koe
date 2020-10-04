@@ -32,7 +32,7 @@ public class MediaGatewayV4Connection extends AbstractMediaGatewayConnection {
     private SocketAddress address;
     private List<String> encryptionModes;
     private UUID rtcConnectionId;
-    private ScheduledFuture heartbeatFuture;
+    private ScheduledFuture<?> heartbeatFuture;
 
     public MediaGatewayV4Connection(MediaConnectionImpl connection, VoiceServerInfo voiceServerInfo) {
         super(connection, voiceServerInfo, 4);
