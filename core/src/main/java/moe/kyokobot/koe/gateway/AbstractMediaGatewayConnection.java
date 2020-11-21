@@ -46,8 +46,8 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
 
     protected EventExecutor eventExecutor;
     protected Channel channel;
-    private volatile boolean open;
-    private volatile boolean closed = false;
+    private boolean open;
+    private boolean closed = false;
 
     public AbstractMediaGatewayConnection(@NotNull MediaConnectionImpl connection,
                                           @NotNull VoiceServerInfo voiceServerInfo,
@@ -142,7 +142,7 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
         }
 
         @Override
-        public void channelInactive(ChannelHandlerContext ctx) {
+        public void channelInactive(@NotNull ChannelHandlerContext ctx) {
             close(1006, "Abnormal closure");
         }
 
@@ -188,7 +188,7 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
         }
 
         @Override
-        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
             if (!connectFuture.isDone()) {
                 connectFuture.completeExceptionally(cause);
             }
@@ -200,7 +200,7 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
 
     private class WebSocketInitializer extends ChannelInitializer<SocketChannel> {
         @Override
-        protected void initChannel(SocketChannel ch) throws Exception {
+        protected void initChannel(SocketChannel ch) {
             var pipeline = ch.pipeline();
             var engine = sslContext.newEngine(ch.alloc());
             pipeline.addLast("ssl", new SslHandler(engine));

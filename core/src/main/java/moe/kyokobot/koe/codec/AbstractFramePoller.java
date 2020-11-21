@@ -8,7 +8,7 @@ public abstract class AbstractFramePoller implements FramePoller {
     protected final MediaConnection connection;
     protected final ByteBufAllocator allocator;
     protected final EventLoopGroup eventLoop;
-    protected volatile boolean polling = false;
+    protected boolean polling = false;
 
     public AbstractFramePoller(MediaConnection connection) {
         this.connection = connection;

@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Internal class for tokenizing JSON. Used by both {@link JsonParser} and {@link JsonReader}.
@@ -54,7 +55,7 @@ final class JsonTokener {
      */
     private static final class PseudoUtf8Reader extends Reader {
         private final InputStream buffered;
-        private byte[] buf = new byte[BUFFER_SIZE];
+        private final byte[] buf = new byte[BUFFER_SIZE];
 
         PseudoUtf8Reader(InputStream buffered) {
             this.buffered = buffered;
@@ -131,11 +132,11 @@ final class JsonTokener {
             } else if (sig[0] == 0xFF && sig[1] == 0xFE && sig[2] == 0x00 && sig[3] == 0x00) {
                 charset = Charset.forName("UTF-32LE");
             } else if (sig[0] == 0xFE && sig[1] == 0xFF) {
-                charset = Charset.forName("UTF-16BE");
+                charset = StandardCharsets.UTF_16BE;
                 buffered.reset();
                 buffered.skip(2);
             } else if (sig[0] == 0xFF && sig[1] == 0xFE) {
-                charset = Charset.forName("UTF-16LE");
+                charset = StandardCharsets.UTF_16LE;
                 buffered.reset();
                 buffered.skip(2);
             } else if (sig[0] == 0 && sig[1] == 0 && sig[2] == 0 && sig[3] != 0) {
@@ -145,10 +146,10 @@ final class JsonTokener {
                 charset = Charset.forName("UTF-32LE");
                 buffered.reset();
             } else if (sig[0] == 0 && sig[1] != 0 && sig[2] == 0 && sig[3] != 0) {
-                charset = Charset.forName("UTF-16BE");
+                charset = StandardCharsets.UTF_16BE;
                 buffered.reset();
             } else if (sig[0] != 0 && sig[1] == 0 && sig[2] != 0 && sig[3] == 0) {
-                charset = Charset.forName("UTF-16LE");
+                charset = StandardCharsets.UTF_16LE;
                 buffered.reset();
             } else {
                 buffered.reset();

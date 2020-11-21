@@ -45,7 +45,7 @@ public interface MediaConnection extends Closeable {
     @Nullable
     VoiceServerInfo getVoiceServerInfo();
 
-    ConnectionHandler getConnectionHandler();
+    ConnectionHandler<?> getConnectionHandler();
 
     void setAudioSender(@Nullable MediaFrameProvider sender);
 

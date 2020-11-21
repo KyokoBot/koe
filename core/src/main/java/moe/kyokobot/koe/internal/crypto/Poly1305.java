@@ -26,10 +26,10 @@ package moe.kyokobot.koe.internal.crypto;
 
 @SuppressWarnings("Duplicates")
 public class Poly1305 {
-    private byte[] buffer;
-    private int[] r;
-    private int[] h;
-    private int[] pad;
+    private final byte[] buffer;
+    private final int[] r;
+    private final int[] h;
+    private final int[] pad;
     private int leftover;
     private int fin;
 

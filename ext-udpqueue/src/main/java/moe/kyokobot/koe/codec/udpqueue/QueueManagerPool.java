@@ -13,7 +13,7 @@ import static moe.kyokobot.koe.codec.udpqueue.UdpQueueFramePollerFactory.MAXIMUM
 public class QueueManagerPool {
     private final AtomicLong queueKeySeq;
     private final UdpQueueManager[] managers;
-    private volatile boolean closed;
+    private boolean closed;
 
     public QueueManagerPool(int size, int bufferDuration) {
         if (size <= 0) {

@@ -46,7 +46,7 @@ class JsonWriterBase<SELF extends JsonWriterBase<SELF>> implements
 	private final StringBuilder buffer;
 	private final byte[] bb;
 	private int bo = 0;
-	private BitSet states = new BitSet();
+	private final BitSet states = new BitSet();
 	private int stateIndex = 0;
 	private boolean first = true;
 	private boolean inObject;
@@ -54,7 +54,7 @@ class JsonWriterBase<SELF extends JsonWriterBase<SELF>> implements
 	/**
 	 * Sequence to use for indenting.
 	 */
-	private String indentString;
+	private final String indentString;
 
 	/**
 	 * Current indent amount.

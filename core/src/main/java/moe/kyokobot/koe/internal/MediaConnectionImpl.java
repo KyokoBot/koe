@@ -24,7 +24,7 @@ public class MediaConnectionImpl implements MediaConnection {
     private final EventDispatcher dispatcher;
 
     private MediaGatewayConnection gatewayConnection;
-    private ConnectionHandler connectionHandler;
+    private ConnectionHandler<?> connectionHandler;
     private VoiceServerInfo info;
     private Codec audioCodec;
     private Codec videoCodec;
@@ -113,7 +113,7 @@ public class MediaConnectionImpl implements MediaConnection {
     }
 
     @Override
-    public ConnectionHandler getConnectionHandler() {
+    public ConnectionHandler<?> getConnectionHandler() {
         return connectionHandler;
     }
 
@@ -247,7 +247,7 @@ public class MediaConnectionImpl implements MediaConnection {
         return dispatcher;
     }
 
-    public void setConnectionHandler(ConnectionHandler connectionHandler) {
+    public void setConnectionHandler(ConnectionHandler<?> connectionHandler) {
         this.connectionHandler = connectionHandler;
     }
 }

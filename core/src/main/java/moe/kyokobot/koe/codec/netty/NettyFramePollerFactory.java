@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 public class NettyFramePollerFactory implements FramePollerFactory {
-    private Map<Codec, Function<MediaConnection, FramePoller>> codecMap;
+    private final Map<Codec, Function<MediaConnection, FramePoller>> codecMap;
 
     public NettyFramePollerFactory() {
         codecMap = new HashMap<>();

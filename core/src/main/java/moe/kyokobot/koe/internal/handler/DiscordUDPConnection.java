@@ -36,7 +36,7 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
     private DatagramChannel channel;
     private byte[] secretKey;
 
-    private volatile char seq;
+    private char seq;
 
     public DiscordUDPConnection(MediaConnection voiceConnection,
                                 SocketAddress serverAddress,
