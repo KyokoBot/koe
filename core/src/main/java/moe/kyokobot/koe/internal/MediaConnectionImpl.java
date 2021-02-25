@@ -46,7 +46,7 @@ public class MediaConnectionImpl implements MediaConnection {
     @Override
     public CompletionStage<Void> connect(VoiceServerInfo info) {
         this.disconnect();
-        var conn = client.getGatewayVersion().createConnection(this, info);
+        MediaGatewayConnection conn = client.getGatewayVersion().createConnection(this, info);
 
         return conn.start().thenAccept(nothing -> {
             MediaConnectionImpl.this.info = info;

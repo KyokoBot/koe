@@ -16,7 +16,7 @@ public class NettyBootstrapFactory {
     }
 
     public static Bootstrap datagram(KoeOptions options) {
-        var bootstrap = new Bootstrap()
+        Bootstrap bootstrap = new Bootstrap()
                 .group(options.getEventLoopGroup())
                 .channel(options.getDatagramChannelClass())
                 .option(ChannelOption.SO_REUSEADDR, true);

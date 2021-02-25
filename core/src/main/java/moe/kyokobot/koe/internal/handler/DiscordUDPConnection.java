@@ -8,6 +8,7 @@ import io.netty.channel.socket.DatagramChannel;
 import moe.kyokobot.koe.MediaConnection;
 import moe.kyokobot.koe.codec.Codec;
 import moe.kyokobot.koe.crypto.EncryptionMode;
+import moe.kyokobot.koe.internal.json.JsonArray;
 import moe.kyokobot.koe.internal.util.RTPHeaderWriter;
 import moe.kyokobot.koe.handler.ConnectionHandler;
 import moe.kyokobot.koe.internal.NettyBootstrapFactory;
@@ -54,7 +55,7 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
     public CompletionStage<InetSocketAddress> connect() {
         logger.debug("Connecting to {}...", serverAddress);
 
-        var future = new CompletableFuture<InetSocketAddress>();
+        CompletableFuture<InetSocketAddress> future = new CompletableFuture<InetSocketAddress>();
         bootstrap.handler(new Initializer(this, future))
                 .connect(serverAddress)
                 .addListener(res -> {
@@ -74,11 +75,11 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
 
     @Override
     public void handleSessionDescription(JsonObject object) {
-        var mode = object.getString("mode");
-        var audioCodecName = object.getString("audio_codec");
+        String mode = object.getString("mode");
+        String audioCodecName = object.getString("audio_codec");
 
         encryptionMode = EncryptionMode.get(mode);
-        var audioCodec = Codec.getAudio(audioCodecName);
+        Codec audioCodec = Codec.getAudio(audioCodecName);
 
         if (audioCodecName != null && audioCodec == null) {
             logger.warn("Unsupported audio codec type: {}, no audio data will be polled", audioCodecName);
@@ -89,7 +90,7 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
                     "protocol changed! Open an issue at https://github.com/KyokoBot/koe");
         }
 
-        var keyArray = object.getArray("secret_key");
+        JsonArray keyArray = object.getArray("secret_key");
         this.secretKey = new byte[keyArray.size()];
 
         for (int i = 0; i < secretKey.length; i++) {
@@ -102,7 +103,7 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
 
     @Override
     public void sendFrame(byte payloadType, int timestamp, ByteBuf data, int len, boolean extension) {
-        var buf = createPacket(payloadType, timestamp, data, len, extension);
+        ByteBuf buf = createPacket(payloadType, timestamp, data, len, extension);
         if (buf != null) {
             channel.writeAndFlush(buf);
         }
@@ -113,7 +114,7 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
             return null;
         }
 
-        var buf = allocator.buffer();
+        ByteBuf buf = allocator.buffer();
         buf.clear();
         RTPHeaderWriter.writeV2(buf, payloadType, nextSeq(), timestamp, ssrc, extension);
         if (encryptionMode.box(data, len, buf, secretKey)) {
@@ -166,7 +167,7 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
         protected void initChannel(DatagramChannel datagramChannel) {
             connection.channel = datagramChannel;
 
-            var handler = new HolepunchHandler(future, connection.ssrc);
+            HolepunchHandler handler = new HolepunchHandler(future, connection.ssrc);
             datagramChannel.pipeline().addFirst("handler", handler);
         }
     }

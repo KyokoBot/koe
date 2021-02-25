@@ -1,9 +1,12 @@
 package moe.kyokobot.koe.codec.netty;
 
+import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.MediaConnection;
 import moe.kyokobot.koe.codec.AbstractFramePoller;
 import moe.kyokobot.koe.codec.H264Codec;
+import moe.kyokobot.koe.handler.ConnectionHandler;
 import moe.kyokobot.koe.media.IntReference;
+import moe.kyokobot.koe.media.MediaFrameProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,12 +58,12 @@ public class NettyH264FramePoller extends AbstractFramePoller {
         boolean pollNext = false;
         try {
             do {
-                var handler = connection.getConnectionHandler();
-                var sender = connection.getAudioSender();
-                var codec = H264Codec.INSTANCE;
+                ConnectionHandler<?> handler = connection.getConnectionHandler();
+                MediaFrameProvider sender = connection.getAudioSender();
+                H264Codec codec = H264Codec.INSTANCE;
 
                 if (sender != null && handler != null && sender.canSendFrame(codec)) {
-                    var buf = allocator.buffer();
+                    ByteBuf buf = allocator.buffer();
                     int start = buf.writerIndex();
                     pollNext = sender.retrieve(codec, buf, timestamp);
                     int len = buf.writerIndex() - start;

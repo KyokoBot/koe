@@ -29,42 +29,42 @@ public class EventDispatcher implements KoeEventListener {
 
     @Override
     public void gatewayReady(InetSocketAddress target, int ssrc) {
-        for (var listener : listeners) {
+        for (KoeEventListener listener : listeners) {
             listener.gatewayReady(target, ssrc);
         }
     }
 
     @Override
     public void gatewayClosed(int code, String reason, boolean byRemote) {
-        for (var listener : listeners) {
+        for (KoeEventListener listener : listeners) {
             listener.gatewayClosed(code, reason, byRemote);
         }
     }
 
     @Override
     public void userConnected(String id, int audioSSRC, int videoSSRC, int rtxSSRC) {
-        for (var listener : listeners) {
+        for (KoeEventListener listener : listeners) {
             listener.userConnected(id, audioSSRC, videoSSRC, rtxSSRC);
         }
     }
 
     @Override
     public void userDisconnected(String id) {
-        for (var listener : listeners) {
+        for (KoeEventListener listener : listeners) {
             listener.userDisconnected(id);
         }
     }
 
     @Override
     public void externalIPDiscovered(InetSocketAddress address) {
-        for (var listener : listeners) {
+        for (KoeEventListener listener : listeners) {
             listener.externalIPDiscovered(address);
         }
     }
 
     @Override
     public void sessionDescription(JsonObject session) {
-        for (var listener : listeners) {
+        for (KoeEventListener listener : listeners) {
             listener.sessionDescription(session);
         }
     }
