@@ -84,7 +84,7 @@ public final class JsonParser {
          * Parses the current JSON type from a {@link URL}.
          */
         public T from(URL url) throws JsonParserException {
-            try (var stm = url.openStream()) {
+            try (InputStream stm = url.openStream()) {
                 return from(stm);
             } catch (IOException e) {
                 throw new JsonParserException(e, "IOException opening URL", 1, 1, 0);

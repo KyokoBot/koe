@@ -9,7 +9,7 @@ public class GCPressureGenerator {
             while (true) {
                 try {
                     {
-                        var l = new ArrayList<int[]>();
+                        ArrayList<int[]> l = new ArrayList<>();
                         for (int i = 0; i < 10000; i++) {
                             l.add(new int[1024]);
                         }
@@ -17,7 +17,7 @@ public class GCPressureGenerator {
                     }
                     {
                         for (int i = 0; i < 25000; i++) {
-                            var arr = "malksmdlkamsldmalksmdlkmasldmlkam32908092930180928308290488209830928081028013sldmlkamslkdmlakmsldkmlakmsldkmalsmdalksmldaads".split(String.valueOf(i));
+                            String[] arr = "malksmdlkamsldmalksmdlkmasldmlkam32908092930180928308290488209830928081028013sldmlkamslkdmlakmsldkmlakmsldkmalsmdalksmldaads".split(String.valueOf(i));
                         }
                     }
                     {

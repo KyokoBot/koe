@@ -98,13 +98,13 @@ public abstract class Codec {
      */
     @Nullable
     public static Codec getByPayload(byte payloadType) {
-        for (var codec : DefaultCodecs.audioCodecs.values()) {
+        for (Codec codec : DefaultCodecs.audioCodecs.values()) {
             if (codec.getPayloadType() == payloadType) {
                 return codec;
             }
         }
 
-        for (var codec : DefaultCodecs.videoCodecs.values()) {
+        for (Codec codec : DefaultCodecs.videoCodecs.values()) {
             if (codec.getPayloadType() == payloadType) {
                 return codec;
             }

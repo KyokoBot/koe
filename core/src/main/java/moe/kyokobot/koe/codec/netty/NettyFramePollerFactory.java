@@ -20,7 +20,7 @@ public class NettyFramePollerFactory implements FramePollerFactory {
     @Override
     @Nullable
     public FramePoller createFramePoller(Codec codec, MediaConnection connection) {
-        var constructor = codecMap.get(codec);
+        Function<MediaConnection, FramePoller> constructor = codecMap.get(codec);
         if (constructor != null) {
             return constructor.apply(connection);
         }
