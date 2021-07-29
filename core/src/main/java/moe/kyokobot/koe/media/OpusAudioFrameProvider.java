@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -78,7 +79,7 @@ public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
     }
 
     @Override
-    public final boolean retrieve(Codec codec, ByteBuf buf, AtomicInteger timestamp) {
+    public final boolean retrieve(Codec codec, ByteBuf buf, AtomicInteger timestamp, AtomicBoolean unused) {
         if (codec.getPayloadType() != OpusCodec.PAYLOAD_TYPE) {
             return false;
         }

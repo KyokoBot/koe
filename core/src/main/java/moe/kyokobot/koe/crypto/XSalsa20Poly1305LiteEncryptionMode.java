@@ -7,8 +7,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class XSalsa20Poly1305LiteEncryptionMode implements EncryptionMode {
     private final byte[] extendedNonce = new byte[24];
-    private final byte[] m = new byte[984];
-    private final byte[] c = new byte[984];
+    private final byte[] m = new byte[4096 + 24];
+    private final byte[] c = new byte[4096 + 24];
     private AtomicInteger seq = new AtomicInteger(0x80000000);
     private TweetNaclFastInstanced nacl = new TweetNaclFastInstanced();
 

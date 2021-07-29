@@ -127,6 +127,21 @@ public class MediaGatewayV4Connection extends AbstractMediaGatewayConnection {
                 .add("ssrc", ssrc));
     }
 
+    @Override
+    public int getAudioSSRC() {
+        return ssrc;
+    }
+
+    @Override
+    public int getVideoSSRC() {
+        return 0;
+    }
+
+    @Override
+    public int getRetransmissionSSRC() {
+        return 0;
+    }
+
     private void setupHeartbeats(int interval) {
         if (eventExecutor != null) {
             heartbeatFuture = eventExecutor.scheduleAtFixedRate(this::heartbeat, interval, interval,

@@ -37,9 +37,17 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
     @Override
     protected void identify() {
         logger.debug("Identifying...");
+
+        var streams = new JsonArray();
+        streams.add(new JsonObject()
+                .add("type", "video")
+                .add("rid", "100")
+                .add("quality", 100));
+
         sendInternalPayload(Op.IDENTIFY, new JsonObject()
                 .addAsString("server_id", connection.getGuildId())
                 .addAsString("user_id", connection.getClient().getClientId())
+                .add("streams", streams)
                 .add("session_id", voiceServerInfo.getSessionId())
                 .add("token", voiceServerInfo.getToken())
                 .add("video", true));
@@ -112,6 +120,7 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
                 // so if (d.any < 100) in this payload, the client should send video data with lowered resolution
                 // and bitrate.
 
+                sendClientConnect(true, true);
                 break;
             }
             default:
@@ -135,6 +144,21 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
                 .add("ssrc", ssrc));
     }
 
+    @Override
+    public int getAudioSSRC() {
+        return ssrc;
+    }
+
+    @Override
+    public int getVideoSSRC() {
+        return ssrc + 1;
+    }
+
+    @Override
+    public int getRetransmissionSSRC() {
+        return ssrc + 2;
+    }
+
     private void setupHeartbeats(int interval) {
         if (eventExecutor != null) {
             heartbeatFuture = eventExecutor.scheduleAtFixedRate(this::heartbeat, interval, interval,
@@ -144,6 +168,29 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
 
     private void heartbeat() {
         sendInternalPayload(Op.HEARTBEAT, System.currentTimeMillis());
+    }
+
+    private void sendClientConnect(boolean enableAudio, boolean enableVideo) {
+        var arr = new JsonArray();
+        arr.add(new JsonObject()
+                .add("type", "video")
+                .add("rid", "100")
+                .add("ssrc", ssrc + 1)
+                .add("rtx_ssrc", ssrc + 2)
+                .add("active", true)
+                .add("quality", 100)
+                .add("max_bitrate", 2500000)
+                .add("max_framerate", 30)
+                .add("max_resolution", new JsonObject()
+                        .add("type", "fixed")
+                        .add("width", 1280)
+                        .add("height", 720)));
+
+        sendInternalPayload(Op.CLIENT_CONNECT, new JsonObject()
+                .add("audio_ssrc", enableAudio ? ssrc : 0)
+                .add("video_ssrc", enableVideo ? (ssrc + 1) : 0)
+                .add("rtx_ssrc", enableVideo ? (ssrc + 2) : 0)
+                .add("streams", arr));
     }
 
     private void selectProtocol(String protocol) {
@@ -179,10 +226,7 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
 
                 this.updateSpeaking(0);
 
-                sendInternalPayload(Op.CLIENT_CONNECT, new JsonObject()
-                        .add("audio_ssrc", ssrc)
-                        .add("video_ssrc", 0)
-                        .add("rtx_ssrc", 0));
+                sendClientConnect(true, false);
             });
 
             connection.setConnectionHandler(conn);

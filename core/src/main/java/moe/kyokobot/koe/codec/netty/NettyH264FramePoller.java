@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class NettyH264FramePoller extends AbstractFramePoller {
@@ -30,6 +31,8 @@ public class NettyH264FramePoller extends AbstractFramePoller {
      * Current frame timestamp.
      */
     private AtomicInteger timestamp = new AtomicInteger();
+
+    private AtomicBoolean marker = new AtomicBoolean();
 
     @Override
     public void start() {
@@ -56,16 +59,16 @@ public class NettyH264FramePoller extends AbstractFramePoller {
         try {
             do {
                 var handler = connection.getConnectionHandler();
-                var sender = connection.getAudioSender();
+                var sender = connection.getVideoSender();
                 var codec = H264Codec.INSTANCE;
 
                 if (sender != null && handler != null && sender.canSendFrame(codec)) {
                     var buf = allocator.buffer();
                     int start = buf.writerIndex();
-                    pollNext = sender.retrieve(codec, buf, timestamp);
+                    pollNext = sender.retrieve(codec, buf, timestamp, marker);
                     int len = buf.writerIndex() - start;
                     if (len != 0) {
-                        handler.sendFrame(H264Codec.PAYLOAD_TYPE, timestamp.get(), buf, len, true);
+                        handler.sendFrame(H264Codec.PAYLOAD_TYPE, timestamp.get(), connection.getGatewayConnection().getVideoSSRC(), buf, len, false);
                     }
                     buf.release();
                 }

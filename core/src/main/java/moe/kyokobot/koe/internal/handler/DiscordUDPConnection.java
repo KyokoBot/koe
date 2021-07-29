@@ -8,10 +8,10 @@ import io.netty.channel.socket.DatagramChannel;
 import moe.kyokobot.koe.MediaConnection;
 import moe.kyokobot.koe.codec.Codec;
 import moe.kyokobot.koe.crypto.EncryptionMode;
-import moe.kyokobot.koe.internal.util.RTPHeaderWriter;
 import moe.kyokobot.koe.handler.ConnectionHandler;
 import moe.kyokobot.koe.internal.NettyBootstrapFactory;
 import moe.kyokobot.koe.internal.json.JsonObject;
+import moe.kyokobot.koe.internal.util.RTPHeaderWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,6 +22,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSocketAddress> {
     private static final Logger logger = LoggerFactory.getLogger(DiscordUDPConnection.class);
@@ -36,7 +37,7 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
     private DatagramChannel channel;
     private byte[] secretKey;
 
-    private volatile char seq;
+    private AtomicInteger[] seqs;
 
     public DiscordUDPConnection(MediaConnection voiceConnection,
                                 SocketAddress serverAddress,
@@ -47,7 +48,7 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
         this.bootstrap = NettyBootstrapFactory.datagram(voiceConnection.getOptions());
         this.ssrc = ssrc;
         // should be a random value https://tools.ietf.org/html/rfc1889#section-5.1
-        this.seq = (char) (ThreadLocalRandom.current().nextInt() & 0xffff);
+        this.seqs = new AtomicInteger[256];
     }
 
     @Override
@@ -101,21 +102,32 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
     }
 
     @Override
-    public void sendFrame(byte payloadType, int timestamp, ByteBuf data, int len, boolean extension) {
-        var buf = createPacket(payloadType, timestamp, data, len, extension);
+    public void sendFrame(byte payloadType, int timestamp, int ssrc, ByteBuf data, int len, boolean extension) {
+        var buf = createPacket(payloadType, timestamp, ssrc, data, len, extension);
         if (buf != null) {
             channel.writeAndFlush(buf);
         }
     }
 
-    public ByteBuf createPacket(byte payloadType, int timestamp, ByteBuf data, int len, boolean extension) {
+    public ByteBuf createPacket(byte payloadType, int timestamp, int ssrc, ByteBuf data, int len, boolean extension) {
         if (secretKey == null) {
             return null;
         }
 
+        boolean pad = false;
         var buf = allocator.buffer();
         buf.clear();
-        RTPHeaderWriter.writeV2(buf, payloadType, nextSeq(), timestamp, ssrc, extension);
+        if (len < 32) {
+            pad = true;
+            int toAdd = 32;
+            for (int i = 0; i < toAdd - 1; i++) {
+                data.writeByte(0);
+            }
+            data.writeByte(toAdd);
+            len += toAdd;
+        }
+
+        RTPHeaderWriter.writeV2(buf, payloadType, nextSeq(payloadType), timestamp, ssrc, extension, pad);
         if (encryptionMode.box(data, len, buf, secretKey)) {
             return buf;
         } else {
@@ -127,14 +139,13 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
         return null;
     }
 
-    public char nextSeq() {
-        if ((seq + 1) > 0xffff) {
-            seq = 0;
-        } else {
-            seq++;
+    public char nextSeq(byte payloadType) {
+        var n = seqs[(int) payloadType & 0xff];
+        if (n == null) {
+            n = new AtomicInteger(ThreadLocalRandom.current().nextInt() & 0xffff);
+            seqs[(int) payloadType & 0xff] = n;
         }
-
-        return seq;
+        return (char) (n.getAndIncrement() & 0xffff);
     }
 
     public byte[] getSecretKey() {

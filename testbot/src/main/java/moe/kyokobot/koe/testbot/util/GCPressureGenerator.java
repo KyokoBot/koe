@@ -1,4 +1,6 @@
-package moe.kyokobot.koe.testbot;
+package moe.kyokobot.koe.testbot.util;
+
+import moe.kyokobot.koe.testbot.TestBot;
 
 import java.util.ArrayList;
 
