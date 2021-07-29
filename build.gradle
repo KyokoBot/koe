@@ -10,8 +10,8 @@ subprojects {
 
     repositories {
         mavenLocal()
-
-        maven { url "https://jcenter.bintray.com/" }
+        jcenter()
+        maven { url "https://m2.dv8tion.net/releases" }
         maven { url "https://repo.maven.apache.org/maven2" }
         maven { url "https://jitpack.io/" }
     }

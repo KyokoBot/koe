@@ -53,9 +53,9 @@ public class UdpQueueOpusFramePoller extends AbstractFramePoller {
             if (sender != null && handler != null && sender.canSendFrame(codec)) {
                 var buf = allocator.buffer();
                 int start = buf.writerIndex();
-                sender.retrieve(codec, buf, timestamp);
+                sender.retrieve(codec, buf, timestamp, null);
                 int len = buf.writerIndex() - start;
-                var packet = handler.createPacket(OpusCodec.PAYLOAD_TYPE, timestamp.get(), buf, len, false);
+                var packet = handler.createPacket(OpusCodec.PAYLOAD_TYPE, timestamp.get(), connection.getGatewayConnection().getAudioSSRC(), buf, len, false);
                 if (packet != null) {
                     manager.queuePacket(packet.nioBuffer(), (InetSocketAddress) handler.getServerAddress());
                     packet.release();

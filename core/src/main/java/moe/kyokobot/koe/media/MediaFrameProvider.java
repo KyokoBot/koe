@@ -2,7 +2,9 @@ package moe.kyokobot.koe.media;
 
 import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.codec.Codec;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -46,7 +48,8 @@ public interface MediaFrameProvider {
      * @param buf       {@link ByteBuf} the buffer where the media data should be written to.
      * @param timestamp {@link AtomicInteger} reference to current frame timestamp, which must be updated with
      *                  timestamp of written frame.
+     * @param marker    Represents state of marker flag in RTP header.
      * @return If true, Koe will immediately attempt to poll a next frame, this is meant for video transmissions.
      */
-    boolean retrieve(Codec codec, ByteBuf buf, AtomicInteger timestamp);
+    boolean retrieve(Codec codec, ByteBuf buf, AtomicInteger timestamp, @Nullable AtomicBoolean marker);
 }

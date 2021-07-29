@@ -57,10 +57,10 @@ public class NettyOpusFramePoller extends AbstractFramePoller {
                 var buf = allocator.buffer();
                 int start = buf.writerIndex();
                 // opus codec doesn't need framing, we don't handle multiple packet cases.
-                sender.retrieve(codec, buf, timestamp);
+                sender.retrieve(codec, buf, timestamp, null);
                 int len = buf.writerIndex() - start;
                 if (len != 0) {
-                    handler.sendFrame(OpusCodec.PAYLOAD_TYPE, timestamp.get(), buf, len, false);
+                    handler.sendFrame(OpusCodec.PAYLOAD_TYPE, timestamp.get(), connection.getGatewayConnection().getAudioSSRC(), buf, len, false);
                 }
                 buf.release();
             }

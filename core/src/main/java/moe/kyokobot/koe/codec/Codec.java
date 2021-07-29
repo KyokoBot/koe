@@ -26,9 +26,13 @@ public abstract class Codec {
 
         this.jsonDescription = new JsonObject()
                 .add("name", name)
-                .add("payload_type", payloadType)
+                .add("payload_type", (int)payloadType & 0xff)
                 .add("priority", priority)
                 .add("type", type.name().toLowerCase());
+
+        if (rtxPayloadType != 0) {
+            this.jsonDescription.add("rtx_payload_type", (int)rtxPayloadType & 0xff);
+        }
     }
 
     public String getName() {

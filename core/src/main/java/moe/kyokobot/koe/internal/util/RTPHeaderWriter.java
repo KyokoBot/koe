@@ -7,9 +7,12 @@ public class RTPHeaderWriter {
         //
     }
 
-    public static void writeV2(ByteBuf output, byte payloadType, char seq, int timestamp, int ssrc, boolean extension) {
-        output.writeByte(extension ? 0x90 : 0x80);
-        output.writeByte(payloadType & 0x7f);
+    public static void writeV2(ByteBuf output, byte payloadType, char seq, int timestamp, int ssrc, boolean extension, boolean padding) {
+        byte h = (byte) 0x80; // v2
+        if (extension) h |= 0x10;
+        if (padding) h |= 0x20;
+        output.writeByte(h);
+        output.writeByte(payloadType);
         output.writeChar(seq);
         output.writeInt(timestamp);
         output.writeInt(ssrc);
