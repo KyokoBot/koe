@@ -26,7 +26,7 @@ public class OperationData extends Operation {
             @JsonSubTypes.Type(value = VideoSinkWants.class, name = "" + Op.VIDEO_SINK_WANTS)
     })
     @JsonProperty("d")
-    public final Data data;
+    public Data data;
 
     public OperationData(int op, Data data) {
         this.op = op;
