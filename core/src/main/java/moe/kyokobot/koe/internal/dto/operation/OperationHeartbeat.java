@@ -9,6 +9,6 @@ public class OperationHeartbeat extends Operation {
     public long data = System.currentTimeMillis();
 
     public OperationHeartbeat() {
-        this.opCode = Op.HEARTBEAT;
+        this.op = Op.HEARTBEAT;
     }
 }

@@ -55,7 +55,7 @@ public class MediaGatewayV4Connection extends AbstractMediaGatewayConnection {
 
     @Override
     protected void handlePayload(OperationData op) {
-        switch (op.opCode) {
+        switch (op.op) {
             case Op.HELLO: {
                 Hello data = (Hello) op.data;
                 int interval = data.heartbeatInterval;
