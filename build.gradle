@@ -1,5 +1,5 @@
  subprojects {
-    //apply plugin: 'maven'
+    apply plugin: 'maven'
     apply plugin: 'java-library'
 
     group = 'moe.kyokobot'
