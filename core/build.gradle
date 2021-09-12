@@ -2,6 +2,7 @@ dependencies {
     api group: 'io.netty', name: 'netty-transport', version: '4.1.68.Final'
     api group: 'io.netty', name: 'netty-codec-http', version: '4.1.68.Final'
     api group: 'io.netty', name: 'netty-transport-native-epoll', version: '4.1.68.Final'
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.12.5'
     implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.32'
     compileOnly group: 'org.jetbrains', name: 'annotations', version: '13.0'
 }

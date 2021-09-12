@@ -1,19 +1,23 @@
 package moe.kyokobot.koe.gateway;
 
 import moe.kyokobot.koe.VoiceServerInfo;
-import moe.kyokobot.koe.codec.Codec;
 import moe.kyokobot.koe.codec.DefaultCodecs;
 import moe.kyokobot.koe.crypto.EncryptionMode;
 import moe.kyokobot.koe.internal.MediaConnectionImpl;
+import moe.kyokobot.koe.internal.dto.Codec;
+import moe.kyokobot.koe.internal.dto.StreamInfo;
+import moe.kyokobot.koe.internal.dto.data.*;
+import moe.kyokobot.koe.internal.dto.operation.OperationData;
+import moe.kyokobot.koe.internal.dto.operation.OperationHeartbeat;
 import moe.kyokobot.koe.internal.handler.DiscordUDPConnection;
-import moe.kyokobot.koe.internal.json.JsonArray;
-import moe.kyokobot.koe.internal.json.JsonObject;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ScheduledFuture;
@@ -24,9 +28,19 @@ import java.util.stream.Stream;
 public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
     private static final Logger logger = LoggerFactory.getLogger(MediaGatewayV5Connection.class);
 
+    private static final Codec[] SUPPORTED_CODECS;
+
+    static {
+        List<Codec> codecs = new ArrayList<>();
+        Stream.concat(DefaultCodecs.audioCodecs.values().stream(), DefaultCodecs.videoCodecs.values().stream())
+                .map(moe.kyokobot.koe.codec.Codec::getJsonDescription)
+                .forEach(codecs::add);
+        SUPPORTED_CODECS = (Codec[]) codecs.toArray();
+    }
+
     private int ssrc;
     private SocketAddress address;
-    private List<String> encryptionModes;
+    private String[] encryptionModes;
     private UUID rtcConnectionId;
     private ScheduledFuture<?> heartbeatFuture;
 
@@ -38,43 +52,46 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
     protected void identify() {
         logger.debug("Identifying...");
 
-        JsonArray streams = new JsonArray();
-        streams.add(new JsonObject()
-                .add("type", "video")
-                .add("rid", "100")
-                .add("quality", 100));
+        Identify.Stream[] streams = new Identify.Stream[]{
+                new Identify.Stream(
+                        "video",
+                        "100",
+                        100
+                )
+        };
 
-        sendInternalPayload(Op.IDENTIFY, new JsonObject()
-                .addAsString("server_id", connection.getGuildId())
-                .addAsString("user_id", connection.getClient().getClientId())
-                .add("streams", streams)
-                .add("session_id", voiceServerInfo.getSessionId())
-                .add("token", voiceServerInfo.getToken())
-                .add("video", true));
+        sendInternalPayload(
+                new OperationData(
+                        Op.IDENTIFY,
+                        new Identify(
+                                streams,
+                                connection.getGuildId(),
+                                connection.getClient().getClientId(),
+                                voiceServerInfo.getSessionId(),
+                                voiceServerInfo.getToken(),
+                                true
+                        )
+                )
+        );
     }
 
     @Override
-    protected void handlePayload(JsonObject object) {
-        int op = object.getInt("op");
-
-        switch (op) {
+    protected void handlePayload(OperationData op) {
+        switch (op.opCode) {
             case Op.HELLO: {
-                JsonObject data = object.getObject("d");
-                int interval = data.getInt("heartbeat_interval");
+                Hello data = (Hello) op.data;
+                int interval = data.heartbeatInterval;
 
                 logger.debug("Received HELLO, heartbeat interval: {}", interval);
                 setupHeartbeats(interval);
                 break;
             }
             case Op.READY: {
-                JsonObject data = object.getObject("d");
-                int port = data.getInt("port");
-                String ip = data.getString("ip");
-                ssrc = data.getInt("ssrc");
-                encryptionModes = data.getArray("modes")
-                        .stream()
-                        .map(o -> (String) o)
-                        .collect(Collectors.toList());
+                Ready data = (Ready) op.data;
+                int port = data.port;
+                String ip = data.ip;
+                ssrc = data.ssrc;
+                encryptionModes = data.modes;
                 address = new InetSocketAddress(ip, port);
 
                 connection.getDispatcher().gatewayReady((InetSocketAddress) address, ssrc);
@@ -83,7 +100,7 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
                 break;
             }
             case Op.SESSION_DESCRIPTION: {
-                JsonObject data = object.getObject("d");
+                SessionDescription data = (SessionDescription) op.data;
                 logger.debug("Got session description: {}", data);
 
                 if (connection.getConnectionHandler() == null) {
@@ -97,17 +114,17 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
                 break;
             }
             case Op.CLIENT_CONNECT: {
-                JsonObject data = object.getObject("d");
-                String user = data.getString("user_id");
-                int audioSsrc = data.getInt("audio_ssrc", 0);
-                int videoSsrc = data.getInt("video_ssrc", 0);
-                int rtxSsrc = data.getInt("rtx_ssrc", 0);
+                ClientConnect data = (ClientConnect) op.data;
+                String user = data.userId;
+                int audioSsrc = data.audioSsrc;
+                int videoSsrc = data.videoSsrc;
+                int rtxSsrc = data.rtxSsrc;
                 connection.getDispatcher().userConnected(user, audioSsrc, videoSsrc, rtxSsrc);
                 break;
             }
             case Op.CLIENT_DISCONNECT: {
-                JsonObject data = object.getObject("d");
-                String user = data.getString("user_id");
+                ClientDisconnect data = (ClientDisconnect) op.data;
+                String user = data.userId;
                 connection.getDispatcher().userDisconnected(user);
                 break;
             }
@@ -138,10 +155,16 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
 
     @Override
     public void updateSpeaking(int mask) {
-        sendInternalPayload(Op.SPEAKING, new JsonObject()
-                .add("speaking", mask)
-                .add("delay", 0)
-                .add("ssrc", ssrc));
+        sendInternalPayload(
+                new OperationData(
+                        Op.SPEAKING,
+                        new Speaking(
+                                mask,
+                                0,
+                                ssrc
+                        )
+                )
+        );
     }
 
     @Override
@@ -167,30 +190,39 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
     }
 
     private void heartbeat() {
-        sendInternalPayload(Op.HEARTBEAT, System.currentTimeMillis());
+        sendInternalPayload(new OperationHeartbeat());
     }
 
     private void sendClientConnect(boolean enableAudio, boolean enableVideo) {
-        JsonArray arr = new JsonArray();
-        arr.add(new JsonObject()
-                .add("type", "video")
-                .add("rid", "100")
-                .add("ssrc", ssrc + 1)
-                .add("rtx_ssrc", ssrc + 2)
-                .add("active", true)
-                .add("quality", 100)
-                .add("max_bitrate", 2500000)
-                .add("max_framerate", 30)
-                .add("max_resolution", new JsonObject()
-                        .add("type", "fixed")
-                        .add("width", 1280)
-                        .add("height", 720)));
+        StreamInfo.Resolution resolution = new StreamInfo.Resolution();
+        resolution.type = "fixed";
+        resolution.width = 1280;
+        resolution.height = 720;
+        StreamInfo streamInfo = new StreamInfo();
+        streamInfo.type = "video";
+        streamInfo.rid = "100";
+        streamInfo.ssrc = ssrc + 1;
+        streamInfo.rtxSsrc = ssrc + 2;
+        streamInfo.active = true;
+        streamInfo.quality = 100;
+        streamInfo.maxBitrate = 2500000;
+        streamInfo.maxFramerate = 30;
+        streamInfo.maxResolution = resolution;
+        StreamInfo[] streams = new StreamInfo[]{
+                streamInfo
+        };
 
-        sendInternalPayload(Op.CLIENT_CONNECT, new JsonObject()
-                .add("audio_ssrc", enableAudio ? ssrc : 0)
-                .add("video_ssrc", enableVideo ? (ssrc + 1) : 0)
-                .add("rtx_ssrc", enableVideo ? (ssrc + 2) : 0)
-                .add("streams", arr));
+        sendInternalPayload(
+                new OperationData(
+                        Op.CLIENT_CONNECT,
+                        new ClientConnect(
+                                enableAudio ? ssrc : 0,
+                                enableVideo ? (ssrc + 1) : 0,
+                                enableVideo ? (ssrc + 2) : 0,
+                                streams
+                        )
+                )
+        );
     }
 
     private void selectProtocol(String protocol) {
@@ -207,22 +239,23 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
                 logger.debug("Connected, our external address is: {}", ourAddress);
                 connection.getDispatcher().externalIPDiscovered(ourAddress);
 
-                JsonObject udpInfo = new JsonObject()
-                        .add("address", ourAddress.getAddress().getHostAddress())
-                        .add("port", ourAddress.getPort())
-                        .add("mode", mode);
+                SelectProtocol.UdpInfo udpInfo = new SelectProtocol.UdpInfo(
+                        ourAddress.getAddress().getHostAddress(),
+                        ourAddress.getPort(),
+                        mode
+                );
 
-                JsonArray codecs = new JsonArray();
-                Stream.concat(DefaultCodecs.audioCodecs.values().stream(), DefaultCodecs.videoCodecs.values().stream())
-                        .map(Codec::getJsonDescription)
-                        .forEach(codecs::add);
-
-                sendInternalPayload(Op.SELECT_PROTOCOL, new JsonObject()
-                        .add("protocol", "udp")
-                        .add("codecs", codecs)
-                        .add("rtc_connection_id", rtcConnectionId.toString())
-                        .add("data", udpInfo)
-                        .combine(udpInfo));
+                sendInternalPayload(
+                        new OperationData(
+                                Op.SELECT_PROTOCOL,
+                                new SelectProtocol(
+                                        "udp",
+                                        SUPPORTED_CODECS,
+                                        rtcConnectionId.toString(),
+                                        udpInfo
+                                )
+                        )
+                );
 
                 this.updateSpeaking(0);
 

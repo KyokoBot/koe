@@ -8,10 +8,9 @@ import io.netty.channel.socket.DatagramChannel;
 import moe.kyokobot.koe.MediaConnection;
 import moe.kyokobot.koe.codec.Codec;
 import moe.kyokobot.koe.crypto.EncryptionMode;
-import moe.kyokobot.koe.internal.json.JsonArray;
 import moe.kyokobot.koe.handler.ConnectionHandler;
 import moe.kyokobot.koe.internal.NettyBootstrapFactory;
-import moe.kyokobot.koe.internal.json.JsonObject;
+import moe.kyokobot.koe.internal.dto.data.SessionDescription;
 import moe.kyokobot.koe.internal.util.RTPHeaderWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,9 +74,9 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
     }
 
     @Override
-    public void handleSessionDescription(JsonObject object) {
-        String mode = object.getString("mode");
-        String audioCodecName = object.getString("audio_codec");
+    public void handleSessionDescription(SessionDescription object) {
+        String mode = object.mode;
+        String audioCodecName = object.audioCodec;
 
         encryptionMode = EncryptionMode.get(mode);
         Codec audioCodec = Codec.getAudio(audioCodecName);
@@ -91,11 +90,11 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
                     "protocol changed! Open an issue at https://github.com/KyokoBot/koe");
         }
 
-        JsonArray keyArray = object.getArray("secret_key");
-        this.secretKey = new byte[keyArray.size()];
+        int[] keyArray = object.secretKey;
+        this.secretKey = new byte[keyArray.length];
 
         for (int i = 0; i < secretKey.length; i++) {
-            this.secretKey[i] = (byte) (keyArray.getInt(i) & 0xff);
+            this.secretKey[i] = (byte) (keyArray[i] & 0xff);
         }
 
         connection.startAudioFramePolling();

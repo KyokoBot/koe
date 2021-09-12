@@ -1,6 +1,7 @@
 package moe.kyokobot.koe;
 
-import moe.kyokobot.koe.internal.json.JsonObject;
+import com.fasterxml.jackson.databind.JsonNode;
+import moe.kyokobot.koe.internal.dto.data.SessionDescription;
 import org.jetbrains.annotations.Nullable;
 
 import java.net.InetSocketAddress;
@@ -16,5 +17,5 @@ public interface KoeEventListener {
 
     void externalIPDiscovered(InetSocketAddress address);
 
-    void sessionDescription(JsonObject session);
+    void sessionDescription(SessionDescription session);
 }

@@ -1,7 +1,7 @@
 package moe.kyokobot.koe.internal;
 
 import moe.kyokobot.koe.KoeEventListener;
-import moe.kyokobot.koe.internal.json.JsonObject;
+import moe.kyokobot.koe.internal.dto.data.SessionDescription;
 
 import java.net.InetSocketAddress;
 import java.util.HashSet;
@@ -63,7 +63,7 @@ public class EventDispatcher implements KoeEventListener {
     }
 
     @Override
-    public void sessionDescription(JsonObject session) {
+    public void sessionDescription(SessionDescription session) {
         for (KoeEventListener listener : listeners) {
             listener.sessionDescription(session);
         }

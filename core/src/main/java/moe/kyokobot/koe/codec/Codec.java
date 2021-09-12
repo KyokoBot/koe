@@ -1,6 +1,5 @@
 package moe.kyokobot.koe.codec;
 
-import moe.kyokobot.koe.internal.json.JsonObject;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
@@ -11,7 +10,7 @@ public abstract class Codec {
     protected final byte rtxPayloadType;
     protected final int priority;
     protected final CodecType type;
-    protected final JsonObject jsonDescription;
+    protected final moe.kyokobot.koe.internal.dto.Codec jsonDescription;
 
     protected Codec(String name, byte payloadType, int priority, CodecType type) {
         this(name, payloadType, (byte) 0, priority, type);
@@ -24,14 +23,15 @@ public abstract class Codec {
         this.priority = priority;
         this.type = type;
 
-        this.jsonDescription = new JsonObject()
-                .add("name", name)
-                .add("payload_type", (int)payloadType & 0xff)
-                .add("priority", priority)
-                .add("type", type.name().toLowerCase());
+        this.jsonDescription = new moe.kyokobot.koe.internal.dto.Codec(
+                name,
+                (int) payloadType & 0xff,
+                priority,
+                type.name().toLowerCase()
+        );
 
         if (rtxPayloadType != 0) {
-            this.jsonDescription.add("rtx_payload_type", (int)rtxPayloadType & 0xff);
+            this.jsonDescription.rtxPayloadType = (int) rtxPayloadType & 0xff;
         }
     }
 
@@ -55,7 +55,7 @@ public abstract class Codec {
         return type;
     }
 
-    public JsonObject getJsonDescription() {
+    public moe.kyokobot.koe.internal.dto.Codec getJsonDescription() {
         return jsonDescription;
     }
 

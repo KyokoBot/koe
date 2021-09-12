@@ -2,7 +2,7 @@ package moe.kyokobot.koe.handler;
 
 import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.codec.Codec;
-import moe.kyokobot.koe.internal.json.JsonObject;
+import moe.kyokobot.koe.internal.dto.data.SessionDescription;
 
 import java.util.concurrent.CompletionStage;
 
@@ -16,7 +16,7 @@ import java.util.concurrent.CompletionStage;
 public interface ConnectionHandler<R> {
     void close();
 
-    void handleSessionDescription(JsonObject object);
+    void handleSessionDescription(SessionDescription object);
 
     default void sendFrame(Codec codec, int timestamp, int ssrc, ByteBuf data, int start) {
         sendFrame(codec.getPayloadType(), timestamp, ssrc, data, start, false);

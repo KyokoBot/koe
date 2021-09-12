@@ -57,7 +57,7 @@ public class TestBot {
     private KoeClient koeClient;
     private AudioPlayerManager playerManager;
     private final Map<Guild, AudioPlayer> playerMap = new ConcurrentHashMap<>();
-    private boolean vidyaEnabled;
+    private final boolean vidyaEnabled;
 
     public TestBot(String token) {
         this(token, false);

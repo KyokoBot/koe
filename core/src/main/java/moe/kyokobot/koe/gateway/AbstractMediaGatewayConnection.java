@@ -1,6 +1,8 @@
 package moe.kyokobot.koe.gateway;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBufInputStream;
 import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.EmptyHttpHeaders;
@@ -15,8 +17,9 @@ import io.netty.util.concurrent.EventExecutor;
 import moe.kyokobot.koe.VoiceServerInfo;
 import moe.kyokobot.koe.internal.NettyBootstrapFactory;
 import moe.kyokobot.koe.internal.MediaConnectionImpl;
-import moe.kyokobot.koe.internal.json.JsonObject;
-import moe.kyokobot.koe.internal.json.JsonParser;
+import moe.kyokobot.koe.internal.dto.Operation;
+import moe.kyokobot.koe.internal.dto.operation.OperationData;
+import moe.kyokobot.koe.internal.util.JacksonUtils;
 import moe.kyokobot.koe.internal.util.NettyFutureWrapper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -25,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.channels.NotYetConnectedException;
@@ -101,7 +105,7 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
 
     protected abstract void identify();
 
-    protected abstract void handlePayload(JsonObject object);
+    protected abstract void handlePayload(OperationData object);
 
     protected void onClose(int code, @Nullable String reason, boolean remote) {
         if (!closed) {
@@ -113,13 +117,17 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
     @Override
     public abstract void updateSpeaking(int mask);
 
-    public void sendInternalPayload(int op, Object d) {
-        sendRaw(new JsonObject().add("op", op).add("d", d));
+    public void sendInternalPayload(Operation op) {
+        try {
+            sendRaw(op);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    protected void sendRaw(JsonObject object) {
+    protected void sendRaw(Operation object) throws JsonProcessingException {
         if (channel != null && channel.isOpen()) {
-            String data = object.toString();
+            String data = JacksonUtils.getObjectMapper().writeValueAsString(object);
             logger.trace("<- {}", data);
             channel.writeAndFlush(new TextWebSocketFrame(data));
         }
@@ -171,10 +179,12 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
 
             if (msg instanceof TextWebSocketFrame) {
                 TextWebSocketFrame frame = (TextWebSocketFrame) msg;
-                JsonObject object = JsonParser.object().from(frame.content());
-                logger.trace("-> {}", object);
-                frame.release();
-                handlePayload(object);
+                try (ByteBufInputStream content = new ByteBufInputStream(frame.content())) {
+                    OperationData object = JacksonUtils.getObjectMapper().readValue((InputStream) content, OperationData.class);
+                    logger.trace("-> {}", object);
+                    frame.release();
+                    handlePayload(object);
+                }
             } else if (msg instanceof CloseWebSocketFrame) {
                 CloseWebSocketFrame frame = (CloseWebSocketFrame) msg;
                 if (logger.isDebugEnabled()) {
