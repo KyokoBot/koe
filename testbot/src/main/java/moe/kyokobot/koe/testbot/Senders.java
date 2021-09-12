@@ -6,6 +6,7 @@ import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.MediaConnection;
 import moe.kyokobot.koe.codec.Codec;
 import moe.kyokobot.koe.codec.H264Codec;
+import moe.kyokobot.koe.media.IntReference;
 import moe.kyokobot.koe.media.MediaFrameProvider;
 import moe.kyokobot.koe.media.OpusAudioFrameProvider;
 import org.slf4j.Logger;
@@ -84,7 +85,7 @@ public class Senders {
         }
 
         @Override
-        public boolean retrieve(Codec codec, ByteBuf buf, AtomicInteger timestamp, AtomicBoolean marker) {
+        public boolean retrieve(Codec codec, ByteBuf buf, IntReference timestamp, AtomicBoolean marker) {
             if (codec.getPayloadType() != H264Codec.PAYLOAD_TYPE) {
                 return false;
             }
@@ -125,7 +126,7 @@ public class Senders {
                         break;
                     case 9:
                         if (marker != null) marker.set(false);
-                        timestamp.addAndGet(90000 * frameInterval / 1000);
+                        timestamp.add(90000 * frameInterval / 1000);
                         return false;
                     default:
                         if (marker != null) marker.set(true);

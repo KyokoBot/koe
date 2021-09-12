@@ -1,6 +1,5 @@
-subprojects {
-    apply plugin: 'maven'
-    apply plugin: 'java'
+ subprojects {
+    apply plugin: 'java-library'
 
     group = 'moe.kyokobot'
     version = '2.0.0-SNAPSHOT'
@@ -11,8 +10,8 @@ subprojects {
     repositories {
         mavenLocal()
         jcenter()
+        mavenCentral()
         maven { url "https://m2.dv8tion.net/releases" }
-        maven { url "https://repo.maven.apache.org/maven2" }
         maven { url "https://jitpack.io/" }
     }
 }

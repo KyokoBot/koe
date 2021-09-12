@@ -35,7 +35,7 @@ public class NettyH264FramePoller extends AbstractFramePoller {
      */
     private final IntReference timestamp = new IntReference();
 
-    private AtomicBoolean marker = new AtomicBoolean();
+    private final AtomicBoolean marker = new AtomicBoolean();
 
     @Override
     public void start() {

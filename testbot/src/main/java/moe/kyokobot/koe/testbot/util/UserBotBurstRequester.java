@@ -85,7 +85,7 @@ public class UserBotBurstRequester extends AbstractRequester {
             // No body
             builder = HttpRequest.newBuilder(URI.create(apiHostVersion + route.baseRoute())).GET();
         } else {
-            final var fakeBody = request.request().emptyBody();
+            final boolean fakeBody = request.request().emptyBody();
             builder = HttpRequest.newBuilder(URI.create(apiHostVersion + route.baseRoute()))
                     .setHeader("Content-Type", mediaType)
                     .method(route.method().name(), fakeBody ? HttpRequest.BodyPublishers.ofString(" ") : body);

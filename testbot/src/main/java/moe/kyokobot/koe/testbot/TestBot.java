@@ -2,7 +2,6 @@ package moe.kyokobot.koe.testbot;
 
 import com.grack.nanojson.JsonArray;
 import com.grack.nanojson.JsonObject;
-import com.grack.nanojson.JsonParser;
 import com.mewna.catnip.Catnip;
 import com.mewna.catnip.CatnipOptions;
 import com.mewna.catnip.entity.channel.TextChannel;
@@ -12,7 +11,6 @@ import com.mewna.catnip.entity.user.VoiceState;
 import com.mewna.catnip.entity.util.Permission;
 import com.mewna.catnip.extension.AbstractExtension;
 import com.mewna.catnip.extension.hook.CatnipHook;
-import com.mewna.catnip.rest.ratelimit.DefaultRateLimiter;
 import com.mewna.catnip.entity.voice.VoiceServerUpdate;
 import com.mewna.catnip.shard.DiscordEvent;
 import com.mewna.catnip.shard.ShardInfo;
@@ -28,14 +26,12 @@ import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.Observable;
-import io.reactivex.rxjava3.disposables.Disposable;
 import moe.kyokobot.koe.Koe;
 import moe.kyokobot.koe.KoeClient;
 import moe.kyokobot.koe.KoeEventAdapter;
 import moe.kyokobot.koe.VoiceServerInfo;
 import moe.kyokobot.koe.codec.H264Codec;
 import moe.kyokobot.koe.testbot.util.GCPressureGenerator;
-import moe.kyokobot.koe.testbot.util.UserBotBurstRequester;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,8 +56,8 @@ public class TestBot {
     private Koe koe;
     private KoeClient koeClient;
     private AudioPlayerManager playerManager;
-    private Map<Guild, AudioPlayer> playerMap = new ConcurrentHashMap<>();
-    private boolean vidyaEnabled = false;
+    private final Map<Guild, AudioPlayer> playerMap = new ConcurrentHashMap<>();
+    private boolean vidyaEnabled;
 
     public TestBot(String token) {
         this(token, false);
@@ -78,9 +74,7 @@ public class TestBot {
         this.playerManager = createAudioPlayerManager();
 
         catnip.observable(DiscordEvent.READY)
-                .subscribe(ready -> {
-                    koeClient = koe.newClient(catnip.selfUser().idAsLong());
-                });
+                .subscribe(ready -> koeClient = koe.newClient(catnip.selfUser().idAsLong()));
 
         catnip.observable(DiscordEvent.VOICE_STATE_UPDATE)
                 .filter(state -> state.userIdAsLong() == catnip.selfUser().idAsLong() && state.channelIdAsLong() == 0)
@@ -195,15 +189,13 @@ public class TestBot {
         ).subscribe(pair -> {
             VoiceState stateUpdate = pair.getLeft();
             VoiceServerUpdate serverUpdate = pair.getRight();
-            MediaConnection conn = koeClient.getConnection(serverUpdate.guildIdAsLong());
+            var conn = koeClient.getConnection(serverUpdate.guildIdAsLong());
             if (conn != null) {
                 VoiceServerInfo info = new VoiceServerInfo(
                         stateUpdate.sessionId(),
                         serverUpdate.endpoint(),
                         serverUpdate.token());
-                conn.connect(info).thenAccept(avoid -> {
-                    logger.info("Koe connection succeeded!");
-                });
+                conn.connect(info).thenAccept(avoid -> logger.info("Koe connection succeeded!"));
             }
         });
 

@@ -420,8 +420,7 @@ class JsonWriterBase<SELF extends JsonWriterBase<SELF>> implements
 			int l = c.length;
 			if (bo + l > BUFFER_SIZE)
 				flush();
-			for (int i = 0; i < l; i++)
-				bb[bo++] = (byte) c[i];
+			for (char value : c) bb[bo++] = (byte) value;
 		} else {
 			buffer.append(c);
 			if (buffer.length() > BUFFER_SIZE) {
@@ -499,7 +498,7 @@ class JsonWriterBase<SELF extends JsonWriterBase<SELF>> implements
 	 */
 	private void emitStringValue(String s) {
 		raw('"');
-		char b = 0, c = 0;
+		char b, c = 0;
 		for (int i = 0; i < s.length(); i++) {
 			b = c;
 			c = s.charAt(i);

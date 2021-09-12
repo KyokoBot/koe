@@ -38,7 +38,7 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
     protected void identify() {
         logger.debug("Identifying...");
 
-        var streams = new JsonArray();
+        JsonArray streams = new JsonArray();
         streams.add(new JsonObject()
                 .add("type", "video")
                 .add("rid", "100")
@@ -171,7 +171,7 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
     }
 
     private void sendClientConnect(boolean enableAudio, boolean enableVideo) {
-        var arr = new JsonArray();
+        JsonArray arr = new JsonArray();
         arr.add(new JsonObject()
                 .add("type", "video")
                 .add("rid", "100")

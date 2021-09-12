@@ -11,7 +11,7 @@ limits GC pressure because of much smaller number of allocations.
 Just add it to KoeOptions :^)
 
 ```java
-var Koe = Koe.koe(KoeOptions.builder()
+Koe Koe = Koe.koe(KoeOptions.builder()
     .setFramePollerFactory(new UdpQueueFramePollerFactory())
     .create());
 ```

@@ -55,7 +55,7 @@ public class JsonObject extends HashMap<String, Object> {
 	 * Creates a {@link JsonBuilder} for a {@link JsonObject}.
 	 */
 	public static JsonBuilder<JsonObject> builder() {
-		return new JsonBuilder<JsonObject>(new JsonObject());
+		return new JsonBuilder<>(new JsonObject());
 	}
 
 	/**

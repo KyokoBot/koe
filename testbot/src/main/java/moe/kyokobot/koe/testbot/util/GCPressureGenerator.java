@@ -6,7 +6,7 @@ import java.util.ArrayList;
 
 public class GCPressureGenerator {
     @SuppressWarnings("squid:S1215")
-    private static Thread pressureThread = new Thread(() -> {
+    private static final Thread pressureThread = new Thread(() -> {
         try {
             while (true) {
                 try {

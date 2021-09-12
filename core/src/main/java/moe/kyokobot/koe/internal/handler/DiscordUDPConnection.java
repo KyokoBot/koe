@@ -38,7 +38,7 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
     private DatagramChannel channel;
     private byte[] secretKey;
 
-    private char seq;
+    private final AtomicInteger[] seqs;
 
     public DiscordUDPConnection(MediaConnection voiceConnection,
                                 SocketAddress serverAddress,
@@ -56,7 +56,7 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
     public CompletionStage<InetSocketAddress> connect() {
         logger.debug("Connecting to {}...", serverAddress);
 
-        CompletableFuture<InetSocketAddress> future = new CompletableFuture<InetSocketAddress>();
+        CompletableFuture<InetSocketAddress> future = new CompletableFuture<>();
         bootstrap.handler(new Initializer(this, future))
                 .connect(serverAddress)
                 .addListener(res -> {
@@ -141,7 +141,7 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
     }
 
     public char nextSeq(byte payloadType) {
-        var n = seqs[(int) payloadType & 0xff];
+        AtomicInteger n = seqs[(int) payloadType & 0xff];
         if (n == null) {
             n = new AtomicInteger(ThreadLocalRandom.current().nextInt() & 0xffff);
             seqs[(int) payloadType & 0xff] = n;

@@ -214,7 +214,7 @@ final class JsonTokener {
         while (true) {
             int n = ensureBuffer(BUFFER_ROOM);
             if (n == 0)
-                break outer;
+                break;
 
             for (int i = 0; i < n; i++) {
                 char nc = buffer[index];
@@ -222,66 +222,65 @@ final class JsonTokener {
                     break outer;
 
                 int ns = -1;
-                sw:
                 switch (state) {
                     case 1: // start leading negative
                         if (nc == '-' && state == 0) {
                             ns = 1;
-                            break sw;
+                            break;
                         }
                         if (nc == '0') {
                             ns = 3;
-                            break sw;
+                            break;
                         }
                         if (nc >= '0' && nc <= '9') {
                             ns = 2;
-                            break sw;
+                            break;
                         }
                         break;
                     case 2: // no leading zero
                     case 3: // leading zero
                         if ((nc >= '0' && nc <= '9') && state == 2) {
                             ns = 2;
-                            break sw;
+                            break;
                         }
                         if (nc == '.') {
                             isDouble = true;
                             ns = 4;
-                            break sw;
+                            break;
                         }
                         if (nc == 'e' || nc == 'E') {
                             isDouble = true;
                             ns = 6;
-                            break sw;
+                            break;
                         }
                         break;
                     case 4: // after period
                     case 5: // after period, one digit read
                         if (nc >= '0' && nc <= '9') {
                             ns = 5;
-                            break sw;
+                            break;
                         }
                         if ((nc == 'e' || nc == 'E') && state == 5) {
                             isDouble = true;
                             ns = 6;
-                            break sw;
+                            break;
                         }
                         break;
                     case 6: // after exponent
                     case 7: // after exponent and sign
                         if (nc == '+' || nc == '-' && state == 6) {
                             ns = 7;
-                            break sw;
+                            break;
                         }
                         if (nc >= '0' && nc <= '9') {
                             ns = 8;
-                            break sw;
+                            break;
                         }
                         break;
                     case 8: // after digits
                         if (nc >= '0' && nc <= '9') {
                             ns = 8;
-                            break sw;
+                            break;
                         }
                         break;
                     default:

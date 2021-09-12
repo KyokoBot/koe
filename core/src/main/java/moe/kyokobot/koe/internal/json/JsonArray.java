@@ -56,7 +56,7 @@ public class JsonArray extends ArrayList<Object> {
 	 * Creates a {@link JsonBuilder} for a {@link JsonArray}.
 	 */
 	public static JsonBuilder<JsonArray> builder() {
-		return new JsonBuilder<JsonArray>(new JsonArray());
+		return new JsonBuilder<>(new JsonArray());
 	}
 	
 	/**
