@@ -33,7 +33,7 @@ public class JsonObject extends HashMap<String, Object> {
 	/**
 	 * Creates a {@link JsonObject} from an existing {@link Map}.
 	 */
-	public JsonObject(Map<? extends String, ? extends Object> map) {
+	public JsonObject(Map<? extends String, ?> map) {
 		super(map);
 	}
 

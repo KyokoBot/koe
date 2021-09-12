@@ -55,11 +55,11 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
 
     @Override
     protected void handlePayload(JsonObject object) {
-        var op = object.getInt("op");
+        int op = object.getInt("op");
 
         switch (op) {
             case Op.HELLO: {
-                var data = object.getObject("d");
+                JsonObject data = object.getObject("d");
                 int interval = data.getInt("heartbeat_interval");
 
                 logger.debug("Received HELLO, heartbeat interval: {}", interval);
@@ -67,9 +67,9 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
                 break;
             }
             case Op.READY: {
-                var data = object.getObject("d");
-                var port = data.getInt("port");
-                var ip = data.getString("ip");
+                JsonObject data = object.getObject("d");
+                int port = data.getInt("port");
+                String ip = data.getString("ip");
                 ssrc = data.getInt("ssrc");
                 encryptionModes = data.getArray("modes")
                         .stream()
@@ -83,7 +83,7 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
                 break;
             }
             case Op.SESSION_DESCRIPTION: {
-                var data = object.getObject("d");
+                JsonObject data = object.getObject("d");
                 logger.debug("Got session description: {}", data);
 
                 if (connection.getConnectionHandler() == null) {
@@ -97,17 +97,17 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
                 break;
             }
             case Op.CLIENT_CONNECT: {
-                var data = object.getObject("d");
-                var user = data.getString("user_id");
-                var audioSsrc = data.getInt("audio_ssrc", 0);
-                var videoSsrc = data.getInt("video_ssrc", 0);
-                var rtxSsrc = data.getInt("rtx_ssrc", 0);
+                JsonObject data = object.getObject("d");
+                String user = data.getString("user_id");
+                int audioSsrc = data.getInt("audio_ssrc", 0);
+                int videoSsrc = data.getInt("video_ssrc", 0);
+                int rtxSsrc = data.getInt("rtx_ssrc", 0);
                 connection.getDispatcher().userConnected(user, audioSsrc, videoSsrc, rtxSsrc);
                 break;
             }
             case Op.CLIENT_DISCONNECT: {
-                var data = object.getObject("d");
-                var user = data.getString("user_id");
+                JsonObject data = object.getObject("d");
+                String user = data.getString("user_id");
                 connection.getDispatcher().userDisconnected(user);
                 break;
             }
@@ -194,7 +194,7 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
     }
 
     private void selectProtocol(String protocol) {
-        var mode = EncryptionMode.select(encryptionModes);
+        String mode = EncryptionMode.select(encryptionModes);
         logger.debug("Selected preferred encryption mode: {}", mode);
 
         rtcConnectionId = UUID.randomUUID();
@@ -202,17 +202,17 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
 
         // known values: ["udp", "webrtc"]
         if (protocol.equals("udp")) {
-            var conn = new DiscordUDPConnection(connection, address, ssrc);
+            DiscordUDPConnection conn = new DiscordUDPConnection(connection, address, ssrc);
             conn.connect().thenAccept(ourAddress -> {
                 logger.debug("Connected, our external address is: {}", ourAddress);
                 connection.getDispatcher().externalIPDiscovered(ourAddress);
 
-                var udpInfo = new JsonObject()
+                JsonObject udpInfo = new JsonObject()
                         .add("address", ourAddress.getAddress().getHostAddress())
                         .add("port", ourAddress.getPort())
                         .add("mode", mode);
 
-                var codecs = new JsonArray();
+                JsonArray codecs = new JsonArray();
                 Stream.concat(DefaultCodecs.audioCodecs.values().stream(), DefaultCodecs.videoCodecs.values().stream())
                         .map(Codec::getJsonDescription)
                         .forEach(codecs::add);

@@ -8,10 +8,12 @@ import com.mewna.catnip.CatnipOptions;
 import com.mewna.catnip.entity.channel.TextChannel;
 import com.mewna.catnip.entity.channel.VoiceChannel;
 import com.mewna.catnip.entity.guild.Guild;
+import com.mewna.catnip.entity.user.VoiceState;
 import com.mewna.catnip.entity.util.Permission;
 import com.mewna.catnip.extension.AbstractExtension;
 import com.mewna.catnip.extension.hook.CatnipHook;
 import com.mewna.catnip.rest.ratelimit.DefaultRateLimiter;
+import com.mewna.catnip.entity.voice.VoiceServerUpdate;
 import com.mewna.catnip.shard.DiscordEvent;
 import com.mewna.catnip.shard.ShardInfo;
 import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler;
@@ -97,7 +99,7 @@ public class TestBot {
                 .subscribe(message -> {
                     if (koeClient == null) return;
 
-                    var voiceState = message.guild().voiceStates().getById(message.author().idAsLong());
+                    VoiceState voiceState = message.guild().voiceStates().getById(message.author().idAsLong());
                     if (voiceState == null) {
                         message.channel().sendMessage("You need to be in a voice channel!");
                         return;
@@ -153,7 +155,7 @@ public class TestBot {
     }
 
     public AudioPlayerManager createAudioPlayerManager() {
-        var manager = new DefaultAudioPlayerManager();
+        DefaultAudioPlayerManager manager = new DefaultAudioPlayerManager();
         manager.registerSourceManager(new YoutubeAudioSourceManager());
         manager.registerSourceManager(SoundCloudAudioSourceManager.createDefault());
         manager.registerSourceManager(new HttpAudioSourceManager());
@@ -191,11 +193,11 @@ public class TestBot {
                         .debounce(1, TimeUnit.SECONDS),
                 Pair::of
         ).subscribe(pair -> {
-            var stateUpdate = pair.getLeft();
-            var serverUpdate = pair.getRight();
-            var conn = koeClient.getConnection(serverUpdate.guildIdAsLong());
+            VoiceState stateUpdate = pair.getLeft();
+            VoiceServerUpdate serverUpdate = pair.getRight();
+            MediaConnection conn = koeClient.getConnection(serverUpdate.guildIdAsLong());
             if (conn != null) {
-                var info = new VoiceServerInfo(
+                VoiceServerInfo info = new VoiceServerInfo(
                         stateUpdate.sessionId(),
                         serverUpdate.endpoint(),
                         serverUpdate.token());
@@ -209,7 +211,7 @@ public class TestBot {
     }
 
     private void resolve(Guild guild, TextChannel channel, String args) {
-        var player = playerMap.computeIfAbsent(guild, n -> playerManager.createPlayer());
+        AudioPlayer player = playerMap.computeIfAbsent(guild, n -> playerManager.createPlayer());
 
         playerManager.loadItem(args, new AudioLoadResultHandler() {
             @Override
@@ -220,7 +222,7 @@ public class TestBot {
 
             @Override
             public void playlistLoaded(AudioPlaylist playlist) {
-                var track = playlist.getTracks().get(0);
+                AudioTrack track = playlist.getTracks().get(0);
                 player.playTrack(track);
                 if (channel != null) channel.sendMessage("**Now playing:** " + track.getInfo().title);
             }

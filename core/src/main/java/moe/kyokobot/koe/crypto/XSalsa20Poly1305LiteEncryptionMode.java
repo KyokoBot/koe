@@ -3,14 +3,12 @@ package moe.kyokobot.koe.crypto;
 import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.internal.crypto.TweetNaclFastInstanced;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 public class XSalsa20Poly1305LiteEncryptionMode implements EncryptionMode {
     private final byte[] extendedNonce = new byte[24];
     private final byte[] m = new byte[4096 + 24];
     private final byte[] c = new byte[4096 + 24];
-    private AtomicInteger seq = new AtomicInteger(0x80000000);
-    private TweetNaclFastInstanced nacl = new TweetNaclFastInstanced();
+    private final TweetNaclFastInstanced nacl = new TweetNaclFastInstanced();
+    private int seq = 0x80000000;
 
     @Override
     @SuppressWarnings("Duplicates")
@@ -24,7 +22,7 @@ public class XSalsa20Poly1305LiteEncryptionMode implements EncryptionMode {
             m[i + 32] = packet.readByte();
         }
 
-        int s = this.seq.getAndIncrement();
+        int s = this.seq++;
         extendedNonce[0] = (byte) (s & 0xff);
         extendedNonce[1] = (byte) ((s >> 8) & 0xff);
         extendedNonce[2] = (byte) ((s >> 16) & 0xff);

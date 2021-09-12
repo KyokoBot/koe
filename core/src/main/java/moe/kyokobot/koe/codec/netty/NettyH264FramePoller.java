@@ -1,17 +1,24 @@
 package moe.kyokobot.koe.codec.netty;
 
+import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.MediaConnection;
 import moe.kyokobot.koe.codec.AbstractFramePoller;
 import moe.kyokobot.koe.codec.H264Codec;
+import moe.kyokobot.koe.handler.ConnectionHandler;
+import moe.kyokobot.koe.media.IntReference;
+import moe.kyokobot.koe.media.MediaFrameProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class NettyH264FramePoller extends AbstractFramePoller {
     private static final Logger logger = LoggerFactory.getLogger(NettyH264FramePoller.class);
+    /**
+     * Delay between frame polling attempts.
+     */
+    private static final int FRAME_RATE = 1000 / 30;
 
     public NettyH264FramePoller(MediaConnection connection) {
         super(connection);
@@ -22,15 +29,11 @@ public class NettyH264FramePoller extends AbstractFramePoller {
      */
     private long lastFrame = 0;
 
-    /**
-     * Delay between frame polling attempts.
-     */
-    private AtomicInteger frameRate = new AtomicInteger(1000 / 30);
 
     /**
      * Current frame timestamp.
      */
-    private AtomicInteger timestamp = new AtomicInteger();
+    private final IntReference timestamp = new IntReference();
 
     private AtomicBoolean marker = new AtomicBoolean();
 
@@ -58,12 +61,12 @@ public class NettyH264FramePoller extends AbstractFramePoller {
         boolean pollNext = false;
         try {
             do {
-                var handler = connection.getConnectionHandler();
-                var sender = connection.getVideoSender();
-                var codec = H264Codec.INSTANCE;
+                ConnectionHandler<?> handler = connection.getConnectionHandler();
+                MediaFrameProvider sender = connection.getVideoSender();
+                H264Codec codec = H264Codec.INSTANCE;
 
                 if (sender != null && handler != null && sender.canSendFrame(codec)) {
-                    var buf = allocator.buffer();
+                    ByteBuf buf = allocator.buffer();
                     int start = buf.writerIndex();
                     pollNext = sender.retrieve(codec, buf, timestamp, marker);
                     int len = buf.writerIndex() - start;
@@ -77,7 +80,7 @@ public class NettyH264FramePoller extends AbstractFramePoller {
             logger.error("Sending frame failed", e);
         }
 
-        long frameDelay = frameRate.get() - (System.currentTimeMillis() - lastFrame);
+        long frameDelay = FRAME_RATE - (System.currentTimeMillis() - lastFrame);
 
         if (frameDelay > 0) {
             eventLoop.schedule(this::loop, frameDelay, TimeUnit.MILLISECONDS);
@@ -88,7 +91,7 @@ public class NettyH264FramePoller extends AbstractFramePoller {
 
     private void loop() {
         if (System.currentTimeMillis() < lastFrame + 60) {
-            lastFrame += frameRate.get();
+            lastFrame += FRAME_RATE;
         } else {
             lastFrame = System.currentTimeMillis();
         }

@@ -15,9 +15,9 @@
  */
 package moe.kyokobot.koe.internal.json;
 
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Stack;
 
 /**
  * Builds a {@link JsonObject} or {@link JsonArray}.
@@ -26,8 +26,8 @@ import java.util.Stack;
  *            The type of JSON object to build.
  */
 public final class JsonBuilder<T> implements JsonSink<JsonBuilder<T>> {
-	private Stack<Object> json = new Stack<Object>();
-	private T root;
+	private final ArrayDeque<Object> json = new ArrayDeque<>();
+	private final T root;
 
 	JsonBuilder(T root) {
 		this.root = root;

@@ -7,6 +7,7 @@ import moe.kyokobot.koe.gateway.GatewayVersion;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +39,7 @@ public class KoeClientImpl implements KoeClient {
 
     @Override
     public void destroyConnection(long guildId) {
-        var connection = connections.remove(guildId);
+        MediaConnection connection = connections.remove(guildId);
 
         if (connection != null) {
             connection.close();
@@ -58,7 +59,7 @@ public class KoeClientImpl implements KoeClient {
     @Override
     public void close() {
         if (!connections.isEmpty()) {
-            var guilds = List.copyOf(connections.keySet());
+            ArrayList<Long> guilds = new ArrayList<>(connections.keySet());
             guilds.forEach(this::destroyConnection);
         }
     }

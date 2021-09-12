@@ -7,7 +7,7 @@ import io.netty.channel.socket.DatagramPacket;
 public class RTCPHandler extends SimpleChannelInboundHandler<DatagramPacket> {
     // https://tools.ietf.org/html/rfc3550#section-6
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket packet) throws Exception {
+    protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket packet) {
 
     }
 }
