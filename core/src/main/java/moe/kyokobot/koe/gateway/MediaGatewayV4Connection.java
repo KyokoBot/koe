@@ -1,8 +1,9 @@
 package moe.kyokobot.koe.gateway;
 
 import moe.kyokobot.koe.VoiceServerInfo;
+import moe.kyokobot.koe.codec.OpusCodec;
 import moe.kyokobot.koe.crypto.EncryptionMode;
-import moe.kyokobot.koe.internal.VoiceConnectionImpl;
+import moe.kyokobot.koe.internal.MediaConnectionImpl;
 import moe.kyokobot.koe.internal.handler.DiscordUDPConnection;
 import moe.kyokobot.koe.internal.json.JsonArray;
 import moe.kyokobot.koe.internal.json.JsonObject;
@@ -18,53 +19,52 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
-    private static final Logger logger = LoggerFactory.getLogger(VoiceGatewayV4Connection.class);
+public class MediaGatewayV4Connection extends AbstractMediaGatewayConnection {
+    private static final Logger logger = LoggerFactory.getLogger(MediaGatewayV4Connection.class);
     private static final JsonArray SUPPORTED_CODECS;
 
     static {
         SUPPORTED_CODECS = new JsonArray();
-        SUPPORTED_CODECS.add(new JsonObject()
-                .add("name", "opus")
-                .add("type", "audio")
-                .add("priority", 1000)
-                .add("payload_type", 120));
+        SUPPORTED_CODECS.add(OpusCodec.INSTANCE.getJsonDescription());
     }
 
     private int ssrc;
     private SocketAddress address;
     private List<String> encryptionModes;
     private UUID rtcConnectionId;
-    private ScheduledFuture heartbeatFuture;
+    private ScheduledFuture<?> heartbeatFuture;
 
-    public VoiceGatewayV4Connection(VoiceConnectionImpl connection, VoiceServerInfo voiceServerInfo) {
+    public MediaGatewayV4Connection(MediaConnectionImpl connection, VoiceServerInfo voiceServerInfo) {
         super(connection, voiceServerInfo, 4);
     }
 
     @Override
+    protected void identify() {
+        logger.debug("Identifying...");
+        sendInternalPayload(Op.IDENTIFY, new JsonObject()
+                .addAsString("server_id", connection.getGuildId())
+                .addAsString("user_id", connection.getClient().getClientId())
+                .add("session_id", voiceServerInfo.getSessionId())
+                .add("token", voiceServerInfo.getToken()));
+    }
+
+    @Override
     protected void handlePayload(JsonObject object) {
-        var op = object.getInt("op");
+        int op = object.getInt("op");
 
         switch (op) {
             case Op.HELLO: {
-                var data = object.getObject("d");
+                JsonObject data = object.getObject("d");
                 int interval = data.getInt("heartbeat_interval");
 
                 logger.debug("Received HELLO, heartbeat interval: {}", interval);
                 setupHeartbeats(interval);
-
-                logger.debug("Identifying...");
-                sendInternalPayload(Op.IDENTIFY, new JsonObject()
-                        .addAsString("server_id", connection.getGuildId())
-                        .addAsString("user_id", connection.getClient().getClientId())
-                        .add("session_id", voiceServerInfo.getSessionId())
-                        .add("token", voiceServerInfo.getToken()));
                 break;
             }
             case Op.READY: {
-                var data = object.getObject("d");
-                var port = data.getInt("port");
-                var ip = data.getString("ip");
+                JsonObject data = object.getObject("d");
+                int port = data.getInt("port");
+                String ip = data.getString("ip");
                 ssrc = data.getInt("ssrc");
                 encryptionModes = data.getArray("modes")
                         .stream()
@@ -73,12 +73,12 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
                 address = new InetSocketAddress(ip, port);
 
                 connection.getDispatcher().gatewayReady((InetSocketAddress) address, ssrc);
-                logger.debug("Voice READY, ssrc: {}", ssrc);
+                logger.debug("Got READY, ssrc: {}", ssrc);
                 selectProtocol("udp");
                 break;
             }
             case Op.SESSION_DESCRIPTION: {
-                var data = object.getObject("d");
+                JsonObject data = object.getObject("d");
                 logger.debug("Got session description: {}", data);
 
                 if (connection.getConnectionHandler() == null) {
@@ -92,16 +92,17 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
                 break;
             }
             case Op.CLIENT_CONNECT: {
-                var data = object.getObject("d");
-                var user = data.getString("user_id");
-                var audioSsrc = data.getInt("audio_ssrc", 0);
-                var videoSsrc = data.getInt("video_ssrc", 0);
-                connection.getDispatcher().userConnected(user, audioSsrc, videoSsrc);
+                JsonObject data = object.getObject("d");
+                String user = data.getString("user_id");
+                int audioSsrc = data.getInt("audio_ssrc", 0);
+                int videoSsrc = data.getInt("video_ssrc", 0);
+                int rtxSsrc = data.getInt("rtx_ssrc", 0);
+                connection.getDispatcher().userConnected(user, audioSsrc, videoSsrc, rtxSsrc);
                 break;
             }
             case Op.CLIENT_DISCONNECT: {
-                var data = object.getObject("d");
-                var user = data.getString("user_id");
+                JsonObject data = object.getObject("d");
+                String user = data.getString("user_id");
                 connection.getDispatcher().userDisconnected(user);
                 break;
             }
@@ -138,7 +139,7 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
     }
 
     private void selectProtocol(String protocol) {
-        var mode = EncryptionMode.select(encryptionModes);
+        String mode = EncryptionMode.select(encryptionModes);
         logger.debug("Selected preferred encryption mode: {}", mode);
 
         rtcConnectionId = UUID.randomUUID();
@@ -146,12 +147,12 @@ public class VoiceGatewayV4Connection extends AbstractVoiceGatewayConnection {
 
         // known values: ["udp", "webrtc"]
         if (protocol.equals("udp")) {
-            var conn = new DiscordUDPConnection(connection, address, ssrc);
+            DiscordUDPConnection conn = new DiscordUDPConnection(connection, address, ssrc);
             conn.connect().thenAccept(ourAddress -> {
                 logger.debug("Connected, our external address is: {}", ourAddress);
                 connection.getDispatcher().externalIPDiscovered(ourAddress);
 
-                var udpInfo = new JsonObject()
+                JsonObject udpInfo = new JsonObject()
                         .add("address", ourAddress.getAddress().getHostAddress())
                         .add("port", ourAddress.getPort())
                         .add("mode", mode);

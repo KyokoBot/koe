@@ -6,7 +6,7 @@ import moe.kyokobot.koe.codec.udpqueue.UdpQueueFramePollerFactory;
 
 public class UdpQueueTestBotLauncher {
     public static void main(String[] args) {
-        var bot = new TestBot(System.getenv("TOKEN")) {
+        TestBot bot = new TestBot(System.getenv("TOKEN")) {
             @Override
             public Koe createKoe() {
                 return Koe.koe(KoeOptions.builder()

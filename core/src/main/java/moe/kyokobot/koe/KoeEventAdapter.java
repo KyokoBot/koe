@@ -16,7 +16,7 @@ public class KoeEventAdapter implements KoeEventListener {
     }
 
     @Override
-    public void userConnected(String id, int audioSSRC, int videoSSRC) {
+    public void userConnected(String id, int audioSSRC, int videoSSRC, int rtxSSRC) {
         //
     }
 

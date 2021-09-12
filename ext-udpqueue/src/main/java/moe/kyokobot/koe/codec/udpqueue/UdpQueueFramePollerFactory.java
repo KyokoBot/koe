@@ -1,6 +1,6 @@
 package moe.kyokobot.koe.codec.udpqueue;
 
-import moe.kyokobot.koe.VoiceConnection;
+import moe.kyokobot.koe.MediaConnection;
 import moe.kyokobot.koe.codec.Codec;
 import moe.kyokobot.koe.codec.FramePoller;
 import moe.kyokobot.koe.codec.FramePollerFactory;
@@ -23,7 +23,7 @@ public class UdpQueueFramePollerFactory implements FramePollerFactory {
 
     @Override
     @Nullable
-    public FramePoller createFramePoller(Codec codec, VoiceConnection connection) {
+    public FramePoller createFramePoller(Codec codec, MediaConnection connection) {
         if (OpusCodec.INSTANCE.equals(codec)) {
             return new UdpQueueOpusFramePoller(this.pool.getNextWrapper(), connection);
         }

@@ -2,35 +2,30 @@ package moe.kyokobot.koe.media;
 
 import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.KoeEventAdapter;
-import moe.kyokobot.koe.VoiceConnection;
+import moe.kyokobot.koe.MediaConnection;
 import moe.kyokobot.koe.codec.Codec;
 import moe.kyokobot.koe.codec.OpusCodec;
 import moe.kyokobot.koe.gateway.SpeakingFlags;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Implementation of {@link MediaFrameProvider} which automatically takes care of
  * checking codec type, sending silent frames and updating speaking state.
  */
 public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
-    private static final Logger logger = LoggerFactory.getLogger(OpusAudioFrameProvider.class);
     private static final int SILENCE_FRAME_COUNT = 5;
-    private final VoiceConnection connection;
+    private final MediaConnection connection;
     private final Op12HackListener hackListener;
 
-    // volatile because of multiple event loop threads accessing these fields.
-    private AtomicInteger counter = new AtomicInteger();
-    private volatile long lastFramePolled = 0;
-    private volatile boolean lastProvide = false;
-    private volatile boolean lastSpeaking = false;
-    private volatile boolean speaking = false;
+    private int counter;
+    private long lastFramePolled = 0;
+    private boolean lastProvide = false;
+    private boolean lastSpeaking = false;
+    private boolean speaking = false;
     private int speakingMask = SpeakingFlags.NORMAL;
 
-    public OpusAudioFrameProvider(VoiceConnection connection) {
+    public OpusAudioFrameProvider(MediaConnection connection) {
         this.connection = Objects.requireNonNull(connection);
         this.hackListener = new Op12HackListener();
         this.connection.registerListener(this.hackListener);
@@ -45,12 +40,22 @@ public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
     }
 
     @Override
+    public int getFrameInterval() {
+        return OpusCodec.FRAME_DURATION;
+    }
+
+    @Override
+    public void setFrameInterval(int interval) {
+        throw new UnsupportedOperationException("Only 20ms frames are supported.");
+    }
+
+    @Override
     public final boolean canSendFrame(Codec codec) {
         if (codec.getPayloadType() != OpusCodec.PAYLOAD_TYPE) {
             return false;
         }
 
-        if (counter.get() > 0) {
+        if (counter > 0) {
             return true;
         }
 
@@ -59,7 +64,7 @@ public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
         if (lastProvide != provide) {
             lastProvide = provide;
             if (!provide) {
-                counter.set(SILENCE_FRAME_COUNT);
+                counter = SILENCE_FRAME_COUNT;
                 return true;
             }
         }
@@ -68,19 +73,21 @@ public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
     }
 
     @Override
-    public final void retrieve(Codec codec, ByteBuf buf) {
+    public final boolean retrieve(Codec codec, ByteBuf buf, IntReference timestamp) {
         if (codec.getPayloadType() != OpusCodec.PAYLOAD_TYPE) {
-            return;
+            return false;
         }
 
-        if (counter.get() > 0) {
-            counter.decrementAndGet();
+        if (counter > 0) {
+            counter--;
             buf.writeBytes(OpusCodec.SILENCE_FRAME);
 
             if (speaking) {
                 setSpeaking(false);
             }
-            return;
+
+            timestamp.add(960);
+            return false;
         }
 
         int startIndex = buf.writerIndex();
@@ -92,8 +99,7 @@ public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
         }
 
         if (!written) {
-            logger.debug("Write silent frames");
-            counter.set(SILENCE_FRAME_COUNT);
+            counter = SILENCE_FRAME_COUNT;
         }
 
         long now = System.currentTimeMillis();
@@ -102,6 +108,9 @@ public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
         if (changeTalking) {
             setSpeaking(written);
         }
+
+        timestamp.add(960);
+        return false;
     }
 
     private void setSpeaking(boolean state) {
@@ -115,7 +124,7 @@ public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
 
     private class Op12HackListener extends KoeEventAdapter {
         @Override
-        public void userConnected(String id, int audioSSRC, int videoSSRC) {
+        public void userConnected(String id, int audioSSRC, int videoSSRC, int rtxSSRC) {
             if (speaking) {
                 connection.updateSpeakingState(speakingMask);
             }

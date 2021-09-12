@@ -3,11 +3,12 @@ package moe.kyokobot.koe.crypto;
 import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.internal.crypto.TweetNaclFastInstanced;
 
-public class XSalsa20Poly1305EncryptionMode implements EncryptionMode {
+public class XSalsa20Poly1305LiteEncryptionMode implements EncryptionMode {
     private final byte[] extendedNonce = new byte[24];
     private final byte[] m = new byte[984];
     private final byte[] c = new byte[984];
     private final TweetNaclFastInstanced nacl = new TweetNaclFastInstanced();
+    private int seq = 0x80000000;
 
     @Override
     @SuppressWarnings("Duplicates")
@@ -21,12 +22,17 @@ public class XSalsa20Poly1305EncryptionMode implements EncryptionMode {
             m[i + 32] = packet.readByte();
         }
 
-        output.getBytes(0, extendedNonce, 0, 12);
+        int s = this.seq++;
+        extendedNonce[0] = (byte) (s & 0xff);
+        extendedNonce[1] = (byte) ((s >> 8) & 0xff);
+        extendedNonce[2] = (byte) ((s >> 16) & 0xff);
+        extendedNonce[3] = (byte) ((s >> 24) & 0xff);
 
         if (0 == nacl.cryptoSecretboxXSalsa20Poly1305(c, m, len + 32, extendedNonce, secretKey)) {
             for (int i = 0; i < (len + 16); i++) {
                 output.writeByte(c[i + 16]);
             }
+            output.writeIntLE(s);
             return true;
         } else {
             return false;
@@ -35,6 +41,6 @@ public class XSalsa20Poly1305EncryptionMode implements EncryptionMode {
 
     @Override
     public String getName() {
-        return "xsalsa20_poly1305";
+        return "xsalsa20_poly1305_lite";
     }
 }

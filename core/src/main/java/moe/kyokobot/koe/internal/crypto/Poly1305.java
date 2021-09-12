@@ -2,7 +2,7 @@
  * MIT License
  *
  * Copyright (c) 2016 tom zhou,iwebpp@gmail.com
- * Copyright (c) 2019 Gabriel Konopiński (gabixdev)
+ * Copyright (c) 2019 Alula
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,62 +24,26 @@
  */
 package moe.kyokobot.koe.internal.crypto;
 
+@SuppressWarnings("Duplicates")
 public class Poly1305 {
-    private byte[] buffer;
-    private int[] r;
-    private int[] h;
-    private int[] pad;
+    private final byte[] buffer;
+    private final int[] r;
+    private final int[] h;
+    private final int[] pad;
     private int leftover;
     private int fin;
 
-    public Poly1305(byte[] key) {
+    public Poly1305() {
         this.buffer = new byte[16];
         this.r = new int[10];
         this.h = new int[10];
         this.pad = new int[8];
         this.leftover = 0;
         this.fin = 0;
-
-        int t0;
-        int t1;
-        int t2;
-        int t3;
-        int t4;
-        int t5;
-        int t6;
-        int t7;
-
-        t0 = key[0] & 0xff | (key[1] & 0xff) << 8;
-        this.r[0] = (t0) & 0x1fff;
-        t1 = key[2] & 0xff | (key[3] & 0xff) << 8;
-        this.r[1] = ((t0 >>> 13) | (t1 << 3)) & 0x1fff;
-        t2 = key[4] & 0xff | (key[5] & 0xff) << 8;
-        this.r[2] = ((t1 >>> 10) | (t2 << 6)) & 0x1f03;
-        t3 = key[6] & 0xff | (key[7] & 0xff) << 8;
-        this.r[3] = ((t2 >>> 7) | (t3 << 9)) & 0x1fff;
-        t4 = key[8] & 0xff | (key[9] & 0xff) << 8;
-        this.r[4] = ((t3 >>> 4) | (t4 << 12)) & 0x00ff;
-        this.r[5] = ((t4 >>> 1)) & 0x1ffe;
-        t5 = key[10] & 0xff | (key[11] & 0xff) << 8;
-        this.r[6] = ((t4 >>> 14) | (t5 << 2)) & 0x1fff;
-        t6 = key[12] & 0xff | (key[13] & 0xff) << 8;
-        this.r[7] = ((t5 >>> 11) | (t6 << 5)) & 0x1f81;
-        t7 = key[14] & 0xff | (key[15] & 0xff) << 8;
-        this.r[8] = ((t6 >>> 8) | (t7 << 8)) & 0x1fff;
-        this.r[9] = ((t7 >>> 5)) & 0x007f;
-
-        this.pad[0] = key[16] & 0xff | (key[17] & 0xff) << 8;
-        this.pad[1] = key[18] & 0xff | (key[19] & 0xff) << 8;
-        this.pad[2] = key[20] & 0xff | (key[21] & 0xff) << 8;
-        this.pad[3] = key[22] & 0xff | (key[23] & 0xff) << 8;
-        this.pad[4] = key[24] & 0xff | (key[25] & 0xff) << 8;
-        this.pad[5] = key[26] & 0xff | (key[27] & 0xff) << 8;
-        this.pad[6] = key[28] & 0xff | (key[29] & 0xff) << 8;
-        this.pad[7] = key[30] & 0xff | (key[31] & 0xff) << 8;
     }
 
     public Poly1305 blocks(byte[] m, int mpos, int bytes) {
-        int hibit = this.fin != 0 ? 0 : (1 << 11);
+        int highBit = this.fin != 0 ? 0 : (1 << 11);
         int t0;
         int t1;
         int t2;
@@ -100,30 +64,30 @@ public class Poly1305 {
         int d8;
         int d9;
 
-        int h0 = this.h[0],
-                h1 = this.h[1],
-                h2 = this.h[2],
-                h3 = this.h[3],
-                h4 = this.h[4],
-                h5 = this.h[5],
-                h6 = this.h[6],
-                h7 = this.h[7],
-                h8 = this.h[8],
-                h9 = this.h[9];
+        int h0 = this.h[0];
+        int h1 = this.h[1];
+        int h2 = this.h[2];
+        int h3 = this.h[3];
+        int h4 = this.h[4];
+        int h5 = this.h[5];
+        int h6 = this.h[6];
+        int h7 = this.h[7];
+        int h8 = this.h[8];
+        int h9 = this.h[9];
 
-        int r0 = this.r[0],
-                r1 = this.r[1],
-                r2 = this.r[2],
-                r3 = this.r[3],
-                r4 = this.r[4],
-                r5 = this.r[5],
-                r6 = this.r[6],
-                r7 = this.r[7],
-                r8 = this.r[8],
-                r9 = this.r[9];
+        int r0 = this.r[0];
+        int r1 = this.r[1];
+        int r2 = this.r[2];
+        int r3 = this.r[3];
+        int r4 = this.r[4];
+        int r5 = this.r[5];
+        int r6 = this.r[6];
+        int r7 = this.r[7];
+        int r8 = this.r[8];
+        int r9 = this.r[9];
 
         while (bytes >= 16) {
-            t0 = m[mpos + 0] & 0xff | (m[mpos + 1] & 0xff) << 8;
+            t0 = m[mpos] & 0xff | (m[mpos + 1] & 0xff) << 8;
             h0 += (t0) & 0x1fff;
             t1 = m[mpos + 2] & 0xff | (m[mpos + 3] & 0xff) << 8;
             h1 += ((t0 >>> 13) | (t1 << 3)) & 0x1fff;
@@ -140,7 +104,7 @@ public class Poly1305 {
             h7 += ((t5 >>> 11) | (t6 << 5)) & 0x1fff;
             t7 = m[mpos + 14] & 0xff | (m[mpos + 15] & 0xff) << 8;
             h8 += ((t6 >>> 8) | (t7 << 8)) & 0x1fff;
-            h9 += ((t7 >>> 5)) | hibit;
+            h9 += ((t7 >>> 5)) | highBit;
 
             c = 0;
 
@@ -304,8 +268,8 @@ public class Poly1305 {
             c += (d9 >>> 13);
             d9 &= 0x1fff;
 
-            c = (((c << 2) + c)) | 0;
-            c = (c + d0) | 0;
+            c = (((c << 2) + c));
+            c = (c + d0);
             d0 = c & 0x1fff;
             c = (c >>> 13);
             d1 += c;
@@ -338,9 +302,21 @@ public class Poly1305 {
         return this;
     }
 
-    public Poly1305 finish(byte[] mac, int macpos) {
-        int[] g = new int[10];
-        int c, mask, f, i;
+    public void finish(byte[] mac, int macPos) {
+        int c;
+        int mask;
+        int f;
+        int i;
+        int g0;
+        int g1;
+        int g2;
+        int g3;
+        int g4;
+        int g5;
+        int g6;
+        int g7;
+        int g8;
+        int g9;
 
         if (this.leftover != 0) {
             i = this.leftover;
@@ -365,22 +341,66 @@ public class Poly1305 {
         this.h[1] &= 0x1fff;
         this.h[2] += c;
 
-        g[0] = this.h[0] + 5;
-        c = g[0] >>> 13;
-        g[0] &= 0x1fff;
-        for (i = 1; i < 10; i++) {
-            g[i] = this.h[i] + c;
-            c = g[i] >>> 13;
-            g[i] &= 0x1fff;
-        }
-        g[9] -= (1 << 13);
-        g[9] &= 0xffff;
+        g0 = this.h[0] + 5;
+        c = g0 >>> 13;
+        g0 &= 0x1fff;
 
-        mask = (g[9] >>> ((2 * 8) - 1)) - 1;
-        mask &= 0xffff;
-        for (i = 0; i < 10; i++) g[i] &= mask;
+        g1 = this.h[1] + c;
+        c = g1 >>> 13;
+        g1 &= 0x1fff;
+        g2 = this.h[2] + c;
+        c = g2 >>> 13;
+        g2 &= 0x1fff;
+        g3 = this.h[3] + c;
+        c = g3 >>> 13;
+        g3 &= 0x1fff;
+        g4 = this.h[4] + c;
+        c = g4 >>> 13;
+        g4 &= 0x1fff;
+        g5 = this.h[5] + c;
+        c = g5 >>> 13;
+        g5 &= 0x1fff;
+        g6 = this.h[6] + c;
+        c = g6 >>> 13;
+        g6 &= 0x1fff;
+        g7 = this.h[7] + c;
+        c = g7 >>> 13;
+        g7 &= 0x1fff;
+        g8 = this.h[8] + c;
+        c = g8 >>> 13;
+        g8 &= 0x1fff;
+        g9 = this.h[9] + c;
+        g9 &= 0x1fff;
+
+        g9 -= (1 << 13);
+        g9 &= 0xffff;
+
+        mask = (g9 >>> ((2 * 8) - 1)) - 1;
+        //mask &= 0xffff;
+
+        g0 &= mask;
+        g1 &= mask;
+        g2 &= mask;
+        g3 &= mask;
+        g4 &= mask;
+        g5 &= mask;
+        g6 &= mask;
+        g7 &= mask;
+        g8 &= mask;
+        g9 &= mask;
+
         mask = ~mask;
-        for (i = 0; i < 10; i++) this.h[i] = (this.h[i] & mask) | g[i];
+
+        this.h[0] = (this.h[0] & mask) | g0;
+        this.h[1] = (this.h[1] & mask) | g1;
+        this.h[2] = (this.h[2] & mask) | g2;
+        this.h[3] = (this.h[3] & mask) | g3;
+        this.h[4] = (this.h[4] & mask) | g4;
+        this.h[5] = (this.h[5] & mask) | g5;
+        this.h[6] = (this.h[6] & mask) | g6;
+        this.h[7] = (this.h[7] & mask) | g7;
+        this.h[8] = (this.h[8] & mask) | g8;
+        this.h[9] = (this.h[9] & mask) | g9;
 
         this.h[0] = ((this.h[0]) | (this.h[1] << 13)) & 0xffff;
         this.h[1] = ((this.h[1] >>> 3) | (this.h[2] << 10)) & 0xffff;
@@ -398,41 +418,97 @@ public class Poly1305 {
             this.h[i] = f & 0xffff;
         }
 
-        mac[macpos] = (byte) ((this.h[0]) & 0xff);
-        mac[macpos + 1] = (byte) ((this.h[0] >>> 8) & 0xff);
-        mac[macpos + 2] = (byte) ((this.h[1]) & 0xff);
-        mac[macpos + 3] = (byte) ((this.h[1] >>> 8) & 0xff);
-        mac[macpos + 4] = (byte) ((this.h[2]) & 0xff);
-        mac[macpos + 5] = (byte) ((this.h[2] >>> 8) & 0xff);
-        mac[macpos + 6] = (byte) ((this.h[3]) & 0xff);
-        mac[macpos + 7] = (byte) ((this.h[3] >>> 8) & 0xff);
-        mac[macpos + 8] = (byte) ((this.h[4]) & 0xff);
-        mac[macpos + 9] = (byte) ((this.h[4] >>> 8) & 0xff);
-        mac[macpos + 10] = (byte) ((this.h[5]) & 0xff);
-        mac[macpos + 11] = (byte) ((this.h[5] >>> 8) & 0xff);
-        mac[macpos + 12] = (byte) ((this.h[6]) & 0xff);
-        mac[macpos + 13] = (byte) ((this.h[6] >>> 8) & 0xff);
-        mac[macpos + 14] = (byte) ((this.h[7]) & 0xff);
-        mac[macpos + 15] = (byte) ((this.h[7] >>> 8) & 0xff);
-
-        return this;
+        mac[macPos] = (byte) ((this.h[0]) & 0xff);
+        mac[macPos + 1] = (byte) ((this.h[0] >>> 8) & 0xff);
+        mac[macPos + 2] = (byte) ((this.h[1]) & 0xff);
+        mac[macPos + 3] = (byte) ((this.h[1] >>> 8) & 0xff);
+        mac[macPos + 4] = (byte) ((this.h[2]) & 0xff);
+        mac[macPos + 5] = (byte) ((this.h[2] >>> 8) & 0xff);
+        mac[macPos + 6] = (byte) ((this.h[3]) & 0xff);
+        mac[macPos + 7] = (byte) ((this.h[3] >>> 8) & 0xff);
+        mac[macPos + 8] = (byte) ((this.h[4]) & 0xff);
+        mac[macPos + 9] = (byte) ((this.h[4] >>> 8) & 0xff);
+        mac[macPos + 10] = (byte) ((this.h[5]) & 0xff);
+        mac[macPos + 11] = (byte) ((this.h[5] >>> 8) & 0xff);
+        mac[macPos + 12] = (byte) ((this.h[6]) & 0xff);
+        mac[macPos + 13] = (byte) ((this.h[6] >>> 8) & 0xff);
+        mac[macPos + 14] = (byte) ((this.h[7]) & 0xff);
+        mac[macPos + 15] = (byte) ((this.h[7] >>> 8) & 0xff);
     }
 
-    public Poly1305 update(byte[] m, int p, int bytes) {
+    public void init(byte[] key) {
+        for (int i = 0; i < 8; i++) {
+            this.pad[i] = 0;
+            this.r[i] = 0;
+            this.h[i] = 0;
+            this.buffer[i] = 0;
+        }
+
+        for (int i = 8; i < 10; i++) {
+            this.r[i] = 0;
+            this.h[i] = 0;
+            this.buffer[i] = 0;
+        }
+
+        for (int i = 10; i < 16; i++) {
+            this.buffer[i] = 0;
+        }
+
+        this.leftover = 0;
+        this.fin = 0;
+
+        int t0 = key[0] & 0xff | (key[1] & 0xff) << 8;
+        this.r[0] = t0 & 0x1fff;
+        int t1 = key[2] & 0xff | (key[3] & 0xff) << 8;
+        this.r[1] = ((t0 >>> 13) | (t1 << 3)) & 0x1fff;
+        int t2 = key[4] & 0xff | (key[5] & 0xff) << 8;
+        this.r[2] = ((t1 >>> 10) | (t2 << 6)) & 0x1f03;
+        int t3 = key[6] & 0xff | (key[7] & 0xff) << 8;
+        this.r[3] = ((t2 >>> 7) | (t3 << 9)) & 0x1fff;
+        int t4 = key[8] & 0xff | (key[9] & 0xff) << 8;
+        this.r[4] = ((t3 >>> 4) | (t4 << 12)) & 0x00ff;
+        this.r[5] = (t4 >>> 1) & 0x1ffe;
+        int t5 = key[10] & 0xff | (key[11] & 0xff) << 8;
+        this.r[6] = ((t4 >>> 14) | (t5 << 2)) & 0x1fff;
+        int t6 = key[12] & 0xff | (key[13] & 0xff) << 8;
+        this.r[7] = ((t5 >>> 11) | (t6 << 5)) & 0x1f81;
+        int t7 = key[14] & 0xff | (key[15] & 0xff) << 8;
+        this.r[8] = ((t6 >>> 8) | (t7 << 8)) & 0x1fff;
+        this.r[9] = (t7 >>> 5) & 0x007f;
+
+        this.pad[0] = key[16] & 0xff | (key[17] & 0xff) << 8;
+        this.pad[1] = key[18] & 0xff | (key[19] & 0xff) << 8;
+        this.pad[2] = key[20] & 0xff | (key[21] & 0xff) << 8;
+        this.pad[3] = key[22] & 0xff | (key[23] & 0xff) << 8;
+        this.pad[4] = key[24] & 0xff | (key[25] & 0xff) << 8;
+        this.pad[5] = key[26] & 0xff | (key[27] & 0xff) << 8;
+        this.pad[6] = key[28] & 0xff | (key[29] & 0xff) << 8;
+        this.pad[7] = key[30] & 0xff | (key[31] & 0xff) << 8;
+    }
+
+    public void update(byte[] m, int p, int bytes) {
         int i;
         int want;
 
         if (this.leftover != 0) {
             want = (16 - this.leftover);
-            if (want > bytes)
+
+            if (want > bytes) {
                 want = bytes;
-            for (i = 0; i < want; i++)
+            }
+
+            for (i = 0; i < want; i++) {
                 this.buffer[this.leftover + i] = m[p + i];
+            }
+
             bytes -= want;
             p += want;
+
             this.leftover += want;
-            if (this.leftover < 16)
-                return this;
+            if (this.leftover < 16) {
+                return;
+            }
+
             this.blocks(buffer, 0, 16);
             this.leftover = 0;
         }
@@ -449,7 +525,5 @@ public class Poly1305 {
                 this.buffer[this.leftover + i] = m[p + i];
             this.leftover += bytes;
         }
-
-        return this;
     }
 }

@@ -1,9 +1,11 @@
 package moe.kyokobot.koe.internal.handler;
 
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.socket.DatagramPacket;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,14 +13,13 @@ import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class HolepunchHandler extends SimpleChannelInboundHandler<DatagramPacket> {
     private static final Logger logger = LoggerFactory.getLogger(HolepunchHandler.class);
 
     private final CompletableFuture<InetSocketAddress> future;
-    private final AtomicInteger tries = new AtomicInteger(0);
     private final int ssrc;
+    private int tries = 0;
     private DatagramPacket packet;
 
     public HolepunchHandler(CompletableFuture<InetSocketAddress> future, int ssrc) {
@@ -27,27 +28,27 @@ public class HolepunchHandler extends SimpleChannelInboundHandler<DatagramPacket
     }
 
     @Override
-    public void channelActive(ChannelHandlerContext ctx) {
+    public void channelActive(@NotNull ChannelHandlerContext ctx) {
         holepunch(ctx);
     }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket packet) {
-        var buf = packet.content();
+        ByteBuf buf = packet.content();
 
         if (!future.isDone()) {
             if (buf.readableBytes() != 74) return;
 
             buf.skipBytes(8);
 
-            var stringBuilder = new StringBuilder();
+            StringBuilder stringBuilder = new StringBuilder();
             byte b;
             while ((b = buf.readByte()) != 0) {
                 stringBuilder.append((char) b);
             }
 
-            var ip = stringBuilder.toString();
-            var port = buf.getUnsignedShort(72);
+            String ip = stringBuilder.toString();
+            int port = buf.getUnsignedShort(72);
 
             ctx.pipeline().remove(this);
             future.complete(new InetSocketAddress(ip, port));
@@ -57,7 +58,7 @@ public class HolepunchHandler extends SimpleChannelInboundHandler<DatagramPacket
     public void holepunch(ChannelHandlerContext ctx) {
         if (future.isDone()) {
             return;
-        } else if (tries.getAndIncrement() > 10) {
+        } else if (tries++ > 10) {
             logger.debug("Discovery failed.");
             future.completeExceptionally(new SocketTimeoutException("Failed to discover external UDP address."));
             return;
@@ -66,7 +67,7 @@ public class HolepunchHandler extends SimpleChannelInboundHandler<DatagramPacket
         logger.debug("Holepunch [attempt {}/10, local ip: {}]", tries, ctx.channel().localAddress());
 
         if (packet == null) {
-            var buf = Unpooled.buffer(74);
+            ByteBuf buf = Unpooled.buffer(74);
             buf.writeShort(1);
             buf.writeShort(0x46);
             buf.writeInt(ssrc);

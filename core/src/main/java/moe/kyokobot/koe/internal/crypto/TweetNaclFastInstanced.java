@@ -2,7 +2,7 @@
  * MIT License
  *
  * Copyright (c) 2016 tom zhou,iwebpp@gmail.com
- * Copyright (c) 2019 Gabriel Konopiński (gabixdev)
+ * Copyright (c) 2019 Alula
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,12 +25,8 @@
 package moe.kyokobot.koe.internal.crypto;
 
 @SuppressWarnings("Duplicates")
-public final class TweetNaclFast {
-    private TweetNaclFast() {
-        //
-    }
-
-    private static void coreSalsa20(byte[] o, byte[] p, byte[] k) {
+public final class TweetNaclFastInstanced {
+    private void coreSalsa20(byte[] o, byte[] p, byte[] k) {
         int j0 = sigma[0] & 0xff | (sigma[1] & 0xff) << 8 | (sigma[2] & 0xff) << 16 | (sigma[3] & 0xff) << 24;
         int j1 = k[0] & 0xff | (k[1] & 0xff) << 8 | (k[2] & 0xff) << 16 | (k[3] & 0xff) << 24;
         int j2 = k[4] & 0xff | (k[5] & 0xff) << 8 | (k[6] & 0xff) << 16 | (k[7] & 0xff) << 24;
@@ -237,7 +233,7 @@ public final class TweetNaclFast {
         o[63] = (byte) (x15 >>> 24 & 0xff);
     }
 
-    private static void coreHSalsa20(byte[] o, byte[] p, byte[] k) {
+    private void coreHSalsa20(byte[] o, byte[] p, byte[] k) {
         int j0 = sigma[0] & 0xff | (sigma[1] & 0xff) << 8 | (sigma[2] & 0xff) << 16 | (sigma[3] & 0xff) << 24;
         int j1 = k[0] & 0xff | (k[1] & 0xff) << 8 | (k[2] & 0xff) << 16 | (k[3] & 0xff) << 24;
         int j2 = k[4] & 0xff | (k[5] & 0xff) << 8 | (k[6] & 0xff) << 16 | (k[7] & 0xff) << 24;
@@ -388,25 +384,34 @@ public final class TweetNaclFast {
         o[31] = (byte) (x9 >>> 24 & 0xff);
     }
 
-    private static void cryptoCoreSalsa20(byte[] out, byte[] in, byte[] k) {
+    private void cryptoCoreSalsa20(byte[] out, byte[] in, byte[] k) {
         coreSalsa20(out, in, k);
     }
 
-    private static void cryptoCoreHSalsa20(byte[] out, byte[] in, byte[] k) {
+    private void cryptoCoreHSalsa20(byte[] out, byte[] in, byte[] k) {
         coreHSalsa20(out, in, k);
     }
 
     private static final byte[] sigma = {101, 120, 112, 97, 110, 100, 32, 51, 50, 45, 98, 121, 116, 101, 32, 107};
 
-    private static void cryptoStreamSalsa20Xor(byte[] c, byte[] m, long b, byte[] n, byte[] k) {
-        byte[] z = new byte[16];
-        byte[] x = new byte[64];
+    private final byte[] z = new byte[16];
+    private final byte[] x = new byte[64];
+
+    private void cryptoStreamSalsa20Xor(byte[] c, byte[] m, long b, byte[] n, byte[] k) {
         int cpos = 0;
         int mpos = 0;
         int u;
         int i;
 
-        for (i = 0; i < 16; i++) z[i] = 0;
+        for (i = 0; i < 16; i++) {
+            z[i] = 0;
+            x[i] = 0;
+        }
+        for (i = 16; i < 64; i++) {
+            x[i] = 0;
+        }
+
+        //for (i = 0; i < 16; i++) z[i] = 0;
         System.arraycopy(n, 0, z, 0, 8);
 
         while (b >= 64) {
@@ -428,26 +433,45 @@ public final class TweetNaclFast {
         }
     }
 
-    private static void cryptoStreamXor(byte[] c, byte[] m, long d, byte[] n, byte[] k) {
-        byte[] s = new byte[32];
+    private final byte[] str = new byte[32];
+    private final byte[] sn = new byte[8];
 
-        cryptoCoreHSalsa20(s, n, k);
-        byte[] sn = new byte[8];
+    private void cryptoStreamXor(byte[] c, byte[] m, long d, byte[] n, byte[] k) {
+        int i;
+
+        for (i = 0; i < 8; i++) {
+            str[i] = 0;
+            sn[i] = 0;
+        }
+        for (i = 8; i < 32; i++) {
+            str[i] = 0;
+        }
+
+        cryptoCoreHSalsa20(str, n, k);
         System.arraycopy(n, 16, sn, 0, 8);
-        cryptoStreamSalsa20Xor(c, m, d, sn, s);
+        cryptoStreamSalsa20Xor(c, m, d, sn, str);
     }
 
-    private static void cryptoOnetimeAuth(
+    private final Poly1305 poly1305 = new Poly1305();
+
+    private void cryptoOnetimeAuth(
             byte[] out,
             byte[] m,
             int n,
             byte[] k) {
-        Poly1305 s = new Poly1305(k);
-        s.update(m, 32, n);
-        s.finish(out, 16);
+        poly1305.init(k);
+        poly1305.update(m, 32, n);
+        poly1305.finish(out, 16);
     }
 
-    public static int cryptoSecretboxXSalsa20Poly1305(byte[] c, byte[] m, int d, byte[] n, byte[] k) {
+    public int cryptoSecretboxXSalsa20Poly1305NonSync(byte[] c, byte[] m, int d, byte[] n, byte[] k) {
+        if (d < 32) return -1;
+        cryptoStreamXor(c, m, d, n, k);
+        cryptoOnetimeAuth(c, c, d - 32, c);
+        return 0;
+    }
+
+    public synchronized int cryptoSecretboxXSalsa20Poly1305(byte[] c, byte[] m, int d, byte[] n, byte[] k) {
         if (d < 32) return -1;
         cryptoStreamXor(c, m, d, n, k);
         cryptoOnetimeAuth(c, c, d - 32, c);

@@ -17,7 +17,7 @@ public class EventDispatcher implements KoeEventListener {
 
     void register(KoeEventListener listener) {
         if (Objects.requireNonNull(listener) == this) {
-            throw new IllegalArgumentException("Are you trying to register the dispatcher, srsly?");
+            throw new IllegalArgumentException("Are you trying to register the dispatcher, rly?");
         }
         
         listeners.add(listener);
@@ -29,42 +29,42 @@ public class EventDispatcher implements KoeEventListener {
 
     @Override
     public void gatewayReady(InetSocketAddress target, int ssrc) {
-        for (var listener : listeners) {
+        for (KoeEventListener listener : listeners) {
             listener.gatewayReady(target, ssrc);
         }
     }
 
     @Override
     public void gatewayClosed(int code, String reason, boolean byRemote) {
-        for (var listener : listeners) {
+        for (KoeEventListener listener : listeners) {
             listener.gatewayClosed(code, reason, byRemote);
         }
     }
 
     @Override
-    public void userConnected(String id, int audioSSRC, int videoSSRC) {
-        for (var listener : listeners) {
-            listener.userConnected(id, audioSSRC, videoSSRC);
+    public void userConnected(String id, int audioSSRC, int videoSSRC, int rtxSSRC) {
+        for (KoeEventListener listener : listeners) {
+            listener.userConnected(id, audioSSRC, videoSSRC, rtxSSRC);
         }
     }
 
     @Override
     public void userDisconnected(String id) {
-        for (var listener : listeners) {
+        for (KoeEventListener listener : listeners) {
             listener.userDisconnected(id);
         }
     }
 
     @Override
     public void externalIPDiscovered(InetSocketAddress address) {
-        for (var listener : listeners) {
+        for (KoeEventListener listener : listeners) {
             listener.externalIPDiscovered(address);
         }
     }
 
     @Override
     public void sessionDescription(JsonObject session) {
-        for (var listener : listeners) {
+        for (KoeEventListener listener : listeners) {
             listener.sessionDescription(session);
         }
     }
