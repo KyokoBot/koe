@@ -34,6 +34,9 @@ public class MediaGatewayV4Connection extends AbstractMediaGatewayConnection {
     private UUID rtcConnectionId;
     private ScheduledFuture<?> heartbeatFuture;
 
+    private long lastHeartbeatSent;
+    private long ping;
+
     public MediaGatewayV4Connection(MediaConnectionImpl connection, VoiceServerInfo voiceServerInfo) {
         super(connection, voiceServerInfo, 4);
     }
@@ -91,6 +94,10 @@ public class MediaGatewayV4Connection extends AbstractMediaGatewayConnection {
                 connection.getConnectionHandler().handleSessionDescription(data);
                 break;
             }
+            case Op.HEARTBEAT_ACK: {
+                this.ping = System.currentTimeMillis() - this.lastHeartbeatSent;
+                break;
+            }
             case Op.CLIENT_CONNECT: {
                 var data = object.getObject("d");
                 var user = data.getString("user_id");
@@ -120,6 +127,11 @@ public class MediaGatewayV4Connection extends AbstractMediaGatewayConnection {
     }
 
     @Override
+    public long getPing() {
+        return this.ping;
+    }
+
+    @Override
     public void updateSpeaking(int mask) {
         sendInternalPayload(Op.SPEAKING, new JsonObject()
                 .add("speaking", mask)
@@ -135,6 +147,7 @@ public class MediaGatewayV4Connection extends AbstractMediaGatewayConnection {
     }
 
     private void heartbeat() {
+        this.lastHeartbeatSent = System.currentTimeMillis();
         sendInternalPayload(Op.HEARTBEAT, System.currentTimeMillis());
     }
 
