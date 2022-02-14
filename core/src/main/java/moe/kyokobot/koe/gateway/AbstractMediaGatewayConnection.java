@@ -222,6 +222,8 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
                 connectFuture.completeExceptionally(cause);
             }
 
+            connection.getDispatcher().gatewayError(cause);
+
             close(4000, "Internal error");
             ctx.close();
         }

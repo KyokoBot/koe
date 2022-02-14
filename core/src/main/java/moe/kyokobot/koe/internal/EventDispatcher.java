@@ -28,6 +28,13 @@ public class EventDispatcher implements KoeEventListener {
     }
 
     @Override
+    public void gatewayError(Throwable cause) {
+        for (var listener : listeners) {
+            listener.gatewayError(cause);
+        }
+    }
+
+    @Override
     public void gatewayReady(InetSocketAddress target, int ssrc) {
         for (var listener : listeners) {
             listener.gatewayReady(target, ssrc);

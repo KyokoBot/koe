@@ -6,6 +6,8 @@ import org.jetbrains.annotations.Nullable;
 import java.net.InetSocketAddress;
 
 public interface KoeEventListener {
+    void gatewayError(Throwable cause);
+
     void gatewayReady(InetSocketAddress target, int ssrc);
 
     void gatewayClosed(int code, @Nullable String reason, boolean byRemote);

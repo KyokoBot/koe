@@ -6,6 +6,11 @@ import java.net.InetSocketAddress;
 
 public class KoeEventAdapter implements KoeEventListener {
     @Override
+    public void gatewayError(Throwable cause) {
+        //
+    }
+
+    @Override
     public void gatewayReady(InetSocketAddress target, int ssrc) {
         //
     }
