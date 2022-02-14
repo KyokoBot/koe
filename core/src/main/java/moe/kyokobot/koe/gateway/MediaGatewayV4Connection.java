@@ -52,6 +52,15 @@ public class MediaGatewayV4Connection extends AbstractMediaGatewayConnection {
     }
 
     @Override
+    protected void resume() {
+        logger.debug("Resuming...");
+        sendInternalPayload(Op.RESUME, new JsonObject()
+                .addAsString("server_id", connection.getGuildId())
+                .add("session_id", voiceServerInfo.getSessionId())
+                .add("token", voiceServerInfo.getToken()));
+    }
+
+    @Override
     protected void handlePayload(JsonObject object) {
         var op = object.getInt("op");
 
@@ -65,6 +74,8 @@ public class MediaGatewayV4Connection extends AbstractMediaGatewayConnection {
                 break;
             }
             case Op.READY: {
+                resumable = true;
+
                 var data = object.getObject("d");
                 var port = data.getInt("port");
                 var ip = data.getString("ip");
@@ -96,6 +107,10 @@ public class MediaGatewayV4Connection extends AbstractMediaGatewayConnection {
             }
             case Op.HEARTBEAT_ACK: {
                 this.ping = System.currentTimeMillis() - this.lastHeartbeatSent;
+                break;
+            }
+            case Op.RESUMED: {
+                logger.debug("Resumed successfully");
                 break;
             }
             case Op.CLIENT_CONNECT: {

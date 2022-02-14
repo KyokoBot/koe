@@ -72,6 +72,15 @@ public class MediaConnectionImpl implements MediaConnection {
     }
 
     @Override
+    public void reconnect() {
+        logger.debug("Reconnecting...");
+
+        if (gatewayConnection != null) {
+            gatewayConnection.reconnect();
+        }
+    }
+
+    @Override
     @NotNull
     public KoeClient getClient() {
         return client;

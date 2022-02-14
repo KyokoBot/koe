@@ -13,5 +13,7 @@ public interface MediaGatewayConnection {
 
     void close(int code, @Nullable String reason);
 
+    void reconnect();
+
     void updateSpeaking(int mask);
 }

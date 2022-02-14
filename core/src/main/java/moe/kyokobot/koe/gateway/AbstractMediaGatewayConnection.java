@@ -42,11 +42,12 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
     protected final URI websocketURI;
     protected final Bootstrap bootstrap;
     protected final SslContext sslContext;
-    protected final CompletableFuture<Void> connectFuture;
+    protected CompletableFuture<Void> connectFuture;
 
     protected EventExecutor eventExecutor;
     protected Channel channel;
-    private boolean open;
+    protected boolean resumable = false;
+    private boolean open = false;
     private boolean closed = false;
 
     public AbstractMediaGatewayConnection(@NotNull MediaConnectionImpl connection,
@@ -89,11 +90,18 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
             channel.close();
         }
 
+        onClose(code, reason, false);
+
         if (!connectFuture.isDone()) {
             connectFuture.completeExceptionally(new NotYetConnectedException());
         }
+    }
 
-        onClose(code, reason, false);
+    @Override
+    public void reconnect() {
+        if (open) {
+            close(4900, "Koe: Reconnect");
+        }
     }
 
     @Override
@@ -103,12 +111,26 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
 
     protected abstract void identify();
 
+    protected abstract void resume();
+
     protected abstract void handlePayload(JsonObject object);
 
     protected void onClose(int code, @Nullable String reason, boolean remote) {
         if (!closed) {
             closed = true;
-            connection.getDispatcher().gatewayClosed(code, reason, remote);
+
+            switch (code) {
+                case 1006: // Abnormal closure
+                case 4000: // Internal error
+                case 4015: // Voice server crashed
+                case 4900: // Koe: Reconnect
+                    connectFuture = new CompletableFuture<>();
+                    start();
+                    break;
+                default:
+                    connection.getDispatcher().gatewayClosed(code, reason, remote);
+                    break;
+            }
         }
     }
 
@@ -155,8 +177,15 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
                     try {
                         handshaker.finishHandshake(ch, (FullHttpResponse) msg);
                         AbstractMediaGatewayConnection.this.open = true;
+                        closed = false;
+
                         connectFuture.complete(null);
-                        AbstractMediaGatewayConnection.this.identify();
+
+                        if (resumable) {
+                            AbstractMediaGatewayConnection.this.resume();
+                        } else {
+                            AbstractMediaGatewayConnection.this.identify();
+                        }
                     } catch (WebSocketHandshakeException e) {
                         connectFuture.completeExceptionally(e);
                     }
