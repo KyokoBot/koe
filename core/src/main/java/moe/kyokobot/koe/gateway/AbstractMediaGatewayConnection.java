@@ -46,6 +46,7 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
 
     protected EventExecutor eventExecutor;
     protected Channel channel;
+    protected int connectAttempt = 0;
     protected boolean resumable = false;
     private boolean open = false;
     private boolean closed = false;
@@ -72,7 +73,7 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
         if (connectFuture.isDone()) return connectFuture;
 
         var future = new CompletableFuture<Void>();
-        logger.debug("Connecting to {}", websocketURI);
+        logger.debug("Connecting to {}, attempt {}/3", websocketURI, connectAttempt);
 
         var chFuture = bootstrap.connect(websocketURI.getHost(), websocketURI.getPort() == -1 ? 443 : websocketURI.getPort());
         chFuture.addListener(new NettyFutureWrapper<>(future));
@@ -119,19 +120,24 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
         if (!closed) {
             closed = true;
 
-            switch (code) {
-                case 1001: // Going away or CloudFlare WebSocket proxy restarting
-                case 1006: // Abnormal closure
-                case 4000: // Internal error
-                case 4006: // Session no longer valid
-                case 4015: // Voice server crashed
-                case 4900: // Koe: Reconnect
-                    connectFuture = new CompletableFuture<>();
-                    start();
-                    break;
-                default:
-                    connection.getDispatcher().gatewayClosed(code, reason, remote);
-                    break;
+            if (connectAttempt <= 3) {
+                switch (code) {
+                    case 1001: // Going away or CloudFlare WebSocket proxy restarting
+                    case 1006: // Abnormal closure
+                    case 4000: // Internal error
+                    case 4006: // Session no longer valid
+                    case 4015: // Voice server crashed
+                    case 4900: // Koe: Reconnect
+                        connectAttempt++;
+                        connectFuture = new CompletableFuture<>();
+                        start();
+                        break;
+                    default:
+                        connection.getDispatcher().gatewayClosed(code, reason, remote);
+                        break;
+                }
+            } else {
+                connection.getDispatcher().gatewayClosed(code, reason, remote);
             }
         }
     }

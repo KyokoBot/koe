@@ -91,6 +91,7 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
             }
             case Op.SESSION_DESCRIPTION: {
                 var data = object.getObject("d");
+                connectAttempt = 0;
                 logger.debug("Got session description: {}", data);
 
                 if (connection.getConnectionHandler() == null) {
