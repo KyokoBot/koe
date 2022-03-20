@@ -128,9 +128,9 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
                     case 4006: // Session no longer valid
                     case 4015: // Voice server crashed
                     case 4900: // Koe: Reconnect
-                        connectAttempt++;
                         connectFuture = new CompletableFuture<>();
                         start();
+                        connectAttempt++;
                         break;
                     default:
                         connection.getDispatcher().gatewayClosed(code, reason, remote);
