@@ -52,7 +52,6 @@ public class NettyOpusFramePoller extends AbstractFramePoller {
             var sender = connection.getAudioSender();
             var codec = OpusCodec.INSTANCE;
 
-            // ugly but it's the hottest path in Koe and Java is a shit language.
             if (sender != null && handler != null && sender.canSendFrame(codec)) {
                 var buf = allocator.buffer();
                 int start = buf.writerIndex();

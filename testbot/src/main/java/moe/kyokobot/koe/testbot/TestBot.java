@@ -1,19 +1,5 @@
 package moe.kyokobot.koe.testbot;
 
-import com.grack.nanojson.JsonArray;
-import com.grack.nanojson.JsonObject;
-import com.grack.nanojson.JsonParser;
-import com.mewna.catnip.Catnip;
-import com.mewna.catnip.CatnipOptions;
-import com.mewna.catnip.entity.channel.TextChannel;
-import com.mewna.catnip.entity.channel.VoiceChannel;
-import com.mewna.catnip.entity.guild.Guild;
-import com.mewna.catnip.entity.util.Permission;
-import com.mewna.catnip.extension.AbstractExtension;
-import com.mewna.catnip.extension.hook.CatnipHook;
-import com.mewna.catnip.rest.ratelimit.DefaultRateLimiter;
-import com.mewna.catnip.shard.DiscordEvent;
-import com.mewna.catnip.shard.ShardInfo;
 import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
@@ -24,24 +10,31 @@ import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import io.reactivex.rxjava3.core.Completable;
-import io.reactivex.rxjava3.core.Observable;
-import io.reactivex.rxjava3.disposables.Disposable;
 import moe.kyokobot.koe.Koe;
 import moe.kyokobot.koe.KoeClient;
 import moe.kyokobot.koe.KoeEventAdapter;
 import moe.kyokobot.koe.VoiceServerInfo;
 import moe.kyokobot.koe.codec.H264Codec;
 import moe.kyokobot.koe.testbot.util.GCPressureGenerator;
-import moe.kyokobot.koe.testbot.util.UserBotBurstRequester;
-import org.apache.commons.lang3.tuple.Pair;
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.VoiceChannel;
+import net.dv8tion.jda.api.events.RawGatewayEvent;
+import net.dv8tion.jda.api.events.ReadyEvent;
+import net.dv8tion.jda.api.events.guild.voice.GuildVoiceLeaveEvent;
+import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.hooks.VoiceDispatchInterceptor;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
+import javax.security.auth.login.LoginException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 
 /**
  * An example of bot that uses Koe to play music using LavaPlayer.
@@ -54,12 +47,12 @@ public class TestBot {
     private static final Logger logger = LoggerFactory.getLogger(TestBot.class);
     private final String token;
 
-    private Catnip catnip;
+    private JDA jda;
     private Koe koe;
     private KoeClient koeClient;
     private AudioPlayerManager playerManager;
     private Map<Guild, AudioPlayer> playerMap = new ConcurrentHashMap<>();
-    private boolean vidyaEnabled = false;
+    private boolean vidyaEnabled;
 
     public TestBot(String token) {
         this(token, false);
@@ -71,64 +64,98 @@ public class TestBot {
     }
 
     public void start() {
-        this.catnip = createCatnip();
+        this.jda = createJDA();
         this.koe = createKoe();
         this.playerManager = createAudioPlayerManager();
 
-        catnip.observable(DiscordEvent.READY)
-                .subscribe(ready -> {
-                    koeClient = koe.newClient(catnip.selfUser().idAsLong());
-                });
+        jda.addEventListener(new ListenerAdapter() {
+            @Override
+            public void onReady(@NotNull ReadyEvent event) {
+                koeClient = koe.newClient(jda.getSelfUser().getIdLong());
+            }
 
-        catnip.observable(DiscordEvent.VOICE_STATE_UPDATE)
-                .filter(state -> state.userIdAsLong() == catnip.selfUser().idAsLong() && state.channelIdAsLong() == 0)
-                .subscribe(leave -> koeClient.destroyConnection(leave.guildIdAsLong()));
+            @Override
+            public void onGuildVoiceLeave(@NotNull GuildVoiceLeaveEvent event) {
+                if (event.getMember().getIdLong() == jda.getSelfUser().getIdLong()) {
+                    koeClient.destroyConnection(event.getGuild().getIdLong());
+                }
+            }
 
-        catnip.observable(DiscordEvent.MESSAGE_CREATE)
-                .filter(message -> message.guildIdAsLong() != 0
-                        && !message.author().bot()
-                        && message.content().equals("!ping"))
-                .subscribe(message -> message.channel().sendMessage("Pong!"));
+            @Override
+            public void onRawGateway(@NotNull RawGatewayEvent event) {
+                if (event.getType().equals("VOICE_SERVER_UPDATE")) {
+                    logger.debug("got VSU {}", event.getPayload());
 
-        catnip.observable(DiscordEvent.MESSAGE_CREATE)
-                .filter(message -> message.guildIdAsLong() != 0
-                        && !message.author().bot()
-                        && message.content().startsWith("!play "))
-                .subscribe(message -> {
+                    var guildId = event.getPayload().getString("guild_id");
+                    var endpoint = event.getPayload().getString("endpoint");
+                    var token = event.getPayload().getString("token");
+
+                    var guild = jda.getGuildById(guildId);
+                    if (guild == null) return;
+
+                    var voiceState = guild.getVoiceStates().stream()
+                            .filter(s -> s.getMember().getIdLong() == jda.getSelfUser().getIdLong()).findFirst();
+
+                    if (voiceState.isEmpty()) return;
+
+                    var conn = koeClient.getConnection(guild.getIdLong());
+                    if (conn != null) {
+                        var info = new VoiceServerInfo(
+                                voiceState.get().getSessionId(),
+                                endpoint,
+                                token);
+                        conn.connect(info).thenAccept(avoid -> {
+                            logger.info("Koe connection succeeded!");
+                        });
+                    }
+                }
+            }
+
+            @Override
+            public void onGuildMessageReceived(@NotNull GuildMessageReceivedEvent event) {
+                if (event.getAuthor().isBot()) return;
+
+                var message = event.getMessage();
+
+                if (message.getContentRaw().equals("!ping")) {
+                    message.reply("Pong!").queue();
+                } else if (message.getContentRaw().equals("!gcpress")) {
+                    message.reply("GC pressure generator enabled = " + GCPressureGenerator.toggle());
+                } else if (message.getContentRaw().startsWith("!play ")) {
                     if (koeClient == null) return;
 
-                    var voiceState = message.guild().voiceStates().getById(message.author().idAsLong());
-                    if (voiceState == null) {
-                        message.channel().sendMessage("You need to be in a voice channel!");
+                    var voiceState = message.getGuild().getVoiceStates().stream()
+                            .filter(s -> s.getMember().getIdLong() == message.getAuthor().getIdLong()).findFirst();
+                    if (voiceState.isEmpty()) {
+                        message.reply("You need to be in a voice channel!").queue();
                         return;
                     }
 
-                    if (!message.guild().selfMember().hasPermissions(voiceState.channel(), Permission.CONNECT)) {
-                        message.channel().sendMessage("I don't have permissions to join your voice channel!");
+                    if (!message.getGuild().getSelfMember().hasPermission(voiceState.get().getChannel(), Permission.VOICE_CONNECT)) {
+                        message.reply("I don't have permissions to join your voice channel!").queue();
                         return;
                     }
 
-                    playSong(message.channel().asTextChannel(), voiceState.channel(), message.guild(), message.content().substring(6));
-                });
-
-
-        catnip.observable(DiscordEvent.MESSAGE_CREATE)
-                .filter(message -> message.guildIdAsLong() != 0
-                        && !message.author().bot()
-                        && message.content().startsWith("!gcpress"))
-                .subscribe(message -> message.channel()
-                        .sendMessage("GC pressure generator enabled = " + GCPressureGenerator.toggle()));
-
-        catnip.connect();
+                    playSong(message.getTextChannel(), voiceState.get().getChannel(), message.getGuild(), message.getContentRaw().substring(6));
+                }
+            }
+        });
     }
 
     public void stop() {
         try {
             logger.info("Shutting down...");
-            koeClient.getConnections().forEach((guild, conn) -> catnip.closeVoiceConnection(guild));
+
+            var ac = jda.getDirectAudioController();
+
+            koeClient.getConnections().forEach((guild, conn) -> {
+                var g = jda.getGuildById(guild);
+                if (g != null) ac.disconnect(g);
+            });
             koeClient.close();
+
             Thread.sleep(250);
-            catnip.shutdown();
+            jda.shutdown();
             Thread.sleep(500);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -139,17 +166,37 @@ public class TestBot {
         return Koe.koe();
     }
 
-    public Catnip createCatnip() {
-        var apiHost = System.getenv("API_ENDPOINT");
-        if (apiHost == null) {
-            apiHost = "https://discord.com";
+    public JDA createJDA() {
+        try {
+            return JDABuilder.createDefault(token)
+                    .setVoiceDispatchInterceptor(new VoiceDispatchInterceptor() {
+                        @Override
+                        public void onVoiceServerUpdate(@NotNull VoiceDispatchInterceptor.VoiceServerUpdate update) {
+                            var voiceState = update.getGuild().getVoiceStates().stream()
+                                    .filter(s -> s.getMember().getIdLong() == jda.getSelfUser().getIdLong()).findFirst();
+
+                            if (voiceState.isEmpty()) return;
+
+                            var conn = koeClient.getConnection(update.getGuildIdLong());
+                            if (conn != null) {
+                                var info = new VoiceServerInfo(
+                                        voiceState.get().getSessionId(),
+                                        update.getEndpoint(),
+                                        update.getToken());
+                                conn.connect(info).thenAccept(avoid -> {
+                                    logger.info("Koe connection succeeded!");
+                                });
+                            }
+                        }
+
+                        @Override
+                        public boolean onVoiceStateUpdate(@NotNull VoiceDispatchInterceptor.VoiceStateUpdate update) {
+                            return true;
+                        }
+                    }).build();
+        } catch (LoginException e) {
+            throw new RuntimeException(e);
         }
-
-        var options = new CatnipOptions(token)
-                .apiHost(apiHost)
-                .validateToken(false);
-
-        return Catnip.catnip(options);
     }
 
     public AudioPlayerManager createAudioPlayerManager() {
@@ -161,8 +208,8 @@ public class TestBot {
     }
 
     private void playSong(TextChannel textChannel, VoiceChannel channel, Guild guild, String query) {
-        if (koeClient.getConnection(channel.guildIdAsLong()) == null) {
-            var conn = koeClient.createConnection(guild.idAsLong());
+        if (koeClient.getConnection(channel.getIdLong()) == null) {
+            var conn = koeClient.createConnection(guild.getIdLong());
             var player = playerMap.computeIfAbsent(guild, n -> playerManager.createPlayer());
             conn.setAudioSender(new Senders.AudioSender(player, conn));
 
@@ -175,37 +222,14 @@ public class TestBot {
             connect(channel);
 
             if (textChannel != null)
-                textChannel.sendMessage("Joined channel `" + channel.name() + "`!");
+                textChannel.sendMessage("Joined channel `" + channel.getName() + "`!").queue();
         }
 
         resolve(guild, textChannel, query);
     }
 
     private void connect(VoiceChannel channel) {
-        Observable.combineLatest(
-                catnip.observable(DiscordEvent.VOICE_STATE_UPDATE)
-                        .filter(update -> update.userIdAsLong() == koeClient.getClientId()
-                                && update.guildIdAsLong() == channel.guildIdAsLong()),
-                catnip.observable(DiscordEvent.VOICE_SERVER_UPDATE)
-                        .filter(update -> update.guildIdAsLong() == channel.guildIdAsLong())
-                        .debounce(1, TimeUnit.SECONDS),
-                Pair::of
-        ).subscribe(pair -> {
-            var stateUpdate = pair.getLeft();
-            var serverUpdate = pair.getRight();
-            var conn = koeClient.getConnection(serverUpdate.guildIdAsLong());
-            if (conn != null) {
-                var info = new VoiceServerInfo(
-                        stateUpdate.sessionId(),
-                        serverUpdate.endpoint(),
-                        serverUpdate.token());
-                conn.connect(info).thenAccept(avoid -> {
-                    logger.info("Koe connection succeeded!");
-                });
-            }
-        });
-
-        catnip.openVoiceConnection(channel.guildIdAsLong(), channel.idAsLong());
+        jda.getDirectAudioController().connect(channel);
     }
 
     private void resolve(Guild guild, TextChannel channel, String args) {
@@ -215,24 +239,24 @@ public class TestBot {
             @Override
             public void trackLoaded(AudioTrack track) {
                 player.playTrack(track);
-                if (channel != null) channel.sendMessage("**Now playing:** " + track.getInfo().title);
+                if (channel != null) channel.sendMessage("**Now playing:** " + track.getInfo().title).queue();
             }
 
             @Override
             public void playlistLoaded(AudioPlaylist playlist) {
                 var track = playlist.getTracks().get(0);
                 player.playTrack(track);
-                if (channel != null) channel.sendMessage("**Now playing:** " + track.getInfo().title);
+                if (channel != null) channel.sendMessage("**Now playing:** " + track.getInfo().title).queue();
             }
 
             @Override
             public void noMatches() {
-                if (channel != null) channel.sendMessage("**Error:** No matches found!");
+                if (channel != null) channel.sendMessage("**Error:** No matches found!").queue();
             }
 
             @Override
             public void loadFailed(FriendlyException exception) {
-                if (channel != null) channel.sendMessage("**Error:** " + exception.getMessage());
+                if (channel != null) channel.sendMessage("**Error:** " + exception.getMessage()).queue();
             }
         });
     }
@@ -252,42 +276,6 @@ public class TestBot {
         @Override
         public void gatewayClosed(int code, String reason, boolean byRemote) {
             logger.info("Voice gateway closed with code {}: {}", code, reason);
-        }
-    }
-
-    private static class UserExtension extends AbstractExtension {
-        private final CatnipHook hook = new CatnipHook() {
-            @Override
-            public JsonObject rawGatewayReceiveHook(@Nonnull ShardInfo shardInfo, @Nonnull JsonObject json) {
-                if (json.isString("t") && json.getString("t").equals("READY")) {
-                    var d = json.getObject("d");
-                    if (!d.has("shard")) {
-                        var arr = new JsonArray();
-                        arr.add(0);
-                        arr.add(1);
-                        d.put("shard", arr);
-                    }
-                }
-
-                return json;
-            }
-        };
-
-        public UserExtension() {
-            super("user-ext");
-        }
-
-        @Override
-        public Completable onLoaded() {
-            registerHook(hook);
-
-            return null;
-        }
-
-        @Override
-        public Completable onUnloaded() {
-            unregisterHook(hook);
-            return null;
         }
     }
 }
