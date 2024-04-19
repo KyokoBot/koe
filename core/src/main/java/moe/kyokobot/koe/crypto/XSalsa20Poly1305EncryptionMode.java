@@ -5,8 +5,8 @@ import moe.kyokobot.koe.internal.crypto.TweetNaclFastInstanced;
 
 public class XSalsa20Poly1305EncryptionMode implements EncryptionMode {
     private final byte[] extendedNonce = new byte[24];
-    private final byte[] m = new byte[984];
-    private final byte[] c = new byte[984];
+    private final byte[] m = new byte[1276 + ZERO_BYTES_LENGTH];
+    private final byte[] c = new byte[1276 + ZERO_BYTES_LENGTH];
     private final TweetNaclFastInstanced nacl = new TweetNaclFastInstanced();
 
     @Override
