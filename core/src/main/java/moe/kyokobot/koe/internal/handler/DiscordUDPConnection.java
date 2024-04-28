@@ -167,7 +167,9 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
             connection.channel = datagramChannel;
 
             var handler = new HolepunchHandler(future, connection.ssrc);
-            datagramChannel.pipeline().addFirst("handler", handler);
+            var pipeline = datagramChannel.pipeline();
+            pipeline.addFirst("handler", handler);
+            pipeline.addLast("rtcp", new RTCPHandler());
         }
     }
 }
