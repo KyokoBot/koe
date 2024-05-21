@@ -4,15 +4,15 @@ import moe.kyokobot.koe.KoeEventListener;
 import moe.kyokobot.koe.internal.json.JsonObject;
 
 import java.net.InetSocketAddress;
-import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 public class EventDispatcher implements KoeEventListener {
     private final Set<KoeEventListener> listeners;
 
     EventDispatcher() {
-        this.listeners = new HashSet<>();
+        this.listeners = new CopyOnWriteArraySet<>();
     }
 
     void register(KoeEventListener listener) {
