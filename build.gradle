@@ -1,9 +1,40 @@
+def getGitVersion() {
+    def versionStr = new ByteArrayOutputStream()
+    def result = exec {
+        standardOutput versionStr
+        errorOutput versionStr
+        ignoreExitValue true
+        commandLine "git", "describe", "--exact-match", "--tags"
+    }
+    if (result.exitValue == 0) {
+        return [versionStr.toString().trim(), false]
+    }
+
+
+    versionStr = new ByteArrayOutputStream()
+    exec {
+        standardOutput versionStr
+        errorOutput versionStr
+        commandLine "git", "rev-parse", "--short", "HEAD"
+    }
+
+    return [versionStr.toString().trim(), true]
+}
+
 subprojects {
     apply plugin: 'maven-publish'
     apply plugin: 'java-library'
 
     group = 'moe.kyokobot'
-    //version = '2.0.0-SNAPSHOT'
+
+    if (project.hasProperty('version')) {
+        // Used by JitPack
+        version = project.version
+    } else {
+        // Get version from git
+        def gitVersion = getGitVersion()
+        version = gitVersion[0]
+    }
 
     sourceCompatibility = 11
     targetCompatibility = 11
@@ -14,5 +45,13 @@ subprojects {
         mavenCentral()
         jcenter()
         maven { url "https://jitpack.io/" }
+    }
+
+    publishing {
+        publications {
+            mavenJava(MavenPublication) {
+                from components.java
+            }
+        }
     }
 }
