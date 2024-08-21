@@ -1,5 +1,17 @@
+def udpqueueVersion = '0.2.7'
+
 dependencies {
     compileOnly project(':core')
-    implementation 'com.sedmelluq:udp-queue:1.1.0-linux64'
+    implementation 'dev.arbjerg:lava-common:2.2.1'
+    implementation group: 'club.minnced', name: 'udpqueue-api', version: '0.1.1'
+    implementation group: 'club.minnced', name: 'udpqueue-native-linux-x86-64', version: udpqueueVersion
+    implementation group: 'club.minnced', name: 'udpqueue-native-linux-x86', version: udpqueueVersion
+    implementation group: 'club.minnced', name: 'udpqueue-native-linux-aarch64', version: udpqueueVersion
+    implementation group: 'club.minnced', name: 'udpqueue-native-linux-arm', version: udpqueueVersion
+    implementation group: 'club.minnced', name: 'udpqueue-native-linux-musl-x86-64', version: udpqueueVersion
+    implementation group: 'club.minnced', name: 'udpqueue-native-linux-musl-aarch64', version: udpqueueVersion
+    implementation group: 'club.minnced', name: 'udpqueue-native-win-x86-64', version: udpqueueVersion
+    implementation group: 'club.minnced', name: 'udpqueue-native-win-x86', version: udpqueueVersion
+    implementation group: 'club.minnced', name: 'udpqueue-native-darwin', version: udpqueueVersion
     compileOnly group: 'org.jetbrains', name: 'annotations', version: '13.0'
 }
