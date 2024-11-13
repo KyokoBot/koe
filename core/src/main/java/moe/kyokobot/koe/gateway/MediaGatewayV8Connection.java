@@ -1,5 +1,6 @@
 package moe.kyokobot.koe.gateway;
 
+import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.VoiceServerInfo;
 import moe.kyokobot.koe.codec.Codec;
 import moe.kyokobot.koe.codec.DefaultCodecs;
@@ -46,7 +47,9 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
                 .addAsString("user_id", connection.getClient().getClientId())
                 .add("session_id", voiceServerInfo.getSessionId())
                 .add("token", voiceServerInfo.getToken())
-                .add("video", true));
+                .add("video", true)
+                .add("max_dave_protocol_version", 0)
+                .add("streams", new JsonArray()));
     }
 
     @Override
@@ -149,6 +152,13 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
             default:
                 break;
         }
+    }
+
+    @Override
+    protected void handleBinaryPayload(ByteBuf buffer) {
+        sequence = buffer.readUnsignedShort();
+
+        var op = buffer.readUnsignedByte();
     }
 
     @Override
