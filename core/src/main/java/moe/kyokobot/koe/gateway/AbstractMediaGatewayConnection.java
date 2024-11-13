@@ -1,6 +1,7 @@
 package moe.kyokobot.koe.gateway;
 
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
@@ -122,6 +123,10 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
 
     protected abstract void handlePayload(JsonObject object);
 
+    protected void handleBinaryPayload(ByteBuf buffer) {
+        // no-op
+    }
+
     protected void onClose(int code, @Nullable String reason, boolean remote) {
         if (!closed) {
             closed = true;
@@ -166,11 +171,26 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
         sendRaw(new JsonObject().add("op", op).add("d", d));
     }
 
+    public void sendBinaryInternalPayload(char op, ByteBuf buffer) {
+        var frame = channel.alloc().buffer(1 + buffer.readableBytes());
+        frame.writeByte(op);
+        frame.writeBytes(buffer);
+        sendRaw(frame);
+        buffer.release();
+    }
+
     protected void sendRaw(JsonObject object) {
         if (channel != null && channel.isOpen()) {
             var data = object.toString();
-            logger.trace("<- {}", data);
+            logger.trace("<-T {}", data);
             channel.writeAndFlush(new TextWebSocketFrame(data));
+        }
+    }
+
+    protected void sendRaw(ByteBuf buffer) {
+        if (channel != null && channel.isOpen()) {
+            logger.trace("<-B {}", buffer);
+            channel.writeAndFlush(new BinaryWebSocketFrame(buffer));
         }
     }
 
@@ -228,9 +248,14 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
             if (msg instanceof TextWebSocketFrame) {
                 var frame = (TextWebSocketFrame) msg;
                 var object = JsonParser.object().from(frame.content());
-                logger.trace("-> {}", object);
+                logger.trace("->T {}", object);
                 frame.release();
                 handlePayload(object);
+            } else if (msg instanceof BinaryWebSocketFrame) {
+                var frame = (BinaryWebSocketFrame) msg;
+                logger.trace("->B {}", frame.content());
+                handleBinaryPayload(frame.content());
+                frame.release();
             } else if (msg instanceof CloseWebSocketFrame) {
                 var frame = (CloseWebSocketFrame) msg;
                 if (logger.isDebugEnabled()) {
