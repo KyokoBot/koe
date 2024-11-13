@@ -11,6 +11,9 @@ import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.playback.MutableAudioFrame;
 import dev.lavalink.youtube.YoutubeAudioSourceManager;
+import dev.lavalink.youtube.clients.AndroidMusic;
+import dev.lavalink.youtube.clients.AndroidTestsuite;
+import dev.lavalink.youtube.clients.WebEmbedded;
 import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.*;
 import moe.kyokobot.koe.media.OpusAudioFrameProvider;
@@ -25,6 +28,7 @@ import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.hooks.VoiceDispatchInterceptor;
 import net.dv8tion.jda.api.requests.GatewayIntent;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +54,7 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
     private Koe koe;
     private KoeClient koeClient;
     private AudioPlayerManager playerManager;
-    private Map<Guild, AudioPlayer> playerMap = new ConcurrentHashMap<>();
+    private final Map<Guild, AudioPlayer> playerMap = new ConcurrentHashMap<>();
 
     public TestBot(String token) {
         this.token = token;
@@ -66,7 +70,8 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
     public void stop() {
         try {
             logger.info("Shutting down...");
-            koeClient.close();
+            if (koeClient != null)
+                koeClient.close();
             Thread.sleep(250);
             jda.shutdownNow();
             Thread.sleep(500);
@@ -89,14 +94,14 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
 
     public AudioPlayerManager createAudioPlayerManager() {
         var manager = new DefaultAudioPlayerManager();
-        manager.registerSourceManager(new YoutubeAudioSourceManager());
+        manager.registerSourceManager(new YoutubeAudioSourceManager(new AndroidMusic(), new AndroidTestsuite(), new WebEmbedded()));
         manager.registerSourceManager(SoundCloudAudioSourceManager.createDefault());
         manager.registerSourceManager(new HttpAudioSourceManager());
         return manager;
     }
 
     @Override
-    public void onReady(ReadyEvent event) {
+    public void onReady(@NotNull ReadyEvent event) {
         koeClient = koe.newClient(jda.getSelfUser().getIdLong());
     }
 
@@ -114,7 +119,7 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
 
     @Override
     public boolean onVoiceStateUpdate(VoiceStateUpdate voiceStateUpdate) {
-        if (voiceStateUpdate.getVoiceState().getIdLong() == jda.getSelfUser().getIdLong() && voiceStateUpdate.getChannel().getIdLong() == 0) {
+        if (voiceStateUpdate.getVoiceState().getIdLong() == jda.getSelfUser().getIdLong() && voiceStateUpdate.getChannel() == null) {
             koeClient.destroyConnection(voiceStateUpdate.getGuildIdLong());
         }
         return true;
