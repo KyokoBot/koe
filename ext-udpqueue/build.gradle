@@ -1,8 +1,6 @@
-def udpqueueVersion = '0.2.7'
-
 dependencies {
     compileOnly project(':core')
     implementation 'dev.arbjerg:lava-common:2.2.1'
-    implementation group: 'club.minnced', name: 'udpqueue-api', version: '0.1.1'
+    implementation group: 'club.minnced', name: 'udpqueue-api', version: '0.2.9'
     compileOnly group: 'org.jetbrains', name: 'annotations', version: '13.0'
 }
