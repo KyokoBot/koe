@@ -122,7 +122,7 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
                 logger.debug("Resumed successfully");
                 break;
             }
-            case Op.CLIENT_CONNECT: {
+            case Op.VIDEO: {
                 mediaValve.handleEvent(object);
 
                 var data = object.getObject("d");
@@ -223,7 +223,7 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
 
                 this.updateSpeaking(0);
 
-                sendInternalPayload(Op.CLIENT_CONNECT, new JsonObject()
+                sendInternalPayload(Op.VIDEO, new JsonObject()
                         .add("audio_ssrc", ssrc)
                         .add("video_ssrc", 0)
                         .add("rtx_ssrc", 0));

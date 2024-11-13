@@ -40,7 +40,7 @@ public class KoeOptionsBuilder {
                 : NioDatagramChannel.class;
 
         this.byteBufAllocator = new PooledByteBufAllocator();
-        this.gatewayVersion = GatewayVersion.V4;
+        this.gatewayVersion = GatewayVersion.V8;
         this.framePollerFactory = new NettyFramePollerFactory();
         this.highPacketPriority = true;
         this.deafened = false;

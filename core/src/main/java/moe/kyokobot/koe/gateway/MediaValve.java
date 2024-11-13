@@ -65,7 +65,7 @@ public class MediaValve {
      */
     synchronized void handleEvent(JsonObject obj) {
         int op = obj.getInt("op");
-        if (op == Op.CLIENT_CONNECT) {
+        if (op == Op.VIDEO) {
             JsonObject d = obj.getObject("d");
             String userId = d.getString("user_id");
 
