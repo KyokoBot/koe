@@ -116,7 +116,7 @@ public class MediaGatewayV4Connection extends AbstractMediaGatewayConnection {
                 logger.debug("Resumed successfully");
                 break;
             }
-            case Op.CLIENT_CONNECT: {
+            case Op.VIDEO: {
                 var data = object.getObject("d");
                 var user = data.getString("user_id");
                 var audioSsrc = data.getInt("audio_ssrc", 0);
@@ -195,7 +195,7 @@ public class MediaGatewayV4Connection extends AbstractMediaGatewayConnection {
                         .add("data", udpInfo)
                         .combine(udpInfo));
 
-                sendInternalPayload(Op.CLIENT_CONNECT, new JsonObject()
+                sendInternalPayload(Op.VIDEO, new JsonObject()
                         .add("audio_ssrc", ssrc)
                         .add("video_ssrc", 0)
                         .add("rtx_ssrc", 0));

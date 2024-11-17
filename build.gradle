@@ -21,6 +21,14 @@ def getGitVersion() {
     return [versionStr.toString().trim(), true]
 }
 
+ext {
+    nettyVersion = '4.1.112.Final'
+    slf4jVersion = '1.8.0-beta4'
+    tinkVersion = '1.15.0'
+    bouncyCastleVersion = '1.79'
+    jetbrainsAnnotationsVersion = '13.0'
+}
+
 subprojects {
     apply plugin: 'maven-publish'
     apply plugin: 'java-library'

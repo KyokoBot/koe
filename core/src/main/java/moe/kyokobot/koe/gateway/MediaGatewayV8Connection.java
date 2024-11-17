@@ -1,5 +1,6 @@
 package moe.kyokobot.koe.gateway;
 
+import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.VoiceServerInfo;
 import moe.kyokobot.koe.codec.Codec;
 import moe.kyokobot.koe.codec.DefaultCodecs;
@@ -46,7 +47,9 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
                 .addAsString("user_id", connection.getClient().getClientId())
                 .add("session_id", voiceServerInfo.getSessionId())
                 .add("token", voiceServerInfo.getToken())
-                .add("video", true));
+                .add("video", true)
+                .add("max_dave_protocol_version", 0)
+                .add("streams", new JsonArray()));
     }
 
     @Override
@@ -120,7 +123,7 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
                 logger.debug("Resumed successfully");
                 break;
             }
-            case Op.CLIENT_CONNECT: {
+            case Op.VIDEO: {
                 var data = object.getObject("d");
                 var user = data.getString("user_id");
                 var audioSsrc = data.getInt("audio_ssrc", 0);
@@ -135,7 +138,7 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
                 connection.getDispatcher().userDisconnected(user);
                 break;
             }
-            case Op.VIDEO_SINK_WANTS: {
+            case Op.MEDIA_SINK_WANTS: {
                 // Sent only if `video` flag was true while identifying. At time of writing this comment Discord forces
                 // it to false on bots (so.. user bot time? /s) due to voice server bug that broke clients or something.
                 // After receiving this opcode client can send op 12 with ssrcs for video (audio + 1)
@@ -149,6 +152,13 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
             default:
                 break;
         }
+    }
+
+    @Override
+    protected void handleBinaryPayload(ByteBuf buffer) {
+        sequence = buffer.readUnsignedShort();
+
+        var op = buffer.readUnsignedByte();
     }
 
     @Override
@@ -219,7 +229,7 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
 
                 this.updateSpeaking(0);
 
-                sendInternalPayload(Op.CLIENT_CONNECT, new JsonObject()
+                sendInternalPayload(Op.VIDEO, new JsonObject()
                         .add("audio_ssrc", ssrc)
                         .add("video_ssrc", 0)
                         .add("rtx_ssrc", 0));
