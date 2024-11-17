@@ -1,0 +1,6 @@
+dependencies {
+    implementation project(':mls')
+    implementation group: 'org.slf4j', name: 'slf4j-api', version: "$slf4jVersion"
+    compileOnly group: 'org.jetbrains', name: 'annotations', version: "$jetbrainsAnnotationsVersion"
+}
+

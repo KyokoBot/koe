@@ -49,3 +49,5 @@ Koe includes modified/stripped-down parts based on following open-source project
 
 - [tweetnacl-java](https://github.com/InstantWebP2P/tweetnacl-java) (Poly1305, SecretBox)
 - [nanojson](https://github.com/mmastrac/nanojson) (modified for bytebuf support, changed the API a bit and etc.)
+- [BouncyCastle MLS](https://github.com/bcgit/bc-java/tree/1.79) (see README.md in mls module for more info)
+- [libdave](https://github.com/discord/libdave) (Koe's DAVE implementation is heavily based on reference C++ implementation)

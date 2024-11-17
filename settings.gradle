@@ -1,6 +1,8 @@
 rootProject.name = 'koe'
 
 include ':core'
+include ':dave'
 include ':ext-udpqueue'
+include ':mls'
 include ':testbot'
 

@@ -1,0 +1,6 @@
+dependencies {
+    implementation group: 'org.slf4j', name: 'slf4j-api', version: "$slf4jVersion"
+    implementation group: 'org.bouncycastle', name: 'bcutil-jdk18on', version: "$bouncyCastleVersion"
+    api group: 'org.bouncycastle', name: 'bcprov-jdk18on', version: "$bouncyCastleVersion"
+}
+
