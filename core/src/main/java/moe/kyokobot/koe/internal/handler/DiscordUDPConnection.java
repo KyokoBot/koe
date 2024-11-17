@@ -86,7 +86,7 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
 
         if (encryptionMode == null) {
             throw new IllegalStateException("Encryption mode selected by Discord is not supported by Koe or the " +
-                    "protocol changed! Open an issue at https://github.com/KyokoBot/koe");
+                    "protocol changed! Update to latest version or open an issue at https://github.com/KyokoBot/koe");
         }
 
         var keyArray = object.getArray("secret_key");
