@@ -24,6 +24,7 @@ This is a fork of [BouncyCastle's](https://www.bouncycastle.org/) MLS library.
     - most notably key handling? (ctrl+f `serializePrivateKey`)
 - Added `TreeKEMPublicKey.allLeaves` method.
 - Added `equals` to `ExternalSender`.
+- Split `HashRatchet` out of `GroupKeySet`.
 
 ### Possible replacements
 

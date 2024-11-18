@@ -26,15 +26,13 @@ public class GroupKeySet
     Map<LeafIndex, HashRatchet> applicationRatchets;
 
 
-    public GroupKeySet(MlsCipherSuite suite, TreeSize treeSize, Secret encryptionSecret)
-        throws IOException, IllegalAccessException
-    {
+    public GroupKeySet(MlsCipherSuite suite, TreeSize treeSize, Secret encryptionSecret) throws IOException {
         this.suite = suite;
         this.secretSize = suite.getKDF().getHashLength();
         this.encryptionSecretCommit = encryptionSecret.deriveSecret(suite, "commitment");
         this.secretTree = new SecretTree(treeSize, encryptionSecret);
-        this.handshakeRatchets = new HashMap<LeafIndex, HashRatchet>();
-        this.applicationRatchets = new HashMap<LeafIndex, HashRatchet>();
+        this.handshakeRatchets = new HashMap<>();
+        this.applicationRatchets = new HashMap<>();
     }
 
     @Override
@@ -60,8 +58,8 @@ public class GroupKeySet
         Secret handshakeRatchetSecret = leafSecret.expandWithLabel(suite, "handshake", new byte[]{}, secretSize);
         Secret applicationRatchetSecret = leafSecret.expandWithLabel(suite, "application", new byte[]{}, secretSize);
 
-        HashRatchet handshakeRatchet = new HashRatchet(handshakeRatchetSecret);
-        HashRatchet applicationRatchet = new HashRatchet(applicationRatchetSecret);
+        HashRatchet handshakeRatchet = new HashRatchet(suite, handshakeRatchetSecret);
+        HashRatchet applicationRatchet = new HashRatchet(suite, applicationRatchetSecret);
 
         handshakeRatchets.put(sender, handshakeRatchet);
         applicationRatchets.put(sender, applicationRatchet);
@@ -70,18 +68,8 @@ public class GroupKeySet
     public KeyGeneration get(ContentType contentType, LeafIndex sender, int generation, byte[] reuseGuard)
         throws IOException, IllegalAccessException
     {
-        HashRatchet chain;
-
-        switch (contentType)
-        {
-        case APPLICATION:
-            chain = applicationRatchet(sender);
-            break;
-        case PROPOSAL:
-        case COMMIT:
-            chain = handshakeRatchet(sender);
-            break;
-        default:
+        HashRatchet chain = getChain(contentType, sender);
+        if (chain == null) {
             return null;
         }
 
@@ -93,18 +81,8 @@ public class GroupKeySet
     public KeyGeneration get(ContentType contentType, LeafIndex sender, byte[] reuseGuard)
         throws IOException, IllegalAccessException
     {
-        HashRatchet chain;
-
-        switch (contentType)
-        {
-        case APPLICATION:
-            chain = applicationRatchet(sender);
-            break;
-        case PROPOSAL:
-        case COMMIT:
-            chain = handshakeRatchet(sender);
-            break;
-        default:
+        HashRatchet chain = getChain(contentType, sender);
+        if (chain == null) {
             return null;
         }
 
@@ -124,16 +102,9 @@ public class GroupKeySet
     public void erase(ContentType contentType, LeafIndex sender, int generation)
         throws IOException, IllegalAccessException
     {
-        switch (contentType)
-        {
-
-        case APPLICATION:
-            applicationRatchet(sender).erase(generation);
-            break;
-        case PROPOSAL:
-        case COMMIT:
-            handshakeRatchet(sender).erase(generation);
-            break;
+        HashRatchet chain = getChain(contentType, sender);
+        if (chain != null) {
+            chain.erase(generation);
         }
     }
 
@@ -160,6 +131,26 @@ public class GroupKeySet
     public boolean hasLeaf(LeafIndex sender)
     {
         return secretTree.hasLeaf(sender);
+    }
+
+    private HashRatchet getChain(ContentType contentType, LeafIndex sender)
+            throws IOException, IllegalAccessException {
+        HashRatchet chain;
+
+        switch (contentType)
+        {
+            case APPLICATION:
+                chain = applicationRatchet(sender);
+                break;
+            case PROPOSAL:
+            case COMMIT:
+                chain = handshakeRatchet(sender);
+                break;
+            default:
+                return null;
+        }
+
+        return chain;
     }
 
     public class SecretTree
@@ -241,68 +232,4 @@ public class GroupKeySet
         }
     }
 
-    public class HashRatchet
-    {
-        final int keySize;
-        final int nonceSize;
-        Secret nextSecret;
-        int nextGeneration;
-        Map<Integer, KeyGeneration> cache;
-
-        HashRatchet(Secret baseSecret)
-        {
-            keySize = suite.getAEAD().getKeySize();
-            nonceSize = suite.getAEAD().getNonceSize();
-            nextGeneration = 0;
-            nextSecret = baseSecret;
-            cache = new HashMap<Integer, KeyGeneration>();
-        }
-
-        public KeyGeneration next()
-            throws IOException, IllegalAccessException
-        {
-            Secret key = nextSecret.deriveTreeSecret(suite, "key", nextGeneration, keySize);
-            Secret nonce = nextSecret.deriveTreeSecret(suite, "nonce", nextGeneration, nonceSize);
-            Secret secret = nextSecret.deriveTreeSecret(suite, "secret", nextGeneration, secretSize);
-
-            KeyGeneration generation = new KeyGeneration(nextGeneration, key, nonce);
-
-            nextGeneration += 1;
-            nextSecret.consume();
-            nextSecret = secret;
-
-            cache.put(generation.generation, generation);
-            return generation;
-        }
-
-        public KeyGeneration get(int generation)
-            throws IOException, IllegalAccessException
-        {
-            if (cache.containsKey(generation))
-            {
-                return cache.get(generation);
-            }
-
-            if (nextGeneration > generation)
-            {
-                throw new InvalidParameterException("Request for expired key");
-            }
-
-            while (nextGeneration < generation)
-            {
-                next();
-            }
-
-            return next();
-        }
-
-        public void erase(int generation)
-        {
-            if (cache.containsKey(generation))
-            {
-                cache.get(generation).consume();
-                cache.remove(generation);
-            }
-        }
-    }
 }
