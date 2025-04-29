@@ -38,6 +38,12 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
         super(connection, voiceServerInfo, 5);
     }
 
+    @Nullable
+    @Override
+    public MediaValve getValve() {
+        return this.mediaValve;
+    }
+
     @Override
     protected void identify() {
         logger.debug("Identifying...");
