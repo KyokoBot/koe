@@ -24,6 +24,7 @@ public class KoeOptionsBuilder {
     private GatewayVersion gatewayVersion;
     private FramePollerFactory framePollerFactory;
     private boolean highPacketPriority;
+    private boolean deafened;
 
     KoeOptionsBuilder() {
         boolean epoll = Epoll.isAvailable();
@@ -42,6 +43,7 @@ public class KoeOptionsBuilder {
         this.gatewayVersion = GatewayVersion.V4;
         this.framePollerFactory = new NettyFramePollerFactory();
         this.highPacketPriority = true;
+        this.deafened = false;
     }
 
     public KoeOptionsBuilder setEventLoopGroup(EventLoopGroup eventLoopGroup) {
@@ -79,7 +81,11 @@ public class KoeOptionsBuilder {
         return this;
     }
 
+    public void setDeafened(boolean deafened) {
+        this.deafened = deafened;
+    }
+
     public KoeOptions create() {
-        return new KoeOptions(eventLoopGroup, socketChannelClass, datagramChannelClass, byteBufAllocator, gatewayVersion, framePollerFactory, highPacketPriority);
+        return new KoeOptions(eventLoopGroup, socketChannelClass, datagramChannelClass, byteBufAllocator, gatewayVersion, framePollerFactory, highPacketPriority, deafened);
     }
 }

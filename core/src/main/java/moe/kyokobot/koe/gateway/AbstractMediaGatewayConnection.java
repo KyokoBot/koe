@@ -16,8 +16,8 @@ import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.concurrent.EventExecutor;
 import moe.kyokobot.koe.VoiceServerInfo;
-import moe.kyokobot.koe.internal.NettyBootstrapFactory;
 import moe.kyokobot.koe.internal.MediaConnectionImpl;
+import moe.kyokobot.koe.internal.NettyBootstrapFactory;
 import moe.kyokobot.koe.internal.json.JsonObject;
 import moe.kyokobot.koe.internal.json.JsonParser;
 import moe.kyokobot.koe.internal.util.NettyFutureWrapper;
@@ -66,6 +66,12 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
         } catch (SSLException | URISyntaxException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    @Nullable
+    @Override
+    public MediaValve getValve() {
+        return null;
     }
 
     @Override

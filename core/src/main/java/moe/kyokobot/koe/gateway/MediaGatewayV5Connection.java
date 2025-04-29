@@ -24,6 +24,7 @@ import java.util.stream.Stream;
 public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
     private static final Logger logger = LoggerFactory.getLogger(MediaGatewayV5Connection.class);
 
+    private final MediaValve mediaValve = new MediaValve(this);
     private int ssrc;
     private SocketAddress address;
     private List<String> encryptionModes;
@@ -86,6 +87,7 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
 
                 connection.getDispatcher().gatewayReady((InetSocketAddress) address, ssrc);
                 logger.debug("Voice READY, ssrc: {}", ssrc);
+                mediaValve.sendToGateway();
                 selectProtocol("udp");
                 break;
             }
@@ -115,6 +117,8 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
                 break;
             }
             case Op.CLIENT_CONNECT: {
+                mediaValve.handleEvent(object);
+
                 var data = object.getObject("d");
                 var user = data.getString("user_id");
                 var audioSsrc = data.getInt("audio_ssrc", 0);
@@ -124,12 +128,14 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
                 break;
             }
             case Op.CLIENT_DISCONNECT: {
+                mediaValve.handleEvent(object);
+
                 var data = object.getObject("d");
                 var user = data.getString("user_id");
                 connection.getDispatcher().userDisconnected(user);
                 break;
             }
-            case Op.VIDEO_SINK_WANTS: {
+            case Op.MEDIA_SINK_WANTS: {
                 // Sent only if `video` flag was true while identifying. At time of writing this comment Discord forces
                 // it to false on bots (so.. user bot time? /s) due to voice server bug that broke clients or something.
                 // After receiving this opcode client can send op 12 with ssrcs for video (audio + 1)

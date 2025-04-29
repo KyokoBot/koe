@@ -18,14 +18,18 @@ public class KoeOptions {
     private final GatewayVersion gatewayVersion;
     private final FramePollerFactory framePollerFactory;
     private final boolean highPacketPriority;
+    private final boolean deafened;
 
-    public KoeOptions(@NotNull EventLoopGroup eventLoopGroup,
-                      @NotNull Class<? extends SocketChannel> socketChannelClass,
-                      @NotNull Class<? extends DatagramChannel> datagramChannelClass,
-                      @NotNull ByteBufAllocator byteBufAllocator,
-                      @NotNull GatewayVersion gatewayVersion,
-                      @NotNull FramePollerFactory framePollerFactory,
-                      boolean highPacketPriority) {
+    public KoeOptions(
+            @NotNull EventLoopGroup eventLoopGroup,
+            @NotNull Class<? extends SocketChannel> socketChannelClass,
+            @NotNull Class<? extends DatagramChannel> datagramChannelClass,
+            @NotNull ByteBufAllocator byteBufAllocator,
+            @NotNull GatewayVersion gatewayVersion,
+            @NotNull FramePollerFactory framePollerFactory,
+            boolean highPacketPriority,
+            boolean deafened
+    ) {
         this.eventLoopGroup = Objects.requireNonNull(eventLoopGroup);
         this.socketChannelClass = Objects.requireNonNull(socketChannelClass);
         this.datagramChannelClass = Objects.requireNonNull(datagramChannelClass);
@@ -33,6 +37,19 @@ public class KoeOptions {
         this.gatewayVersion = Objects.requireNonNull(gatewayVersion);
         this.framePollerFactory = Objects.requireNonNull(framePollerFactory);
         this.highPacketPriority = highPacketPriority;
+        this.deafened = deafened;
+    }
+
+    public KoeOptions(
+            @NotNull EventLoopGroup eventLoopGroup,
+            @NotNull Class<? extends SocketChannel> socketChannelClass,
+            @NotNull Class<? extends DatagramChannel> datagramChannelClass,
+            @NotNull ByteBufAllocator byteBufAllocator,
+            @NotNull GatewayVersion gatewayVersion,
+            @NotNull FramePollerFactory framePollerFactory,
+            boolean highPacketPriority
+    ) {
+        this(eventLoopGroup, socketChannelClass, datagramChannelClass, byteBufAllocator, gatewayVersion, framePollerFactory, highPacketPriority, false);
     }
 
     @NotNull
@@ -67,6 +84,10 @@ public class KoeOptions {
 
     public boolean isHighPacketPriority() {
         return highPacketPriority;
+    }
+
+    public boolean isDeafened() {
+        return deafened;
     }
 
     /**

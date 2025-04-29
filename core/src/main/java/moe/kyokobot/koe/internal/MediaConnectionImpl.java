@@ -6,6 +6,7 @@ import moe.kyokobot.koe.codec.CodecType;
 import moe.kyokobot.koe.codec.FramePoller;
 import moe.kyokobot.koe.codec.OpusCodec;
 import moe.kyokobot.koe.gateway.MediaGatewayConnection;
+import moe.kyokobot.koe.gateway.MediaValve;
 import moe.kyokobot.koe.handler.ConnectionHandler;
 import moe.kyokobot.koe.media.MediaFrameProvider;
 import org.jetbrains.annotations.NotNull;
@@ -51,6 +52,12 @@ public class MediaConnectionImpl implements MediaConnection {
         return conn.start().thenAccept(nothing -> {
             MediaConnectionImpl.this.info = info;
             MediaConnectionImpl.this.gatewayConnection = conn;
+
+            MediaValve valve = conn.getValve();
+            if (valve != null && getOptions().isDeafened()) {
+                valve.setDeafen(true);
+                valve.sendToGateway();
+            }
         });
     }
 
