@@ -36,6 +36,8 @@ public class MediaValve {
 
     /**
      * Set whether to deafen ourselves.
+     * <p>
+     * You must call {@link #sendToGateway()} after calling this method to have any effect.
      */
     public void setDeafen(boolean deafen) {
         this.deafen = deafen;
@@ -44,7 +46,7 @@ public class MediaValve {
     /**
      * Send a {@link Op#MEDIA_SINK_WANTS} payload to the gateway.
      */
-    public void sendToGateway() {
+    public synchronized void sendToGateway() {
         JsonObject d = new JsonObject();
 
         // disable all incoming audio streams.
@@ -61,7 +63,7 @@ public class MediaValve {
     /**
      * Handle a voice gateway message.
      */
-    public void handleEvent(JsonObject obj) {
+    synchronized void handleEvent(JsonObject obj) {
         int op = obj.getInt("op");
         if (op == Op.CLIENT_CONNECT) {
             JsonObject d = obj.getObject("d");
