@@ -21,6 +21,10 @@ public class Op {
     public static final int CLIENT_DISCONNECT = 13;
     public static final int CODECS = 14;
     public static final int MEDIA_SINK_WANTS = 15;
+    /**
+     * @deprecated Use {@link #MEDIA_SINK_WANTS} instead.
+     */
+    public static final int VIDEO_SINK_WANTS = 15;
     public static final int VOICE_BACKEND_VERSION = 16;
     public static final int CHANNEL_OPTIONS_UPDATE = 17;
     public static final int CLIENT_FLAGS = 18;
