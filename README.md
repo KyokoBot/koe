@@ -27,7 +27,7 @@ dependencies {
 
 #### Features
 
-- Supports voice gateway v4 and v5.
+- Supports voice gateway v4, v5 and v8.
 - Easily extendable for stuff such as support for codecs other than Opus or video sending, if Discord ever decides to support it on bots.
 - Experimental video support.
 - Basic RTCP support for measuring packet loss and other stuff.
