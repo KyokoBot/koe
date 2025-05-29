@@ -107,7 +107,7 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
     @Override
     public void reconnect() {
         if (open) {
-            close(4900, "Koe: Reconnect");
+            close(CloseCode.KOE_RECONNECT, "Koe: Reconnect");
         }
     }
 
@@ -128,11 +128,23 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
 
             if (connectAttempt <= 3) {
                 switch (code) {
-                    case 1001: // Going away or CloudFlare WebSocket proxy restarting
-                    case 1006: // Abnormal closure
-                    case 4000: // Internal error
-                    case 4015: // Voice server crashed
-                    case 4900: // Koe: Reconnect
+                    case CloseCode.GOING_AWAY:
+                    case CloseCode.ABNORMAL_CLOSURE:
+                    case CloseCode.INTERNAL_ERROR:
+                    case CloseCode.UNKNOWN_OPCODE:
+                    case CloseCode.FAILED_TO_DECODE_PAYLOAD:
+                    case CloseCode.NOT_AUTHENTICATED:
+                    case CloseCode.AUTHENTICATION_FAILED:
+                    case CloseCode.ALREADY_AUTHENTICATED:
+                    case CloseCode.SESSION_NO_LONGER_VALID:
+                    case CloseCode.SESSION_TIMEOUT:
+                    case CloseCode.SERVER_NOT_FOUND:
+                    case CloseCode.UNKNOWN_PROTOCOL:
+                    case CloseCode.VOICE_SERVER_CRASHED:
+                    case CloseCode.UNKNOWN_ENCRYPTION_MODE:
+                    case CloseCode.BAD_REQUEST:
+                    case CloseCode.RATE_LIMIT_EXCEEDED:
+                    case CloseCode.KOE_RECONNECT:
                         connectFuture = new CompletableFuture<>();
                         start();
                         connectAttempt++;
