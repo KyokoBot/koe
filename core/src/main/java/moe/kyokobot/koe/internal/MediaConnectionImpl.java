@@ -56,7 +56,6 @@ public class MediaConnectionImpl implements MediaConnection {
             MediaValve valve = conn.getValve();
             if (valve != null && getOptions().isDeafened()) {
                 valve.setDeafen(true);
-                valve.sendToGateway();
             }
         });
     }
