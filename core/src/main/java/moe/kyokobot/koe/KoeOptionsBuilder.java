@@ -15,6 +15,9 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import moe.kyokobot.koe.codec.FramePollerFactory;
 import moe.kyokobot.koe.codec.netty.NettyFramePollerFactory;
 import moe.kyokobot.koe.gateway.GatewayVersion;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.Objects;
 
 public class KoeOptionsBuilder {
     private EventLoopGroup eventLoopGroup;
@@ -25,6 +28,7 @@ public class KoeOptionsBuilder {
     private FramePollerFactory framePollerFactory;
     private boolean highPacketPriority;
     private boolean deafened;
+    private boolean enableWSSPortOverride;
 
     KoeOptionsBuilder() {
         boolean epoll = Epoll.isAvailable();
@@ -44,48 +48,115 @@ public class KoeOptionsBuilder {
         this.framePollerFactory = new NettyFramePollerFactory();
         this.highPacketPriority = true;
         this.deafened = false;
+        this.enableWSSPortOverride = true;
     }
 
-    public KoeOptionsBuilder setEventLoopGroup(EventLoopGroup eventLoopGroup) {
+    /**
+     * Sets an implementation of Netty {@link EventLoopGroup} to use for the Koe client.
+     * Defaults to Epoll if available (Linux) or NIO on everything else..
+     * Use this if you need KQueue on macOS/BSD hosts or other native transport with Koe.
+     *
+     * @param eventLoopGroup An instance of {@link EventLoopGroup} to use for the Koe client.
+     */
+    public KoeOptionsBuilder setEventLoopGroup(@NotNull EventLoopGroup eventLoopGroup) {
+        Objects.requireNonNull(eventLoopGroup, "eventLoopGroup cannot be null");
         this.eventLoopGroup = eventLoopGroup;
         return this;
     }
 
-    public KoeOptionsBuilder setSocketChannelClass(Class<? extends SocketChannel> socketChannelClass) {
+    /**
+     * Sets a class of Netty {@link SocketChannel} to use for the Koe client.
+     * Defaults to {@link EpollSocketChannel} if Epoll is available (Linux) or {@link NioSocketChannel} on everything else.
+     * Use this if you need KQueue on macOS/BSD hosts or other native transport with Koe.
+     *
+     * @param socketChannelClass An implementation class of {@link SocketChannel} to use for the Koe client.
+     *                           Same as class passed into {@link io.netty.bootstrap.Bootstrap#channel(Class)}
+     *                           method when creating socket channels.
+     */
+    public KoeOptionsBuilder setSocketChannelClass(@NotNull Class<? extends SocketChannel> socketChannelClass) {
+        Objects.requireNonNull(socketChannelClass, "socketChannelClass cannot be null");
         this.socketChannelClass = socketChannelClass;
         return this;
     }
 
-    public KoeOptionsBuilder setDatagramChannelClass(Class<? extends DatagramChannel> datagramChannelClass) {
+    /**
+     * Sets a class of Netty {@link DatagramChannel} to use for the Koe client.
+     * Defaults to {@link EpollDatagramChannel} if Epoll is available (Linux) or {@link NioDatagramChannel} on everything else.
+     * Use this if you need KQueue on macOS/BSD hosts or other native transport with Koe.
+     *
+     * @param datagramChannelClass An implementation class of {@link DatagramChannel} to use for the Koe client.
+     *                             Same as class passed into {@link io.netty.bootstrap.Bootstrap#channel(Class)}
+     *                             method when creating datagram channels.
+     */
+    public KoeOptionsBuilder setDatagramChannelClass(@NotNull Class<? extends DatagramChannel> datagramChannelClass) {
+        Objects.requireNonNull(datagramChannelClass, "datagramChannelClass cannot be null");
         this.datagramChannelClass = datagramChannelClass;
         return this;
     }
 
-    public KoeOptionsBuilder setByteBufAllocator(ByteBufAllocator byteBufAllocator) {
+    /**
+     * Sets a Netty {@link ByteBufAllocator} to use for the Koe client.
+     * Defaults to {@link PooledByteBufAllocator}.
+     *
+     * @param byteBufAllocator An instance of {@link ByteBufAllocator} to use for the Koe client.
+     */
+    public KoeOptionsBuilder setByteBufAllocator(@NotNull ByteBufAllocator byteBufAllocator) {
+        Objects.requireNonNull(byteBufAllocator, "byteBufAllocator cannot be null");
         this.byteBufAllocator = byteBufAllocator;
         return this;
     }
 
-    public KoeOptionsBuilder setGatewayVersion(GatewayVersion gatewayVersion) {
+    /**
+     * Sets the gateway version to use for the Koe client.
+     *
+     * @param gatewayVersion An instance of {@link GatewayVersion} to use for the Koe client.
+     */
+    public KoeOptionsBuilder setGatewayVersion(@NotNull GatewayVersion gatewayVersion) {
+        Objects.requireNonNull(gatewayVersion, "gatewayVersion cannot be null");
         this.gatewayVersion = gatewayVersion;
         return this;
     }
 
-    public KoeOptionsBuilder setFramePollerFactory(FramePollerFactory framePollerFactory) {
+    /**
+     * Sets a factory for creating frame pollers.
+     * Defaults to {@link NettyFramePollerFactory}.
+     *
+     * @param framePollerFactory An instance of {@link FramePollerFactory} to use for the Koe client.
+     */
+    public KoeOptionsBuilder setFramePollerFactory(@NotNull FramePollerFactory framePollerFactory) {
+        Objects.requireNonNull(framePollerFactory, "framePollerFactory cannot be null");
         this.framePollerFactory = framePollerFactory;
         return this;
     }
 
+    /**
+     * Sets whether to set IP_TOS flags to request high priority/low-delay for sent RTP packets.
+     * Defaults to true.
+     */
     public KoeOptionsBuilder setHighPacketPriority(boolean highPacketPriority) {
         this.highPacketPriority = highPacketPriority;
         return this;
     }
 
+    /**
+     * Sets whether the client should be deafened by default.
+     * Defaults to false.
+     */
     public void setDeafened(boolean deafened) {
         this.deafened = deafened;
     }
 
+    /**
+     * Sets whether to enable port :80 -> :443 override for voice server endpoint passed in {@link VoiceServerInfo}
+     * Defaults to true.
+     */
+    public KoeOptionsBuilder setEnableWSSPortOverride(boolean enableWSSPortOverride) {
+        this.enableWSSPortOverride = enableWSSPortOverride;
+        return this;
+    }
+
     public KoeOptions create() {
-        return new KoeOptions(eventLoopGroup, socketChannelClass, datagramChannelClass, byteBufAllocator, gatewayVersion, framePollerFactory, highPacketPriority, deafened);
+        return new KoeOptions(eventLoopGroup, socketChannelClass, datagramChannelClass, byteBufAllocator,
+                gatewayVersion, framePollerFactory, highPacketPriority, deafened, enableWSSPortOverride);
     }
 }

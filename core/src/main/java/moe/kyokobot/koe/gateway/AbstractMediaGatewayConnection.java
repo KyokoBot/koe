@@ -55,10 +55,15 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
                                           @NotNull VoiceServerInfo voiceServerInfo,
                                           int version) {
         try {
+            var endpoint = voiceServerInfo.getEndpoint();
+
+            if (connection.getOptions().isEnableWSSPortOverride()) {
+                endpoint = stripPort80(endpoint);
+            }
+
             this.connection = Objects.requireNonNull(connection);
             this.voiceServerInfo = Objects.requireNonNull(voiceServerInfo);
-            this.websocketURI = new URI(String.format("wss://%s/?v=%d",
-                    voiceServerInfo.getEndpoint().replace(":80", ""), version));
+            this.websocketURI = new URI(String.format("wss://%s/?v=%d", endpoint, version));
             this.bootstrap = NettyBootstrapFactory.socket(connection.getOptions())
                     .handler(new WebSocketInitializer());
             this.sslContext = SslContextBuilder.forClient().build();
@@ -264,5 +269,13 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
             pipeline.addLast("aggregator", new HttpObjectAggregator(65536));
             pipeline.addLast("handler", new WebSocketClientHandler());
         }
+    }
+
+    protected static String stripPort80(String endpoint) {
+        if (endpoint.endsWith(":80")) {
+            return endpoint.substring(0, endpoint.length() - 3);
+        }
+
+        return endpoint;
     }
 }
