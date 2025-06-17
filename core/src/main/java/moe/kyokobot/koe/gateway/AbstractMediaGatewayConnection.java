@@ -139,16 +139,12 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
                     case CloseCode.UNKNOWN_OPCODE:
                     case CloseCode.FAILED_TO_DECODE_PAYLOAD:
                     case CloseCode.NOT_AUTHENTICATED:
-                    case CloseCode.AUTHENTICATION_FAILED:
                     case CloseCode.ALREADY_AUTHENTICATED:
-                    case CloseCode.SESSION_NO_LONGER_VALID:
                     case CloseCode.SESSION_TIMEOUT:
-                    case CloseCode.SERVER_NOT_FOUND:
                     case CloseCode.UNKNOWN_PROTOCOL:
                     case CloseCode.VOICE_SERVER_CRASHED:
                     case CloseCode.UNKNOWN_ENCRYPTION_MODE:
                     case CloseCode.BAD_REQUEST:
-                    case CloseCode.RATE_LIMIT_EXCEEDED:
                     case CloseCode.KOE_RECONNECT:
                         connectFuture = new CompletableFuture<>();
                         start();
