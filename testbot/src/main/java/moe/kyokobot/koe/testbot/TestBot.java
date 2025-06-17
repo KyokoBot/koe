@@ -18,8 +18,8 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.AudioChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -156,7 +156,7 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
                 event.getChannel().sendMessage("Joined channel `" + channel.getName() + "`!").queue();
             }
 
-            resolve(event.getGuild(), event.getChannel().asTextChannel(), content.substring(6));
+            resolve(event.getGuild(), event.getChannel().asGuildMessageChannel(), content.substring(6));
             return;
         }
 
@@ -169,7 +169,7 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
         jda.getDirectAudioController().connect(channel);
     }
 
-    private void resolve(Guild guild, TextChannel channel, String args) {
+    private void resolve(Guild guild, GuildMessageChannel channel, String args) {
         var player = playerMap.computeIfAbsent(guild, n -> playerManager.createPlayer());
 
         playerManager.loadItem(args, new AudioLoadResultHandler() {
