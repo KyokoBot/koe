@@ -28,5 +28,5 @@ This is a fork of [BouncyCastle's](https://www.bouncycastle.org/) MLS library.
 
 ### Possible replacements
 
-- https://github.com/Traderjoe95/mls-kotlin (written in Kotlin, but requires Java 21)
+- https://github.com/Traderjoe95/mls-kotlin (written in Kotlin, but requires Java 21, also uses BouncyCastle for crypto)
 - write our own?

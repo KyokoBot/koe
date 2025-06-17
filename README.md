@@ -29,8 +29,8 @@ dependencies {
 
 - Supports voice gateway v4, v5 and v8.
 - Easily extendable for stuff such as support for codecs other than Opus or video sending, if Discord ever decides to support it on bots.
-- Experimental video support.
-- Basic RTCP support for measuring packet loss and other stuff.
+- Support for most encryption modes used by Discord.
+- Full support for Discord Audio & Video End-to-End Encryption (DAVE) Protocol.
 
 #### Non-goals / won't do
 
