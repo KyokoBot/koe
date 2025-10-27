@@ -71,7 +71,7 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
     protected void handlePayload(JsonObject object) {
         var op = object.getInt("op");
 
-        if (object.has("s")) {
+        if (object.has("seq")) {
             sequence = object.getInt("seq");
         }
 
