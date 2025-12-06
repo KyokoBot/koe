@@ -1,3 +1,4 @@
+// [version, isCommitHash]
 def getGitVersion() {
     def versionStr = new ByteArrayOutputStream()
     def result = exec {
@@ -39,6 +40,11 @@ subprojects {
     sourceCompatibility = 11
     targetCompatibility = 11
 
+    java {
+        withSourcesJar()
+        withJavadocJar()
+    }
+
     repositories {
         mavenLocal()
 
@@ -51,6 +57,27 @@ subprojects {
         publications {
             mavenJava(MavenPublication) {
                 from components.java
+                pom {
+                    url = "https://github.com/KyokoBot/koe"
+                    licenses {
+                        license {
+                            name = "The MIT License"
+                            url = "http://www.opensource.org/licenses/mit-license.php"
+                        }
+                    }
+                    developers {
+                        developer {
+                            id = "alula"
+                            name = "Alula"
+                            email = "git@alula.me"
+                        }
+                    }
+                    scm {
+                        connection = "scm:git:https://github.com/KyokoBot/koe.git"
+                        developerConnection = 'scm:git:ssh://github.com:KyokoBot/koe.git'
+                        url = "https://github.com/KyokoBot/koe"
+                    }
+                }
             }
         }
     }
