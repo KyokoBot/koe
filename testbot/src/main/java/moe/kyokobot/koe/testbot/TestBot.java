@@ -132,7 +132,8 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
             return;
         }
 
-        if (content.startsWith("!play ")) {
+        var isPlay = content.startsWith("!play ");
+        if (isPlay || content.startsWith("!join")) {
             if (event.getMember() == null) return;
             var voiceState = event.getMember().getVoiceState();
             if (voiceState == null || voiceState.getChannel() == null) {
@@ -156,7 +157,9 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
                 event.getChannel().sendMessage("Joined channel `" + channel.getName() + "`!").queue();
             }
 
-            resolve(event.getGuild(), event.getChannel().asGuildMessageChannel(), content.substring(6));
+            if (isPlay) {
+                resolve(event.getGuild(), event.getChannel().asGuildMessageChannel(), content.substring(6));
+            }
             return;
         }
 
