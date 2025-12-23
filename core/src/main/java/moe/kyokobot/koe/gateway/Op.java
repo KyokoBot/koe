@@ -24,6 +24,7 @@ public class Op {
     /**
      * @deprecated Use {@link #MEDIA_SINK_WANTS} instead.
      */
+    @Deprecated
     public static final int VIDEO_SINK_WANTS = 15;
     public static final int VOICE_BACKEND_VERSION = 16;
     public static final int CHANNEL_OPTIONS_UPDATE = 17;
