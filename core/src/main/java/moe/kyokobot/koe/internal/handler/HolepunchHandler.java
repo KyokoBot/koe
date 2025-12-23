@@ -57,7 +57,7 @@ public class HolepunchHandler extends SimpleChannelInboundHandler<DatagramPacket
     public void holepunch(ChannelHandlerContext ctx) {
         if (future.isDone()) {
             return;
-        } else if (tries++ > 10) {
+        } else if (tries++ >= 10) {
             logger.debug("Discovery failed.");
             future.completeExceptionally(new SocketTimeoutException("Failed to discover external UDP address."));
             return;
