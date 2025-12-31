@@ -29,6 +29,7 @@ public class KoeOptionsBuilder {
     private boolean highPacketPriority;
     private boolean deafened;
     private boolean enableWSSPortOverride;
+    private boolean enableDAVE;
 
     KoeOptionsBuilder() {
         boolean epoll = Epoll.isAvailable();
@@ -49,6 +50,7 @@ public class KoeOptionsBuilder {
         this.highPacketPriority = true;
         this.deafened = false;
         this.enableWSSPortOverride = true;
+        this.enableDAVE = true;
     }
 
     /**
@@ -155,8 +157,17 @@ public class KoeOptionsBuilder {
         return this;
     }
 
+    /**
+     * Sets whether End-to-End encryption using Discord's <a href="https://daveprotocol.com">DAVE protocol</a> is enabled.
+     * Defaults to true.
+     */
+    public KoeOptionsBuilder setDAVEEnabled(boolean enabled) {
+        this.enableDAVE = enabled;
+        return this;
+    }
+
     public KoeOptions create() {
         return new KoeOptions(eventLoopGroup, socketChannelClass, datagramChannelClass, byteBufAllocator,
-                gatewayVersion, framePollerFactory, highPacketPriority, deafened, enableWSSPortOverride);
+                gatewayVersion, framePollerFactory, highPacketPriority, deafened, enableWSSPortOverride, enableDAVE);
     }
 }

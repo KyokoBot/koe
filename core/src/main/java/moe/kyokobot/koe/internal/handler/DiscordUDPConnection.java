@@ -5,13 +5,13 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.DatagramChannel;
-import moe.kyokobot.koe.MediaConnection;
 import moe.kyokobot.koe.codec.Codec;
 import moe.kyokobot.koe.crypto.EncryptionMode;
-import moe.kyokobot.koe.internal.util.RTPHeaderWriter;
 import moe.kyokobot.koe.handler.ConnectionHandler;
+import moe.kyokobot.koe.internal.MediaConnectionImpl;
 import moe.kyokobot.koe.internal.NettyBootstrapFactory;
 import moe.kyokobot.koe.internal.json.JsonObject;
+import moe.kyokobot.koe.internal.util.RTPHeaderWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +26,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSocketAddress> {
     private static final Logger logger = LoggerFactory.getLogger(DiscordUDPConnection.class);
 
-    private final MediaConnection connection;
+    private final MediaConnectionImpl connection;
     private final ByteBufAllocator allocator;
     private final SocketAddress serverAddress;
     private final Bootstrap bootstrap;
@@ -38,7 +38,7 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
 
     private char seq;
 
-    public DiscordUDPConnection(MediaConnection voiceConnection,
+    public DiscordUDPConnection(MediaConnectionImpl voiceConnection,
                                 SocketAddress serverAddress,
                                 int ssrc) {
         this.connection = voiceConnection;
@@ -115,13 +115,18 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
 
         var buf = allocator.buffer();
         buf.clear();
+        var dave = connection.getDAVEManager();
+        if (dave != null) {
+
+        }
+
         RTPHeaderWriter.writeV2(buf, payloadType, nextSeq(), timestamp, ssrc, extension);
         if (encryptionMode.box(data, len, buf, secretKey)) {
             return buf;
         } else {
             logger.debug("Encryption failed!");
             buf.release();
-            // handle failed encryption?
+            // TODO: handle failed encryption?
         }
 
         return null;

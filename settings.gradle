@@ -1,6 +1,0 @@
-rootProject.name = 'koe'
-
-include ':core'
-include ':ext-udpqueue'
-include ':testbot'
-

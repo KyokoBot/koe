@@ -1,5 +1,6 @@
 package moe.kyokobot.koe.gateway;
 
+import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.VoiceServerInfo;
 import moe.kyokobot.koe.codec.Codec;
 import moe.kyokobot.koe.codec.DefaultCodecs;
@@ -48,9 +49,19 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
     @Override
     protected void identify() {
         logger.debug("Identifying...");
+
+        int maxDAVEVersion = 0;
+        var manager = connection.getDAVEManager();
+        if (manager != null) {
+            maxDAVEVersion = manager.getMaxDAVEProtocolVersion();
+        }
+
+        logger.debug("Max DAVE Protocol Version: {}", maxDAVEVersion);
+
         sendInternalPayload(Op.IDENTIFY, new JsonObject()
                 .addAsString("server_id", connection.getGuildId())
                 .addAsString("user_id", connection.getClient().getClientId())
+                .add("max_dave_protocol_version", maxDAVEVersion)
                 .add("session_id", voiceServerInfo.getSessionId())
                 .add("token", voiceServerInfo.getToken())
                 .add("video", true));
@@ -95,6 +106,7 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
                         .stream()
                         .map(o -> (String) o)
                         .collect(Collectors.toList());
+
                 address = new InetSocketAddress(ip, port);
 
                 connection.getDispatcher().gatewayReady((InetSocketAddress) address, ssrc);
@@ -116,6 +128,10 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
 
                 connection.getDispatcher().sessionDescription(data);
                 connection.getConnectionHandler().handleSessionDescription(data);
+                var daveManager = connection.getDAVEManager();
+                if (daveManager != null) {
+                    daveManager.handleSessionDescription(data, voiceServerInfo.getChannelId());
+                }
                 break;
             }
             case Op.HEARTBEAT_ACK: {
@@ -139,12 +155,29 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
                 connection.getDispatcher().userConnected(user, audioSsrc, videoSsrc, rtxSsrc);
                 break;
             }
+            case Op.CLIENT_CONNECT: {
+                var data = object.getObject("d");
+                var userIds = data.getArray("user_ids");
+
+                var manager = connection.getDAVEManager();
+                if (manager != null) {
+                    userIds.forEach(userId -> manager.addUser((String) userId));
+                }
+
+                break;
+            }
             case Op.CLIENT_DISCONNECT: {
                 mediaValve.handleEvent(object);
 
                 var data = object.getObject("d");
                 var user = data.getString("user_id");
                 connection.getDispatcher().userDisconnected(user);
+
+                var manager = connection.getDAVEManager();
+                if (manager != null) {
+                    manager.removeUser(user);
+                }
+
                 break;
             }
             case Op.MEDIA_SINK_WANTS: {
@@ -158,7 +191,117 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
 
                 break;
             }
+            case Op.VOICE_BACKEND_VERSION: {
+                var data = object.getObject("d");
+                logger.debug("Voice backend version: {}", data);
+                break;
+            }
+            case Op.SECURE_FRAMES_PREPARE_PROTOCOL_TRANSITION: {
+                var data = object.getObject("d");
+                logger.debug("Secure frames prepare protocol transition: {}", data);
+                var transitionId = data.getInt("transition_id");
+                var protocolVersion = data.getInt("protocol_version");
+
+                var manager = connection.getDAVEManager();
+                if (manager != null) {
+                    manager.handleSecureFramesPrepareProtocolTransition(transitionId, protocolVersion);
+                }
+
+                break;
+            }
+            case Op.SECURE_FRAMES_EXECUTE_TRANSITION: {
+                var data = object.getObject("d");
+                logger.debug("Secure frames execute transition: {}", data);
+                var transitionId = data.getInt("transition_id");
+
+                var manager = connection.getDAVEManager();
+                if (manager != null) {
+                    manager.handleSecureFramesExecuteTransition(transitionId);
+                }
+
+                break;
+            }
+            case Op.SECURE_FRAMES_READY_FOR_TRANSITION: {
+                var data = object.getObject("d");
+                logger.debug("Secure frames ready for transition: {}", data);
+
+                break;
+            }
+            case Op.SECURE_FRAMES_PREPARE_EPOCH: {
+                var data = object.getObject("d");
+                logger.debug("Secure frames prepare epoch: {}", data);
+                var epoch = data.getInt("epoch");
+                var protocolVersion = data.getInt("protocol_version");
+
+                var manager = connection.getDAVEManager();
+                if (manager != null) {
+                    manager.handleSecureFramesPrepareEpoch(Integer.toString(epoch), protocolVersion);
+                }
+
+                break;
+            }
             default:
+                break;
+        }
+    }
+
+    @Override
+    protected void handlePayload(ByteBuf byteBuf) {
+        var seq = byteBuf.readShort();
+        var op = byteBuf.readByte();
+
+        sequence = seq;
+        var manager = connection.getDAVEManager();
+        if (manager == null) {
+            return;
+        }
+
+        switch (op) {
+            case Op.MLS_WELCOME: {
+                var transId = byteBuf.readUnsignedShort();
+                var payload = new byte[byteBuf.readableBytes()];
+                logger.debug("MLS welcome, transId: {} payload: <{} bytes>", transId, payload.length);
+                byteBuf.readBytes(payload);
+                manager.handleMLSWelcome(transId, payload);
+
+                break;
+            }
+            case Op.MLS_EXTERNAL_SENDER_PACKAGE: {
+                logger.debug("MLS external sender package");
+
+                var payload = new byte[byteBuf.readableBytes()];
+                byteBuf.readBytes(payload);
+                manager.handleMLSExternalSender(payload);
+
+                break;
+            }
+//            case Op.MLS_KEY_PACKAGE: {
+//                logger.debug("MLS key package");
+//                break;
+//            }
+            case Op.MLS_PROPOSALS: {
+                logger.debug("MLS proposals");
+
+                var payload = new byte[byteBuf.readableBytes()];
+                byteBuf.readBytes(payload);
+                manager.handleMLSProposals(payload);
+                break;
+            }
+//            case Op.MLS_COMMIT_WELCOME: {
+//                logger.debug("MLS commit welcome");
+//                break;
+//            }
+            case Op.MLS_PREPARE_COMMIT_TRANSITION: {
+                var transId = byteBuf.readUnsignedShort();
+                var payload = new byte[byteBuf.readableBytes()];
+                logger.debug("MLS prepare commit transition, transId: {} payload: <{} bytes>", transId, payload.length);
+
+                byteBuf.readBytes(payload);
+                manager.handleMLSPrepareCommitTransition(transId, payload);
+                break;
+            }
+            default:
+                logger.debug("Received unknown binary payload OP: {}", op);
                 break;
         }
     }
@@ -182,6 +325,28 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
                 .add("speaking", mask)
                 .add("delay", 0)
                 .add("ssrc", ssrc));
+    }
+
+    @Override
+    public void sendMLSKeyPackage(byte[] keyPackage) {
+        sendInternalBinPayload(Op.MLS_KEY_PACKAGE, keyPackage);
+    }
+
+    @Override
+    public void sendMLSCommitWelcome(byte[] commitWelcome) {
+        sendInternalBinPayload(Op.MLS_COMMIT_WELCOME, commitWelcome);
+    }
+
+    @Override
+    public void sendMLSInvalidCommitWelcome(int transitionId) {
+        sendInternalPayload(Op.MLS_INVALID_COMMIT_WELCOME, new JsonObject()
+                .add("transition_id", transitionId));
+    }
+
+    @Override
+    public void sendSecureFramesReadyForTransition(int transitionId) {
+        sendInternalPayload(Op.SECURE_FRAMES_READY_FOR_TRANSITION, new JsonObject()
+                .add("transition_id", transitionId));
     }
 
     private void setupHeartbeats(int interval) {

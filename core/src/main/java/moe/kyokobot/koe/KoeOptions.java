@@ -25,6 +25,7 @@ public class KoeOptions {
     private final boolean highPacketPriority;
     private final boolean deafened;
     private final boolean enableWSSPortOverride;
+    private final boolean enableDAVE;
 
     KoeOptions(
             @NotNull EventLoopGroup eventLoopGroup,
@@ -35,7 +36,8 @@ public class KoeOptions {
             @NotNull FramePollerFactory framePollerFactory,
             boolean highPacketPriority,
             boolean deafened,
-            boolean enableWSSPortOverride
+            boolean enableWSSPortOverride,
+            boolean daveEnabled
     ) {
         this.eventLoopGroup = Objects.requireNonNull(eventLoopGroup);
         this.socketChannelClass = Objects.requireNonNull(socketChannelClass);
@@ -46,6 +48,7 @@ public class KoeOptions {
         this.highPacketPriority = highPacketPriority;
         this.deafened = deafened;
         this.enableWSSPortOverride = enableWSSPortOverride;
+        this.enableDAVE = daveEnabled;
     }
 
     /**
@@ -63,7 +66,7 @@ public class KoeOptions {
             boolean deafened
     ) {
         this(eventLoopGroup, socketChannelClass, datagramChannelClass, byteBufAllocator, gatewayVersion,
-                framePollerFactory, highPacketPriority, deafened, true);
+                framePollerFactory, highPacketPriority, deafened, true, true);
     }
 
     /**
@@ -123,6 +126,10 @@ public class KoeOptions {
 
     public boolean isEnableWSSPortOverride() {
         return enableWSSPortOverride;
+    }
+
+    public boolean isEnableDAVE() {
+        return enableDAVE;
     }
 
     /**

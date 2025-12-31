@@ -22,4 +22,19 @@ public interface MediaGatewayConnection {
     void reconnect();
 
     void updateSpeaking(int mask);
+
+    /**
+     * Send a marshalled MLS key package
+     */
+    default void sendMLSKeyPackage(byte[] keyPackage) {
+    }
+
+    default void sendMLSCommitWelcome(byte[] commitWelcome) {
+    }
+
+    default void sendMLSInvalidCommitWelcome(int transitionId) {
+    }
+
+    default void sendSecureFramesReadyForTransition(int transitionId) {
+    }
 }
