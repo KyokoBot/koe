@@ -1,5 +1,6 @@
 package moe.kyokobot.koe.gateway;
 
+import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.VoiceServerInfo;
 import moe.kyokobot.koe.codec.Codec;
 import moe.kyokobot.koe.codec.DefaultCodecs;
@@ -155,6 +156,11 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
             default:
                 break;
         }
+    }
+
+    @Override
+    protected void handlePayload(ByteBuf byteBuf) {
+        // no binary messages on this protocol version
     }
 
     @Override

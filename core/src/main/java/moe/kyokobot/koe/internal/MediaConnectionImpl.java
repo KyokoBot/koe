@@ -33,6 +33,7 @@ public class MediaConnectionImpl implements MediaConnection {
     private FramePoller videoPoller;
     private MediaFrameProvider audioSender;
     private MediaFrameProvider videoSender;
+    private DAVEManager daveManager;
 
     public MediaConnectionImpl(@NotNull KoeClientImpl client, long guildId) {
         this.client = Objects.requireNonNull(client);
@@ -47,6 +48,8 @@ public class MediaConnectionImpl implements MediaConnection {
     @Override
     public CompletionStage<Void> connect(VoiceServerInfo info) {
         this.disconnect();
+        this.createDAVEManager();
+
         var conn = client.getGatewayVersion().createConnection(this, info);
 
         return conn.start().thenAccept(nothing -> {
@@ -75,6 +78,8 @@ public class MediaConnectionImpl implements MediaConnection {
             connectionHandler.close();
             connectionHandler = null;
         }
+
+        this.destroyDAVEManager();
     }
 
     @Override
@@ -264,5 +269,29 @@ public class MediaConnectionImpl implements MediaConnection {
 
     public void setConnectionHandler(ConnectionHandler<?> connectionHandler) {
         this.connectionHandler = connectionHandler;
+    }
+
+    public DAVEManager getDAVEManager() {
+        return daveManager;
+    }
+
+    public void createDAVEManager() {
+        this.destroyDAVEManager();
+
+        var daveFactory = client.getDaveFactory();
+        if (daveFactory != null) {
+            daveManager = new DAVEManager(this, daveFactory);
+        }
+    }
+
+    public void destroyDAVEManager() {
+        if (this.daveManager != null) {
+            try {
+                this.daveManager.close();
+            } catch (Exception e) {
+                logger.error("Error closing old DAVE manager", e);
+
+            }
+        }
     }
 }

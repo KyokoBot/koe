@@ -12,6 +12,7 @@ public interface KoeEventListener {
 
     void gatewayClosed(int code, @Nullable String reason, boolean byRemote);
 
+    // TODO: This should actually be called something like userStreamsChanged
     void userConnected(String id, int audioSSRC, int videoSSRC, int rtxSSRC);
 
     void userDisconnected(String id);

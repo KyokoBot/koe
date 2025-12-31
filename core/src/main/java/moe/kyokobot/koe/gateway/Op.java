@@ -41,4 +41,6 @@ public class Op {
     public static final int MLS_COMMIT_WELCOME = 28;
     public static final int MLS_PREPARE_COMMIT_TRANSITION = 29;
     public static final int MLS_WELCOME = 30;
+    public static final int MLS_INVALID_COMMIT_WELCOME = 31;
+    public static final int NO_ROUTE = 32;
 }

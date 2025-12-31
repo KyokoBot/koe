@@ -1,6 +1,8 @@
 package moe.kyokobot.koe.gateway;
 
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
@@ -42,6 +44,7 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
     protected final URI websocketURI;
     protected final Bootstrap bootstrap;
     protected final SslContext sslContext;
+    protected final ByteBufAllocator allocator;
     protected CompletableFuture<Void> connectFuture;
 
     protected EventExecutor eventExecutor;
@@ -67,6 +70,7 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
             this.bootstrap = NettyBootstrapFactory.socket(connection.getOptions())
                     .handler(new WebSocketInitializer());
             this.sslContext = SslContextBuilder.forClient().build();
+            this.allocator = connection.getOptions().getByteBufAllocator();
             this.connectFuture = new CompletableFuture<>();
         } catch (SSLException | URISyntaxException e) {
             throw new IllegalStateException(e);
@@ -127,6 +131,8 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
 
     protected abstract void handlePayload(JsonObject object);
 
+    protected abstract void handlePayload(ByteBuf byteBuf);
+
     protected void onClose(int code, @Nullable String reason, boolean remote) {
         if (!closed) {
             closed = true;
@@ -167,11 +173,25 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
         sendRaw(new JsonObject().add("op", op).add("d", d));
     }
 
+    public void sendInternalBinPayload(int op, byte[] d) {
+        var buf = this.allocator.buffer(1 + d.length);
+        buf.writeByte(op);
+        buf.writeBytes(d);
+        this.sendRawBin(buf);
+    }
+
     protected void sendRaw(JsonObject object) {
         if (channel != null && channel.isOpen()) {
             var data = object.toString();
             logger.trace("<- {}", data);
             channel.writeAndFlush(new TextWebSocketFrame(data));
+        }
+    }
+
+    protected void sendRawBin(ByteBuf buffer) {
+        if (channel != null && channel.isOpen()) {
+            logger.trace("<- <binary: {} readable bytes>", buffer.readableBytes());
+            channel.writeAndFlush(new BinaryWebSocketFrame(buffer));
         }
     }
 
@@ -232,11 +252,13 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
                 logger.trace("-> {}", object);
                 frame.release();
                 handlePayload(object);
+            } else if (msg instanceof BinaryWebSocketFrame) {
+                var frame = (BinaryWebSocketFrame) msg;
+                logger.trace("-> <binary: {} readable bytes>", frame.content().readableBytes());
+                handlePayload(frame.content());
             } else if (msg instanceof CloseWebSocketFrame) {
                 var frame = (CloseWebSocketFrame) msg;
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Websocket closed, code: {}, reason: {}", frame.statusCode(), frame.reasonText());
-                }
+                logger.debug("Websocket closed, code: {}, reason: {}", frame.statusCode(), frame.reasonText());
                 AbstractMediaGatewayConnection.this.open = false;
                 onClose(frame.statusCode(), frame.reasonText(), true);
             }
@@ -249,6 +271,7 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
             }
 
             connection.getDispatcher().gatewayError(cause);
+            logger.warn("Exception occurred in WebSocket client handler (Guild ID={})", connection.getGuildId(), cause);
 
             close(4000, "Internal error");
             ctx.close();

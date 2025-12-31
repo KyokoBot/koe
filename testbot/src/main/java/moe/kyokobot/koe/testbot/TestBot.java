@@ -51,6 +51,7 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
     private KoeClient koeClient;
     private AudioPlayerManager playerManager;
     private Map<Guild, AudioPlayer> playerMap = new ConcurrentHashMap<>();
+    private Map<Long, Long> vsuChannelMap = new ConcurrentHashMap<>();
 
     public TestBot(String token) {
         this.token = token;
@@ -104,18 +105,31 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
     public void onVoiceServerUpdate(VoiceServerUpdate voiceServerUpdate) {
         var conn = koeClient.getConnection(voiceServerUpdate.getGuildIdLong());
         if (conn != null) {
-            var info = new VoiceServerInfo(
-                    voiceServerUpdate.getSessionId(),
-                    voiceServerUpdate.getEndpoint(),
-                    voiceServerUpdate.getToken());
-            conn.connect(info).thenAccept(avoid -> logger.info("Koe connection succeeded!"));
+            var info = VoiceServerInfo.builder()
+                    .setSessionId(voiceServerUpdate.getSessionId())
+                    .setEndpoint(voiceServerUpdate.getEndpoint())
+                    .setToken(voiceServerUpdate.getToken())
+                    .setChannelId(vsuChannelMap.getOrDefault(voiceServerUpdate.getGuildIdLong(), 0L))
+                    .build();
+            conn.connect(info).thenAccept(avoid -> {
+                logger.info("Koe connection succeeded!");
+                this.leakDetect.printAllocStats();
+            });
         }
     }
 
     @Override
     public boolean onVoiceStateUpdate(VoiceStateUpdate voiceStateUpdate) {
-        if (voiceStateUpdate.getVoiceState().getIdLong() == jda.getSelfUser().getIdLong() && voiceStateUpdate.getChannel().getIdLong() == 0) {
-            koeClient.destroyConnection(voiceStateUpdate.getGuildIdLong());
+        if (voiceStateUpdate.getVoiceState().getIdLong() == jda.getSelfUser().getIdLong()) {
+            logger.info("VSU {} {}", voiceStateUpdate.getGuild(), voiceStateUpdate.getChannel());
+
+            if (voiceStateUpdate.getChannel() == null) {
+                koeClient.destroyConnection(voiceStateUpdate.getGuildIdLong());
+                vsuChannelMap.remove(voiceStateUpdate.getGuildIdLong());
+                return true;
+            } else {
+                vsuChannelMap.put(voiceStateUpdate.getGuildIdLong(), voiceStateUpdate.getChannel().getIdLong());
+            }
         }
         return true;
     }

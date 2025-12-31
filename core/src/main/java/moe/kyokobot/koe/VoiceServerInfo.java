@@ -15,20 +15,22 @@ public class VoiceServerInfo {
     private final String sessionId;
     private final String endpoint;
     private final String token;
+    private final long channelId;
 
     /**
-     * @see #builder() Recommended way to create an instance of this class.
-     *
      * @param sessionId Session ID from VOICE_STATE_UPDATE payload.
-     * @param endpoint Voice server endpoint from VOICE_SERVER_UPDATE event (passed as-is in form of "hostname" or "hostname:port").
-     * @param token The authentication token from VOICE_SERVER_UPDATE payload.
+     * @param endpoint  Voice server endpoint from VOICE_SERVER_UPDATE event (passed as-is in form of "hostname" or "hostname:port").
+     * @param token     The authentication token from VOICE_SERVER_UPDATE payload.
+     * @see #builder() Recommended way to create an instance of this class.
      */
-    public VoiceServerInfo(@NotNull String sessionId,
-                           @NotNull String endpoint,
-                           @NotNull String token) {
+    private VoiceServerInfo(@NotNull String sessionId,
+                            @NotNull String endpoint,
+                            @NotNull String token,
+                            long channelId) {
         this.sessionId = Objects.requireNonNull(sessionId);
         this.endpoint = Objects.requireNonNull(endpoint);
         this.token = Objects.requireNonNull(token);
+        this.channelId = channelId;
     }
 
     @NotNull
@@ -46,7 +48,9 @@ public class VoiceServerInfo {
         return token;
     }
 
-    // TODO: Should we deprecate Builder or the public constructor?
+    public long getChannelId() {
+        return channelId;
+    }
 
     @NotNull
     public static Builder builder() {
@@ -57,6 +61,7 @@ public class VoiceServerInfo {
         private String sessionId;
         private String endpoint;
         private String token;
+        private long channelId;
 
         /**
          * @param sessionId Session ID from VOICE_STATE_UPDATE payload.
@@ -83,8 +88,16 @@ public class VoiceServerInfo {
             return this;
         }
 
+        /**
+         * @param channelId An ID of the voice channel. Required for establishing DAVE MLS groups.
+         */
+        public Builder setChannelId(long channelId) {
+            this.channelId = channelId;
+            return this;
+        }
+
         public VoiceServerInfo build() {
-            return new VoiceServerInfo(sessionId, endpoint, token);
+            return new VoiceServerInfo(sessionId, endpoint, token, channelId);
         }
     }
 }
