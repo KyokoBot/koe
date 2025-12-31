@@ -37,7 +37,7 @@ subprojects {
     } else {
         // Get version from git
         val gitVersion = getGitVersion()
-        version = gitVersion.version
+        version = "3.0+git" + gitVersion.version
     }
 
     configure<JavaPluginExtension> {
