@@ -46,6 +46,7 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
     private static final Logger logger = LoggerFactory.getLogger(TestBot.class);
     private final String token;
 
+    private final NettyLeakDetect leakDetect;
     private JDA jda;
     private Koe koe;
     private KoeClient koeClient;
@@ -54,6 +55,7 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
     private Map<Long, Long> vsuChannelMap = new ConcurrentHashMap<>();
 
     public TestBot(String token) {
+        this.leakDetect = new NettyLeakDetect();
         this.token = token;
     }
 
@@ -61,13 +63,13 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
         this.jda = createJDA();
         this.koe = createKoe();
         this.playerManager = createAudioPlayerManager();
-
     }
 
     public void stop() {
         try {
             logger.info("Shutting down...");
             koeClient.close();
+            this.leakDetect.printAllocStats();
             Thread.sleep(250);
             jda.shutdownNow();
             Thread.sleep(500);
@@ -77,7 +79,9 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
     }
 
     public Koe createKoe() {
-        return Koe.koe();
+        return Koe.koe(KoeOptions.builder()
+                .setByteBufAllocator(this.leakDetect.getAllocator())
+                .create());
     }
 
     public JDA createJDA() {
