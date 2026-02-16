@@ -2,8 +2,9 @@ package moe.kyokobot.koe.codec.netty;
 
 import moe.kyokobot.koe.MediaConnection;
 import moe.kyokobot.koe.codec.AbstractFramePoller;
-import moe.kyokobot.koe.codec.OpusCodec;
+import moe.kyokobot.koe.codec.CodecInstance;
 import moe.kyokobot.koe.media.IntReference;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,8 +13,8 @@ import java.util.concurrent.TimeUnit;
 public class NettyOpusFramePoller extends AbstractFramePoller {
     private static final Logger logger = LoggerFactory.getLogger(NettyOpusFramePoller.class);
 
-    public NettyOpusFramePoller(MediaConnection connection) {
-        super(connection);
+    public NettyOpusFramePoller(@NotNull CodecInstance codec, @NotNull MediaConnection connection) {
+        super(codec, connection);
     }
 
     /**
@@ -50,7 +51,6 @@ public class NettyOpusFramePoller extends AbstractFramePoller {
         try {
             var handler = connection.getConnectionHandler();
             var sender = connection.getAudioSender();
-            var codec = OpusCodec.INSTANCE;
 
             // ugly but it's the hottest path in Koe and Java is a shit language.
             if (sender != null && handler != null && sender.canSendFrame(codec)) {
@@ -60,7 +60,7 @@ public class NettyOpusFramePoller extends AbstractFramePoller {
                 sender.retrieve(codec, buf, timestamp);
                 int len = buf.writerIndex() - start;
                 if (len != 0) {
-                    handler.sendFrame(OpusCodec.PAYLOAD_TYPE, timestamp.get(), buf, len, false);
+                    handler.sendFrame(codec.getPayloadType(), timestamp.get(), buf, len, false);
                 }
                 buf.release();
             }

@@ -3,8 +3,8 @@ package moe.kyokobot.koe.media;
 import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.KoeEventAdapter;
 import moe.kyokobot.koe.MediaConnection;
-import moe.kyokobot.koe.codec.Codec;
-import moe.kyokobot.koe.codec.OpusCodec;
+import moe.kyokobot.koe.codec.CodecInstance;
+import moe.kyokobot.koe.codec.OpusCodecInfo;
 import moe.kyokobot.koe.gateway.SpeakingFlags;
 
 import java.util.Objects;
@@ -41,7 +41,7 @@ public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
 
     @Override
     public int getFrameInterval() {
-        return OpusCodec.FRAME_DURATION;
+        return OpusCodecInfo.FRAME_DURATION;
     }
 
     @Override
@@ -50,8 +50,8 @@ public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
     }
 
     @Override
-    public final boolean canSendFrame(Codec codec) {
-        if (codec.getPayloadType() != OpusCodec.PAYLOAD_TYPE) {
+    public final boolean canSendFrame(CodecInstance codec) {
+        if (!"opus".equalsIgnoreCase(codec.getName())) {
             return false;
         }
 
@@ -73,14 +73,14 @@ public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
     }
 
     @Override
-    public final boolean retrieve(Codec codec, ByteBuf buf, IntReference timestamp) {
-        if (codec.getPayloadType() != OpusCodec.PAYLOAD_TYPE) {
+    public final boolean retrieve(CodecInstance codec, ByteBuf buf, IntReference timestamp) {
+        if (!"opus".equalsIgnoreCase(codec.getName())) {
             return false;
         }
 
         if (counter > 0) {
             counter--;
-            buf.writeBytes(OpusCodec.SILENCE_FRAME);
+            buf.writeBytes(OpusCodecInfo.SILENCE_FRAME);
 
             if (speaking) {
                 setSpeaking(false);
@@ -103,7 +103,7 @@ public abstract class OpusAudioFrameProvider implements MediaFrameProvider {
         }
 
         long now = System.currentTimeMillis();
-        boolean changeTalking = (now - lastFramePolled) > OpusCodec.FRAME_DURATION;
+        boolean changeTalking = (now - lastFramePolled) > OpusCodecInfo.FRAME_DURATION;
         lastFramePolled = now;
         if (changeTalking) {
             setSpeaking(written);

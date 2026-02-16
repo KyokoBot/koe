@@ -2,7 +2,7 @@ package moe.kyokobot.koe.gateway;
 
 import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.VoiceServerInfo;
-import moe.kyokobot.koe.codec.OpusCodec;
+import moe.kyokobot.koe.codec.OpusCodecInfo;
 import moe.kyokobot.koe.crypto.EncryptionMode;
 import moe.kyokobot.koe.internal.MediaConnectionImpl;
 import moe.kyokobot.koe.internal.handler.DiscordUDPConnection;
@@ -22,12 +22,6 @@ import java.util.stream.Collectors;
 
 public class MediaGatewayV4Connection extends AbstractMediaGatewayConnection {
     private static final Logger logger = LoggerFactory.getLogger(MediaGatewayV4Connection.class);
-    private static final JsonArray SUPPORTED_CODECS;
-
-    static {
-        SUPPORTED_CODECS = new JsonArray();
-        SUPPORTED_CODECS.add(OpusCodec.INSTANCE.getJsonDescription());
-    }
 
     private int ssrc;
     private SocketAddress address;
@@ -194,9 +188,17 @@ public class MediaGatewayV4Connection extends AbstractMediaGatewayConnection {
                         .add("port", ourAddress.getPort())
                         .add("mode", mode);
 
+                var codecs = new JsonArray();
+                // V4 only supports audio codecs
+                connection.getOptions().getCodecRegistry()
+                        .getAudioCodecs()
+                        .stream()
+                        .map(codecInfo -> codecInfo.toJson())
+                        .forEach(codecs::add);
+
                 sendInternalPayload(Op.SELECT_PROTOCOL, new JsonObject()
                         .add("protocol", "udp")
-                        .add("codecs", SUPPORTED_CODECS)
+                        .add("codecs", codecs)
                         .add("rtc_connection_id", rtcConnectionId.toString())
                         .add("data", udpInfo)
                         .combine(udpInfo));

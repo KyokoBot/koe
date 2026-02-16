@@ -2,8 +2,6 @@ package moe.kyokobot.koe.gateway;
 
 import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.VoiceServerInfo;
-import moe.kyokobot.koe.codec.Codec;
-import moe.kyokobot.koe.codec.DefaultCodecs;
 import moe.kyokobot.koe.crypto.EncryptionMode;
 import moe.kyokobot.koe.internal.MediaConnectionImpl;
 import moe.kyokobot.koe.internal.handler.DiscordUDPConnection;
@@ -20,7 +18,6 @@ import java.util.UUID;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
     private static final Logger logger = LoggerFactory.getLogger(MediaGatewayV8Connection.class);
@@ -383,8 +380,10 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
                         .add("mode", mode);
 
                 var codecs = new JsonArray();
-                Stream.concat(DefaultCodecs.audioCodecs.values().stream(), DefaultCodecs.videoCodecs.values().stream())
-                        .map(Codec::getJsonDescription)
+                connection.getOptions().getCodecRegistry()
+                        .getAllCodecs()
+                        .stream()
+                        .map(codecInfo -> codecInfo.toJson())
                         .forEach(codecs::add);
 
                 sendInternalPayload(Op.SELECT_PROTOCOL, new JsonObject()

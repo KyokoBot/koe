@@ -1,7 +1,7 @@
 package moe.kyokobot.koe.internal;
 
 import io.netty.buffer.ByteBuf;
-import moe.kyokobot.koe.codec.OpusCodec;
+import moe.kyokobot.koe.codec.OpusCodecInfo;
 import moe.kyokobot.koe.internal.json.JsonObject;
 import moe.kyokobot.libdave.KeyRatchet;
 import moe.kyokobot.libdave.MediaType;
@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class DAVEManager implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(DAVEManager.class);
@@ -27,8 +28,8 @@ public class DAVEManager implements AutoCloseable {
     private final MediaConnectionImpl connection;
     private final NettyDaveFactory factory;
     private final Session daveSession;
-    private final Set<String> recognizedUserIds = new HashSet<>();
-    private final Map<Integer, Integer> pendingTransitions = new HashMap<>();
+    private final Set<String> recognizedUserIds = new ConcurrentHashMap<>();
+    private final Map<Integer, Integer> pendingTransitions = new ConcurrentHashMap<>();
     private final int maxProtocolVersion;
 
     private NettyEncryptor selfEncryptor;
@@ -63,9 +64,9 @@ public class DAVEManager implements AutoCloseable {
     public ByteBuf encrypt(MediaType mediaType, int ssrc, ByteBuf output, ByteBuf input, int size) {
         if (mediaType == MediaType.AUDIO && size == 3) {
             input.markReaderIndex();
-            var b1 = input.readByte() == OpusCodec.SILENCE_FRAME[0];
-            var b2 = input.readByte() == OpusCodec.SILENCE_FRAME[1];
-            var b3 = input.readByte() == OpusCodec.SILENCE_FRAME[2];
+            var b1 = input.readByte() == OpusCodecInfo.SILENCE_FRAME[0];
+            var b2 = input.readByte() == OpusCodecInfo.SILENCE_FRAME[1];
+            var b3 = input.readByte() == OpusCodecInfo.SILENCE_FRAME[2];
             var isSilence = b1 && b2 && b3;
             input.resetReaderIndex();
 
