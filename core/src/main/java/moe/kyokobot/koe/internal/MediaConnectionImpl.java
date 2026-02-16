@@ -1,10 +1,10 @@
 package moe.kyokobot.koe.internal;
 
 import moe.kyokobot.koe.*;
-import moe.kyokobot.koe.codec.Codec;
+import moe.kyokobot.koe.codec.CodecInstance;
 import moe.kyokobot.koe.codec.CodecType;
 import moe.kyokobot.koe.codec.FramePoller;
-import moe.kyokobot.koe.codec.OpusCodec;
+import moe.kyokobot.koe.codec.OpusCodecInfo;
 import moe.kyokobot.koe.gateway.MediaGatewayConnection;
 import moe.kyokobot.koe.gateway.MediaValve;
 import moe.kyokobot.koe.handler.ConnectionHandler;
@@ -27,8 +27,8 @@ public class MediaConnectionImpl implements MediaConnection {
     private MediaGatewayConnection gatewayConnection;
     private ConnectionHandler<?> connectionHandler;
     private VoiceServerInfo info;
-    private Codec audioCodec;
-    private Codec videoCodec;
+    private CodecInstance audioCodec;
+    private CodecInstance videoCodec;
     private FramePoller audioPoller;
     private FramePoller videoPoller;
     private MediaFrameProvider audioSender;
@@ -39,7 +39,7 @@ public class MediaConnectionImpl implements MediaConnection {
         this.client = Objects.requireNonNull(client);
         this.guildId = guildId;
         this.dispatcher = new EventDispatcher();
-        this.audioCodec = OpusCodec.INSTANCE;
+        this.audioCodec = OpusCodecInfo.INSTANCE.instantiate();
         this.audioPoller = client.getOptions().getFramePollerFactory().createFramePoller(this.audioCodec, this);
         this.videoCodec = null;
         this.videoPoller = null;
@@ -146,7 +146,7 @@ public class MediaConnectionImpl implements MediaConnection {
     }
 
     @Override
-    public void setAudioCodec(@NotNull Codec audioCodec) {
+    public void setAudioCodec(@NotNull CodecInstance audioCodec) {
         if (Objects.requireNonNull(audioCodec).getType() != CodecType.AUDIO) {
             throw new IllegalArgumentException("Specified codec must be an audio codec!");
         }
@@ -189,7 +189,7 @@ public class MediaConnectionImpl implements MediaConnection {
     }
 
     @Override
-    public void setVideoCodec(@Nullable Codec videoCodec) {
+    public void setVideoCodec(@Nullable CodecInstance videoCodec) {
         if (videoCodec == null) {
             this.stopVideoFramePolling();
             this.videoCodec = null;
@@ -198,7 +198,7 @@ public class MediaConnectionImpl implements MediaConnection {
         }
 
         if (videoCodec.getType() != CodecType.VIDEO) {
-            throw new IllegalArgumentException("Specified codec must be an video codec!");
+            throw new IllegalArgumentException("Specified codec must be a video codec!");
         }
 
         boolean wasPolling = videoPoller != null && videoPoller.isPolling();

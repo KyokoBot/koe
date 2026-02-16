@@ -12,6 +12,8 @@ import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import moe.kyokobot.koe.codec.CodecRegistry;
+import moe.kyokobot.koe.codec.DefaultCodecRegistry;
 import moe.kyokobot.koe.codec.FramePollerFactory;
 import moe.kyokobot.koe.codec.netty.NettyFramePollerFactory;
 import moe.kyokobot.koe.gateway.GatewayVersion;
@@ -26,6 +28,7 @@ public class KoeOptionsBuilder {
     private ByteBufAllocator byteBufAllocator;
     private GatewayVersion gatewayVersion;
     private FramePollerFactory framePollerFactory;
+    private CodecRegistry codecRegistry;
     private boolean highPacketPriority;
     private boolean deafened;
     private boolean enableWSSPortOverride;
@@ -47,6 +50,7 @@ public class KoeOptionsBuilder {
         this.byteBufAllocator = new PooledByteBufAllocator();
         this.gatewayVersion = GatewayVersion.V8;
         this.framePollerFactory = new NettyFramePollerFactory();
+        this.codecRegistry = new DefaultCodecRegistry();
         this.highPacketPriority = true;
         this.deafened = false;
         this.enableWSSPortOverride = true;
@@ -132,6 +136,19 @@ public class KoeOptionsBuilder {
     }
 
     /**
+     * Sets a custom codec registry.
+     * Useful for registering custom codecs or removing built-in ones.
+     * Defaults to {@link DefaultCodecRegistry} with built-in codecs.
+     *
+     * @param codecRegistry An instance of {@link CodecRegistry} to use for the Koe client.
+     */
+    public KoeOptionsBuilder setCodecRegistry(@NotNull CodecRegistry codecRegistry) {
+        Objects.requireNonNull(codecRegistry, "codecRegistry cannot be null");
+        this.codecRegistry = codecRegistry;
+        return this;
+    }
+
+    /**
      * Sets whether to set IP_TOS flags to request high priority/low-delay for sent RTP packets.
      * Defaults to true.
      */
@@ -168,6 +185,6 @@ public class KoeOptionsBuilder {
 
     public KoeOptions create() {
         return new KoeOptions(eventLoopGroup, socketChannelClass, datagramChannelClass, byteBufAllocator,
-                gatewayVersion, framePollerFactory, highPacketPriority, deafened, enableWSSPortOverride, enableDAVE);
+                gatewayVersion, framePollerFactory, codecRegistry, highPacketPriority, deafened, enableWSSPortOverride, enableDAVE);
     }
 }

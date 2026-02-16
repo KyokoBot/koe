@@ -5,7 +5,9 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.DatagramChannel;
-import moe.kyokobot.koe.codec.Codec;
+import moe.kyokobot.koe.codec.CodecInfo;
+import moe.kyokobot.koe.codec.CodecInstance;
+import moe.kyokobot.koe.codec.CodecRegistry;
 import moe.kyokobot.koe.crypto.EncryptionMode;
 import moe.kyokobot.koe.handler.ConnectionHandler;
 import moe.kyokobot.koe.internal.MediaConnectionImpl;
@@ -78,10 +80,15 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
         var audioCodecName = object.getString("audio_codec");
 
         encryptionMode = EncryptionMode.get(mode);
-        var audioCodec = Codec.getAudio(audioCodecName);
-
-        if (audioCodecName != null && audioCodec == null) {
-            logger.warn("Unsupported audio codec type: {}, no audio data will be polled", audioCodecName);
+        CodecInstance audioCodec = null;
+        if (audioCodecName != null) {
+            CodecRegistry registry = connection.getOptions().getCodecRegistry();
+            CodecInfo audioCodecInfo = registry.getByName(audioCodecName);
+            if (audioCodecInfo != null) {
+                audioCodec = audioCodecInfo.instantiate();
+            } else {
+                logger.warn("Unsupported audio codec type: {}, no audio data will be polled", audioCodecName);
+            }
         }
 
         if (encryptionMode == null) {

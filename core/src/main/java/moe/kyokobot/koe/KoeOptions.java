@@ -4,6 +4,8 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.SocketChannel;
+import moe.kyokobot.koe.codec.CodecRegistry;
+import moe.kyokobot.koe.codec.DefaultCodecRegistry;
 import moe.kyokobot.koe.codec.FramePollerFactory;
 import moe.kyokobot.koe.gateway.GatewayVersion;
 import org.jetbrains.annotations.NotNull;
@@ -22,6 +24,7 @@ public class KoeOptions {
     private final ByteBufAllocator byteBufAllocator;
     private final GatewayVersion gatewayVersion;
     private final FramePollerFactory framePollerFactory;
+    private final CodecRegistry codecRegistry;
     private final boolean highPacketPriority;
     private final boolean deafened;
     private final boolean enableWSSPortOverride;
@@ -34,6 +37,7 @@ public class KoeOptions {
             @NotNull ByteBufAllocator byteBufAllocator,
             @NotNull GatewayVersion gatewayVersion,
             @NotNull FramePollerFactory framePollerFactory,
+            @NotNull CodecRegistry codecRegistry,
             boolean highPacketPriority,
             boolean deafened,
             boolean enableWSSPortOverride,
@@ -45,6 +49,7 @@ public class KoeOptions {
         this.byteBufAllocator = Objects.requireNonNull(byteBufAllocator);
         this.gatewayVersion = Objects.requireNonNull(gatewayVersion);
         this.framePollerFactory = Objects.requireNonNull(framePollerFactory);
+        this.codecRegistry = Objects.requireNonNull(codecRegistry);
         this.highPacketPriority = highPacketPriority;
         this.deafened = deafened;
         this.enableWSSPortOverride = enableWSSPortOverride;
@@ -66,7 +71,7 @@ public class KoeOptions {
             boolean deafened
     ) {
         this(eventLoopGroup, socketChannelClass, datagramChannelClass, byteBufAllocator, gatewayVersion,
-                framePollerFactory, highPacketPriority, deafened, true, true);
+                framePollerFactory, new DefaultCodecRegistry(), highPacketPriority, deafened, true, true);
     }
 
     /**
@@ -83,7 +88,7 @@ public class KoeOptions {
             boolean highPacketPriority
     ) {
         this(eventLoopGroup, socketChannelClass, datagramChannelClass, byteBufAllocator, gatewayVersion,
-                framePollerFactory, highPacketPriority, false);
+                framePollerFactory, new DefaultCodecRegistry(), highPacketPriority, false, true, true);
     }
 
     @NotNull
@@ -114,6 +119,11 @@ public class KoeOptions {
     @NotNull
     public FramePollerFactory getFramePollerFactory() {
         return framePollerFactory;
+    }
+
+    @NotNull
+    public CodecRegistry getCodecRegistry() {
+        return codecRegistry;
     }
 
     public boolean isHighPacketPriority() {

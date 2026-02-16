@@ -2,8 +2,9 @@ package moe.kyokobot.koe.codec.netty;
 
 import moe.kyokobot.koe.MediaConnection;
 import moe.kyokobot.koe.codec.AbstractFramePoller;
-import moe.kyokobot.koe.codec.H264Codec;
+import moe.kyokobot.koe.codec.CodecInstance;
 import moe.kyokobot.koe.media.IntReference;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,8 +17,8 @@ public class NettyH264FramePoller extends AbstractFramePoller {
      */
     private static final int FRAME_RATE = 1000 / 30;
 
-    public NettyH264FramePoller(MediaConnection connection) {
-        super(connection);
+    public NettyH264FramePoller(@NotNull CodecInstance codec, @NotNull MediaConnection connection) {
+        super(codec, connection);
     }
 
     /**
@@ -56,8 +57,7 @@ public class NettyH264FramePoller extends AbstractFramePoller {
         try {
             do {
                 var handler = connection.getConnectionHandler();
-                var sender = connection.getAudioSender();
-                var codec = H264Codec.INSTANCE;
+                var sender = connection.getVideoSender();
 
                 if (sender != null && handler != null && sender.canSendFrame(codec)) {
                     var buf = allocator.buffer();
@@ -65,7 +65,7 @@ public class NettyH264FramePoller extends AbstractFramePoller {
                     pollNext = sender.retrieve(codec, buf, timestamp);
                     int len = buf.writerIndex() - start;
                     if (len != 0) {
-                        handler.sendFrame(H264Codec.PAYLOAD_TYPE, timestamp.get(), buf, len, true);
+                        handler.sendFrame(codec.getPayloadType(), timestamp.get(), buf, len, true);
                     }
                     buf.release();
                 }

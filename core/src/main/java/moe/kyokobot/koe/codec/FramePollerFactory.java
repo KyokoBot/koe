@@ -4,5 +4,5 @@ import moe.kyokobot.koe.MediaConnection;
 
 @FunctionalInterface
 public interface FramePollerFactory {
-    FramePoller createFramePoller(Codec codec, MediaConnection connection);
+    FramePoller createFramePoller(CodecInstance codec, MediaConnection connection);
 }
