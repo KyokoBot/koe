@@ -1,20 +1,21 @@
 package moe.kyokobot.koe;
 
-import moe.kyokobot.koe.media.MediaFrameProvider;
 import moe.kyokobot.koe.codec.CodecInfo;
 import moe.kyokobot.koe.codec.CodecInstance;
+import moe.kyokobot.koe.experimental.media.VideoFrameProvider;
 import moe.kyokobot.koe.gateway.MediaGatewayConnection;
 import moe.kyokobot.koe.handler.ConnectionHandler;
+import moe.kyokobot.koe.media.AudioFrameProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.Closeable;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 public interface MediaConnection extends Closeable {
     /**
      * Connects to Discord voice server using specified info.
+     *
      * @param info Discord voice server connection information
      * @return future which completes once Koe is connected to both voice gateway and can successfully
      * send UDP packets, so you can send audio data.
@@ -23,6 +24,7 @@ public interface MediaConnection extends Closeable {
 
     /**
      * Stops polling media frames, disconnects from the gateway and cleans everything up.
+     *
      * @see #connect(VoiceServerInfo)
      */
     void disconnect();
@@ -36,10 +38,10 @@ public interface MediaConnection extends Closeable {
     KoeOptions getOptions();
 
     @Nullable
-    MediaFrameProvider getAudioSender();
+    AudioFrameProvider getAudioSender();
 
     @Nullable
-    MediaFrameProvider getVideoSender();
+    VideoFrameProvider getVideoSender();
 
     long getGuildId();
 
@@ -51,7 +53,7 @@ public interface MediaConnection extends Closeable {
 
     ConnectionHandler<?> getConnectionHandler();
 
-    void setAudioSender(@Nullable MediaFrameProvider sender);
+    void setAudioSender(@Nullable AudioFrameProvider sender);
 
     /**
      * Sets the audio codec instance for this connection.
@@ -77,11 +79,12 @@ public interface MediaConnection extends Closeable {
 
     /**
      * Stops polling audio frames.
+     *
      * @see MediaConnection#startAudioFramePolling()
      */
     void stopAudioFramePolling();
 
-    void setVideoSender(@Nullable MediaFrameProvider sender);
+    void setVideoSender(@Nullable VideoFrameProvider sender);
 
     /**
      * Sets the video codec instance for this connection.
@@ -107,6 +110,7 @@ public interface MediaConnection extends Closeable {
 
     /**
      * Stops polling video frames.
+     *
      * @see MediaConnection#startAudioFramePolling()
      */
     void stopVideoFramePolling();
@@ -117,6 +121,7 @@ public interface MediaConnection extends Closeable {
 
     /**
      * Sends speaking state notification to the gateway.
+     *
      * @param mask new speaking state
      */
     void updateSpeakingState(int mask);

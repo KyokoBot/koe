@@ -1,4 +1,4 @@
-package moe.kyokobot.koe.codec.udpqueue;
+package moe.kyokobot.koe.poller.udpqueue;
 
 import com.sedmelluq.discord.lavaplayer.udpqueue.natives.UdpQueueManager;
 
@@ -7,10 +7,12 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static moe.kyokobot.koe.codec.OpusCodec.FRAME_DURATION;
-import static moe.kyokobot.koe.codec.udpqueue.UdpQueueFramePollerFactory.MAXIMUM_PACKET_SIZE;
+import static moe.kyokobot.koe.codec.OpusCodecInfo.FRAME_DURATION;
 
 public class QueueManagerPool {
+    public static final int DEFAULT_BUFFER_DURATION = 400;
+    public static final int MAXIMUM_PACKET_SIZE = 4096;
+
     private final AtomicLong queueKeySeq;
     private final UdpQueueManager[] managers;
     private boolean closed;
@@ -31,6 +33,10 @@ public class QueueManagerPool {
             thread.setDaemon(true);
             thread.start();
         }
+    }
+
+    public QueueManagerPool() {
+        this(Runtime.getRuntime().availableProcessors(), DEFAULT_BUFFER_DURATION);
     }
 
     public void close() {

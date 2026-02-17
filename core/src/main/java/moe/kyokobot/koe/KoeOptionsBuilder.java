@@ -14,8 +14,8 @@ import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import moe.kyokobot.koe.codec.CodecRegistry;
 import moe.kyokobot.koe.codec.DefaultCodecRegistry;
-import moe.kyokobot.koe.codec.FramePollerFactory;
-import moe.kyokobot.koe.codec.netty.NettyFramePollerFactory;
+import moe.kyokobot.koe.poller.FramePollerFactory;
+import moe.kyokobot.koe.poller.netty.NettyFramePollerFactory;
 import moe.kyokobot.koe.gateway.GatewayVersion;
 import org.jetbrains.annotations.NotNull;
 

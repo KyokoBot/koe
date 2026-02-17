@@ -3,6 +3,8 @@ package moe.kyokobot.koe.codec;
 import moe.kyokobot.koe.internal.json.JsonObject;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
+
 /**
  * Immutable codec capabilities and metadata.
  * Represents what a codec CAN do, not what it IS doing in a session.

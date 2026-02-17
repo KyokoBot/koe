@@ -1,6 +1,7 @@
 package moe.kyokobot.koe.codec;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Opus audio codec information.
@@ -13,5 +14,15 @@ public class OpusCodecInfo extends CodecInfo {
 
     private OpusCodecInfo() {
         super("opus", CodecType.AUDIO, DEFAULT_PAYLOAD_TYPE, (byte) 0, 1000);
+    }
+
+    /**
+     * Returns whether the given codec instance is Opus.
+     *
+     * @param instance the codec instance to check, may be null
+     * @return true if instance is non-null and its codec is Opus
+     */
+    public static boolean isInstanceOf(@Nullable CodecInstance instance) {
+        return instance != null && INSTANCE.equals(instance.getInfo());
     }
 }

@@ -13,7 +13,9 @@ import com.sedmelluq.discord.lavaplayer.track.playback.MutableAudioFrame;
 import dev.lavalink.youtube.YoutubeAudioSourceManager;
 import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.*;
-import moe.kyokobot.koe.media.OpusAudioFrameProvider;
+import moe.kyokobot.koe.codec.CodecInstance;
+import moe.kyokobot.koe.codec.OpusCodecInfo;
+import moe.kyokobot.koe.media.AudioFrameProvider;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.Permission;
@@ -172,7 +174,7 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
             if (koeClient.getConnection(voiceState.getGuild().getIdLong()) == null) {
                 var conn = koeClient.createConnection(voiceState.getGuild().getIdLong());
                 var player = playerMap.computeIfAbsent(event.getGuild(), n -> playerManager.createPlayer());
-                conn.setAudioSender(new AudioSender(player, conn));
+                conn.setAudioSender(new OpusProvider(player));
                 conn.registerListener(new ExampleListener());
                 connect(channel);
                 event.getChannel().sendMessage("Joined channel `" + channel.getName() + "`!").queue();
@@ -222,13 +224,13 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
         });
     }
 
-    private static class AudioSender extends OpusAudioFrameProvider {
+    private static class OpusProvider implements AudioFrameProvider {
         private final AudioPlayer player;
         private final MutableAudioFrame frame;
         private final ByteBuffer frameBuffer;
+        private boolean isOpus;
 
-        AudioSender(AudioPlayer player, MediaConnection connection) {
-            super(connection);
+        OpusProvider(AudioPlayer player) {
             this.player = player;
             this.frame = new MutableAudioFrame();
             this.frameBuffer = ByteBuffer.allocate(DISCORD_OPUS.maximumChunkSize());
@@ -237,13 +239,25 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
         }
 
         @Override
+        public void onCodecChanged(@NotNull CodecInstance codec) {
+            this.isOpus = OpusCodecInfo.isInstanceOf(codec);
+        }
+
+        @Override
         public boolean canProvide() {
+            if (!isOpus) return false;
             return player.provide(frame);
         }
 
         @Override
-        public void retrieveOpusFrame(ByteBuf targetBuffer) {
+        public boolean provideFrame(ByteBuf targetBuffer) {
             targetBuffer.writeBytes(frameBuffer.array(), 0, frame.getDataLength());
+            return true;
+        }
+
+        @Override
+        public void dispose() {
+
         }
     }
 
