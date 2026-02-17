@@ -8,10 +8,10 @@ public class UdpQueueTestBotLauncher {
     public static void main(String[] args) {
         var bot = new TestBot(System.getenv("TOKEN")) {
             @Override
-            public Koe createKoe() {
-                return Koe.koe(KoeOptions.builder()
+            public KoeOptions configureKoe(KoeOptionsBuilder options) {
+                return options
                         .setFramePollerFactory(new UdpQueueFramePollerFactory())
-                        .create());
+                        .create();
             }
         };
         Runtime.getRuntime().addShutdownHook(new Thread(bot::stop));
