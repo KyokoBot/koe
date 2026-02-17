@@ -25,6 +25,7 @@ import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.hooks.VoiceDispatchInterceptor;
 import net.dv8tion.jda.api.requests.GatewayIntent;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,8 +52,8 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
     private Koe koe;
     private KoeClient koeClient;
     private AudioPlayerManager playerManager;
-    private Map<Guild, AudioPlayer> playerMap = new ConcurrentHashMap<>();
-    private Map<Long, Long> vsuChannelMap = new ConcurrentHashMap<>();
+    private final Map<Guild, AudioPlayer> playerMap = new ConcurrentHashMap<>();
+    private final Map<Long, Long> vsuChannelMap = new ConcurrentHashMap<>();
 
     public TestBot(String token) {
         this.leakDetect = new NettyLeakDetect();
@@ -61,7 +62,11 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
 
     public void start() {
         this.jda = createJDA();
-        this.koe = createKoe();
+        var options = configureKoe(KoeOptions.builder()
+                .setByteBufAllocator(this.leakDetect.getAllocator())
+                .setDAVEEnabled(false) // TODO: fix segfaults
+        );
+        this.koe = Koe.koe(options);
         this.playerManager = createAudioPlayerManager();
     }
 
@@ -78,10 +83,8 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
         }
     }
 
-    public Koe createKoe() {
-        return Koe.koe(KoeOptions.builder()
-                .setByteBufAllocator(this.leakDetect.getAllocator())
-                .create());
+    public KoeOptions configureKoe(KoeOptionsBuilder builder) {
+        return builder.create();
     }
 
     public JDA createJDA() {
@@ -101,7 +104,7 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
     }
 
     @Override
-    public void onReady(ReadyEvent event) {
+    public void onReady(@NotNull ReadyEvent event) {
         koeClient = koe.newClient(jda.getSelfUser().getIdLong());
     }
 
