@@ -3,12 +3,13 @@ package moe.kyokobot.koe.internal;
 import moe.kyokobot.koe.*;
 import moe.kyokobot.koe.codec.CodecInstance;
 import moe.kyokobot.koe.codec.CodecType;
-import moe.kyokobot.koe.codec.FramePoller;
 import moe.kyokobot.koe.codec.OpusCodecInfo;
+import moe.kyokobot.koe.experimental.media.VideoFrameProvider;
 import moe.kyokobot.koe.gateway.MediaGatewayConnection;
 import moe.kyokobot.koe.gateway.MediaValve;
 import moe.kyokobot.koe.handler.ConnectionHandler;
-import moe.kyokobot.koe.media.MediaFrameProvider;
+import moe.kyokobot.koe.media.AudioFrameProvider;
+import moe.kyokobot.koe.poller.AbstractFramePoller;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -29,10 +30,10 @@ public class MediaConnectionImpl implements MediaConnection {
     private VoiceServerInfo info;
     private CodecInstance audioCodec;
     private CodecInstance videoCodec;
-    private FramePoller audioPoller;
-    private FramePoller videoPoller;
-    private MediaFrameProvider audioSender;
-    private MediaFrameProvider videoSender;
+    private AbstractFramePoller audioPoller;
+    private AbstractFramePoller videoPoller;
+    private AudioFrameProvider audioSender;
+    private VideoFrameProvider videoSender;
     private DAVEManager daveManager;
 
     public MediaConnectionImpl(@NotNull KoeClientImpl client, long guildId) {
@@ -105,13 +106,13 @@ public class MediaConnectionImpl implements MediaConnection {
 
     @Override
     @Nullable
-    public MediaFrameProvider getAudioSender() {
+    public AudioFrameProvider getAudioSender() {
         return audioSender;
     }
 
     @Override
     @Nullable
-    public MediaFrameProvider getVideoSender() {
+    public VideoFrameProvider getVideoSender() {
         return videoSender;
     }
 
@@ -138,11 +139,14 @@ public class MediaConnectionImpl implements MediaConnection {
     }
 
     @Override
-    public void setAudioSender(@Nullable MediaFrameProvider sender) {
+    public void setAudioSender(@Nullable AudioFrameProvider sender) {
         if (this.audioSender != null) {
             this.audioSender.dispose();
         }
         this.audioSender = sender;
+        if (sender != null && this.audioCodec != null) {
+            sender.onCodecChanged(this.audioCodec);
+        }
     }
 
     @Override
@@ -156,6 +160,9 @@ public class MediaConnectionImpl implements MediaConnection {
 
         this.audioCodec = audioCodec;
         this.audioPoller = client.getOptions().getFramePollerFactory().createFramePoller(audioCodec, this);
+        if (this.audioSender != null) {
+            this.audioSender.onCodecChanged(audioCodec);
+        }
 
         if (wasPolling) {
             this.startAudioFramePolling();
@@ -181,11 +188,14 @@ public class MediaConnectionImpl implements MediaConnection {
     }
 
     @Override
-    public void setVideoSender(@Nullable MediaFrameProvider sender) {
+    public void setVideoSender(@Nullable VideoFrameProvider sender) {
         if (this.videoSender != null) {
             this.videoSender.dispose();
         }
         this.videoSender = sender;
+        if (sender != null && this.videoCodec != null) {
+            sender.onCodecChanged(this.videoCodec);
+        }
     }
 
     @Override
@@ -206,6 +216,9 @@ public class MediaConnectionImpl implements MediaConnection {
 
         this.videoCodec = videoCodec;
         this.videoPoller = client.getOptions().getFramePollerFactory().createFramePoller(videoCodec, this);
+        if (this.videoSender != null) {
+            this.videoSender.onCodecChanged(videoCodec);
+        }
 
         if (wasPolling) {
             this.startVideoFramePolling();

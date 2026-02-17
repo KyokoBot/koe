@@ -11,7 +11,15 @@ limits GC pressure because of much smaller number of allocations.
 Just add it to KoeOptions :^)
 
 ```java
+var queuePool = new QueueManagerPool(
+    Runtime.getRuntime().availableProcessors(),
+    UdpQueueFramePollerFactory.DEFAULT_BUFFER_DURATION
+);
+
 var Koe = Koe.koe(KoeOptions.builder()
-    .setFramePollerFactory(new UdpQueueFramePollerFactory())
+    .setFramePollerFactory(new UdpQueueFramePollerFactory(queuePool))
     .create());
+
+// close on shutdown
+queuePool.close();
 ```
