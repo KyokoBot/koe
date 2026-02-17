@@ -13,8 +13,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,7 +26,7 @@ public class DAVEManager implements AutoCloseable {
     private final MediaConnectionImpl connection;
     private final NettyDaveFactory factory;
     private final Session daveSession;
-    private final Set<String> recognizedUserIds = new ConcurrentHashMap<>();
+    private final Set<String> recognizedUserIds = ConcurrentHashMap.newKeySet();
     private final Map<Integer, Integer> pendingTransitions = new ConcurrentHashMap<>();
     private final int maxProtocolVersion;
 
