@@ -56,41 +56,6 @@ public class KoeOptions {
         this.enableDAVE = daveEnabled;
     }
 
-    /**
-     * @deprecated Use {@link KoeOptionsBuilder} instead. Provided for binary compatibility with older versions.
-     */
-    @Deprecated(forRemoval = true, since = "2.2.0")
-    public KoeOptions(
-            @NotNull EventLoopGroup eventLoopGroup,
-            @NotNull Class<? extends SocketChannel> socketChannelClass,
-            @NotNull Class<? extends DatagramChannel> datagramChannelClass,
-            @NotNull ByteBufAllocator byteBufAllocator,
-            @NotNull GatewayVersion gatewayVersion,
-            @NotNull FramePollerFactory framePollerFactory,
-            boolean highPacketPriority,
-            boolean deafened
-    ) {
-        this(eventLoopGroup, socketChannelClass, datagramChannelClass, byteBufAllocator, gatewayVersion,
-                framePollerFactory, new DefaultCodecRegistry(), highPacketPriority, deafened, true, true);
-    }
-
-    /**
-     * @deprecated Use {@link KoeOptionsBuilder} instead. Provided for binary compatibility with older versions.
-     */
-    @Deprecated(forRemoval = true, since = "2.2.0")
-    public KoeOptions(
-            @NotNull EventLoopGroup eventLoopGroup,
-            @NotNull Class<? extends SocketChannel> socketChannelClass,
-            @NotNull Class<? extends DatagramChannel> datagramChannelClass,
-            @NotNull ByteBufAllocator byteBufAllocator,
-            @NotNull GatewayVersion gatewayVersion,
-            @NotNull FramePollerFactory framePollerFactory,
-            boolean highPacketPriority
-    ) {
-        this(eventLoopGroup, socketChannelClass, datagramChannelClass, byteBufAllocator, gatewayVersion,
-                framePollerFactory, new DefaultCodecRegistry(), highPacketPriority, false, true, true);
-    }
-
     @NotNull
     public EventLoopGroup getEventLoopGroup() {
         return eventLoopGroup;
