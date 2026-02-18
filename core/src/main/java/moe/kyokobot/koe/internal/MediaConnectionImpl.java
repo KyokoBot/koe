@@ -4,6 +4,7 @@ import moe.kyokobot.koe.*;
 import moe.kyokobot.koe.codec.CodecInstance;
 import moe.kyokobot.koe.codec.CodecType;
 import moe.kyokobot.koe.codec.OpusCodecInfo;
+import moe.kyokobot.koe.experimental.MediaConnectionExperimental;
 import moe.kyokobot.koe.experimental.media.VideoFrameProvider;
 import moe.kyokobot.koe.gateway.MediaGatewayConnection;
 import moe.kyokobot.koe.gateway.MediaValve;
@@ -18,7 +19,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 
-public class MediaConnectionImpl implements MediaConnection {
+public class MediaConnectionImpl implements MediaConnection, MediaConnectionExperimental {
     private static final Logger logger = LoggerFactory.getLogger(MediaConnectionImpl.class);
 
     private final KoeClientImpl client;
@@ -266,7 +267,7 @@ public class MediaConnectionImpl implements MediaConnection {
         }
 
         disconnect();
-        client.removeConnection(guildId);
+        client.removeClosedConnection(this);
     }
 
     @Override
@@ -303,7 +304,6 @@ public class MediaConnectionImpl implements MediaConnection {
                 this.daveManager.close();
             } catch (Exception e) {
                 logger.error("Error closing old DAVE manager", e);
-
             }
         }
     }
