@@ -3,7 +3,20 @@
 ## VoiceServerInfo
 
 1. The public constructor has been removed. Use `VoiceServerInfo#builder()` to create instances of this class instead.
-2. It's now required to pass `channelId` (the ID of the voice channel), as it is used as a MLS group identifier while using DAVE E2E encryption.
+2. As DAVE E2E encryption is now mandatory, it's required to pass `channelId` (the ID of the voice channel), because it's needed as the MLS group identifier.
+
+## Minor changes and removals
+
+- Old `VIDEO_SINK_WANTS` alias for `MEDIA_SINK_WANTS` has been removed.
+- Compatibility constructors from `KoeOptions` have been removed. Use `KoeOptions#builder()` instead.
+
+## Experimental package
+
+The package `moe.kyokobot.koe.experimental` is reserved for APIs that are not yet stable. Types and members in this package may change or be removed 
+in any **minor** release (e.g. 3.1, 3.2). Do not depend on them if you need binary compatibility across minor versions. The rest of the public API 
+follows the [binary compatibility policy](README.md#binary-compatibility) described in the README.
+
+The unfinished video support has been moved to the experimental package in intent to be finished in future releases.
 
 ## Refactoring of the poller / provider API
 
@@ -124,7 +137,3 @@ All codec classes have been renamed with an `Info` suffix:
 | `H264Codec.INSTANCE` | `H264CodecInfo.INSTANCE` |
 | `VP8Codec.INSTANCE`  | `VP8CodecInfo.INSTANCE`  |
 | `VP9Codec.INSTANCE`  | `VP9CodecInfo.INSTANCE`  |
-
-## Experimental package
-
-The package `moe.kyokobot.koe.experimental` is reserved for APIs that are not yet stable. Types and members in this package may change or be removed in any **minor** release (e.g. 3.1, 3.2). Do not depend on them if you need binary compatibility across minor versions. The rest of the public API follows the [binary compatibility policy](README.md#binary-compatibility) described in the README.
