@@ -5,8 +5,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -17,11 +15,17 @@ public class DefaultCodecRegistry implements CodecRegistry {
     protected final ConcurrentHashMap<String, CodecInfo> codecsByName = new ConcurrentHashMap<>();
     protected final ConcurrentHashMap<Byte, CodecInfo> codecsByPayloadType = new ConcurrentHashMap<>();
 
+    public DefaultCodecRegistry(boolean registerBuiltins) {
+        if (registerBuiltins) {
+            registerBuiltInCodecs();
+        }
+    }
+
     /**
      * Creates a registry with all built-in codecs pre-registered.
      */
     public DefaultCodecRegistry() {
-        registerBuiltInCodecs();
+        this(true);
     }
 
     /**
@@ -31,7 +35,7 @@ public class DefaultCodecRegistry implements CodecRegistry {
      * @return an empty CodecRegistry
      */
     public static DefaultCodecRegistry empty() {
-        return new EmptyCodecRegistry();
+        return new DefaultCodecRegistry(false);
     }
 
     /**
@@ -39,23 +43,6 @@ public class DefaultCodecRegistry implements CodecRegistry {
      */
     protected void registerBuiltInCodecs() {
         register(OpusCodecInfo.INSTANCE);
-        register(H264CodecInfo.INSTANCE);
-        register(VP8CodecInfo.INSTANCE);
-        register(VP9CodecInfo.INSTANCE);
-    }
-
-    /**
-     * Private subclass for empty registries to avoid registering built-ins.
-     */
-    private static class EmptyCodecRegistry extends DefaultCodecRegistry {
-        EmptyCodecRegistry() {
-            super(); // Initialize maps
-        }
-
-        @Override
-        protected void registerBuiltInCodecs() {
-            // Skip built-in codec registration
-        }
     }
 
     @Override
@@ -91,12 +78,6 @@ public class DefaultCodecRegistry implements CodecRegistry {
     @Nullable
     public CodecInfo getByName(@NotNull String name) {
         return codecsByName.get(name.toLowerCase());
-    }
-
-    @Override
-    @Nullable
-    public CodecInfo getByPayloadType(byte payloadType) {
-        return codecsByPayloadType.get(payloadType);
     }
 
     @Override

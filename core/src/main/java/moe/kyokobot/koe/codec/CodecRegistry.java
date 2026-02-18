@@ -36,16 +36,6 @@ public interface CodecRegistry {
     CodecInfo getByName(@NotNull String name);
 
     /**
-     * Gets codec info by payload type.
-     * Useful for decoding incoming packets.
-     *
-     * @param payloadType the payload type
-     * @return CodecInfo or null if not found
-     */
-    @Nullable
-    CodecInfo getByPayloadType(byte payloadType);
-
-    /**
      * Gets all registered audio codecs.
      *
      * @return collection of audio codec infos

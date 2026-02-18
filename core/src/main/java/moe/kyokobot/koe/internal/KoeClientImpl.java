@@ -3,6 +3,8 @@ package moe.kyokobot.koe.internal;
 import moe.kyokobot.koe.KoeClient;
 import moe.kyokobot.koe.KoeOptions;
 import moe.kyokobot.koe.MediaConnection;
+import moe.kyokobot.koe.experimental.KoeClientExperimental;
+import moe.kyokobot.koe.experimental.MediaConnectionExperimental;
 import moe.kyokobot.koe.gateway.GatewayVersion;
 import moe.kyokobot.libdave.NativeDaveFactory;
 import moe.kyokobot.libdave.netty.NativeNettyDaveFactory;
@@ -17,12 +19,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class KoeClientImpl implements KoeClient {
+public class KoeClientImpl implements KoeClient, KoeClientExperimental {
     private static final Logger logger = LoggerFactory.getLogger(KoeClientImpl.class);
 
     private final long clientId;
     private final KoeOptions options;
-    private final Map<Long, MediaConnection> connections;
+    private final Map<Long, MediaConnectionExperimental> connections;
     private final @Nullable NettyDaveFactory daveFactory;
 
     public KoeClientImpl(long clientId, KoeOptions options) {
@@ -41,13 +43,13 @@ public class KoeClientImpl implements KoeClient {
 
     @Override
     @NotNull
-    public MediaConnection createConnection(long guildId) {
+    public MediaConnectionExperimental createConnection(long guildId) {
         return connections.computeIfAbsent(guildId, this::newVoiceConnection);
     }
 
     @Override
     @Nullable
-    public MediaConnection getConnection(long guildId) {
+    public MediaConnectionExperimental getConnection(long guildId) {
         return connections.get(guildId);
     }
 
@@ -60,8 +62,8 @@ public class KoeClientImpl implements KoeClient {
         }
     }
 
-    void removeConnection(long guildId) {
-        connections.remove(guildId);
+    void removeClosedConnection(MediaConnectionImpl connection) {
+        connections.remove(connection.getGuildId(), connection);
     }
 
     @Override
@@ -78,7 +80,7 @@ public class KoeClientImpl implements KoeClient {
         }
     }
 
-    public MediaConnection newVoiceConnection(long id) {
+    public MediaConnectionExperimental newVoiceConnection(long id) {
         return new MediaConnectionImpl(this, id);
     }
 

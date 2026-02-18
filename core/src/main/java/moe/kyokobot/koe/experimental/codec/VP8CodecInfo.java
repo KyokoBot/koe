@@ -1,6 +1,7 @@
-package moe.kyokobot.koe.codec;
+package moe.kyokobot.koe.experimental.codec;
 
-import org.jetbrains.annotations.NotNull;
+import moe.kyokobot.koe.codec.CodecInfo;
+import moe.kyokobot.koe.codec.CodecType;
 
 /**
  * VP8 video codec information.

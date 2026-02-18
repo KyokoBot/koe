@@ -1,14 +1,18 @@
-package moe.kyokobot.koe;
+package moe.kyokobot.koe.experimental;
 
 import moe.kyokobot.koe.internal.KoeClientImpl;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
 
-public class Koe {
-    private final KoeOptions options;
+public class KoeExperimental {
+    private final KoeOptionsExperimental options;
 
-    private Koe(@NotNull KoeOptions options) {
+    private KoeExperimental(@NotNull KoeOptionsExperimental options) {
+        if (!options.isExperimental()) {
+            throw new IllegalArgumentException("Provided options are not marked as experimental. Please use KoeOptionsExperimental.builder() to create options for KoeExperimental.");
+        }
+
         this.options = Objects.requireNonNull(options);
     }
 
@@ -17,7 +21,7 @@ public class Koe {
      * @return a new Koe client
      */
     @NotNull
-    public KoeClient newClient(long clientId) {
+    public KoeClientExperimental newClient(long clientId) {
         return new KoeClientImpl(clientId, options);
     }
 
@@ -25,7 +29,7 @@ public class Koe {
      * @return Options of current Koe instance
      */
     @NotNull
-    public KoeOptions getOptions() {
+    public KoeOptionsExperimental getOptions() {
         return options;
     }
 
@@ -36,8 +40,8 @@ public class Koe {
      * @return A new Koe instance.
      */
     @NotNull
-    public static Koe koe(@NotNull KoeOptions options) {
-        return new Koe(options);
+    public static KoeExperimental koe(@NotNull KoeOptionsExperimental options) {
+        return new KoeExperimental(options);
     }
 
     /**
@@ -46,7 +50,7 @@ public class Koe {
      * @return A new Koe instance.
      */
     @NotNull
-    public static Koe koe() {
-        return new Koe(KoeOptions.builder().create());
+    public static KoeExperimental koe() {
+        return new KoeExperimental(KoeOptionsExperimental.builder().create());
     }
 }

@@ -14,27 +14,29 @@ import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import moe.kyokobot.koe.codec.CodecRegistry;
 import moe.kyokobot.koe.codec.DefaultCodecRegistry;
+import moe.kyokobot.koe.gateway.GatewayVersion;
+import moe.kyokobot.koe.internal.KoeOptionsImpl;
 import moe.kyokobot.koe.poller.FramePollerFactory;
 import moe.kyokobot.koe.poller.netty.NettyFramePollerFactory;
-import moe.kyokobot.koe.gateway.GatewayVersion;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
 
 public class KoeOptionsBuilder {
-    private EventLoopGroup eventLoopGroup;
-    private Class<? extends SocketChannel> socketChannelClass;
-    private Class<? extends DatagramChannel> datagramChannelClass;
-    private ByteBufAllocator byteBufAllocator;
-    private GatewayVersion gatewayVersion;
-    private FramePollerFactory framePollerFactory;
-    private CodecRegistry codecRegistry;
-    private boolean highPacketPriority;
-    private boolean deafened;
-    private boolean enableWSSPortOverride;
-    private boolean enableDAVE;
+    protected EventLoopGroup eventLoopGroup;
+    protected Class<? extends SocketChannel> socketChannelClass;
+    protected Class<? extends DatagramChannel> datagramChannelClass;
+    protected ByteBufAllocator byteBufAllocator;
+    protected GatewayVersion gatewayVersion;
+    protected FramePollerFactory framePollerFactory;
+    protected CodecRegistry codecRegistry;
+    protected boolean experimental;
+    protected boolean highPacketPriority;
+    protected boolean deafened;
+    protected boolean enableWSSPortOverride;
+    protected boolean enableDAVE;
 
-    KoeOptionsBuilder() {
+    protected KoeOptionsBuilder() {
         boolean epoll = Epoll.isAvailable();
         this.eventLoopGroup = epoll
                 ? new EpollEventLoopGroup()
@@ -51,6 +53,7 @@ public class KoeOptionsBuilder {
         this.gatewayVersion = GatewayVersion.V8;
         this.framePollerFactory = new NettyFramePollerFactory();
         this.codecRegistry = new DefaultCodecRegistry();
+        this.experimental = false;
         this.highPacketPriority = true;
         this.deafened = false;
         this.enableWSSPortOverride = true;
@@ -184,7 +187,8 @@ public class KoeOptionsBuilder {
     }
 
     public KoeOptions create() {
-        return new KoeOptions(eventLoopGroup, socketChannelClass, datagramChannelClass, byteBufAllocator,
-                gatewayVersion, framePollerFactory, codecRegistry, highPacketPriority, deafened, enableWSSPortOverride, enableDAVE);
+        return new KoeOptionsImpl(eventLoopGroup, socketChannelClass, datagramChannelClass, byteBufAllocator,
+                gatewayVersion, framePollerFactory, codecRegistry, experimental,
+                highPacketPriority, deafened, enableWSSPortOverride, enableDAVE);
     }
 }
