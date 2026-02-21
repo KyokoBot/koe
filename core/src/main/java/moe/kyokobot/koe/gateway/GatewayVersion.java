@@ -2,6 +2,10 @@ package moe.kyokobot.koe.gateway;
 
 import moe.kyokobot.koe.VoiceServerInfo;
 import moe.kyokobot.koe.internal.MediaConnectionImpl;
+import moe.kyokobot.koe.internal.gateway.MediaGatewayConnectionFactory;
+import moe.kyokobot.koe.internal.gateway.MediaGatewayV4Connection;
+import moe.kyokobot.koe.internal.gateway.MediaGatewayV5Connection;
+import moe.kyokobot.koe.internal.gateway.MediaGatewayV8Connection;
 
 public enum GatewayVersion {
     V4(MediaGatewayV4Connection::new),
@@ -10,8 +14,8 @@ public enum GatewayVersion {
 
     private final MediaGatewayConnectionFactory factory;
 
-    public MediaGatewayConnection createConnection(MediaConnectionImpl connection, VoiceServerInfo voiceServerInfo) {
-        return factory.create(connection, voiceServerInfo);
+    public MediaGatewayConnectionFactory getFactory() {
+        return factory;
     }
 
     GatewayVersion(MediaGatewayConnectionFactory factory) {

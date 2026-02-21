@@ -50,6 +50,12 @@ public class DAVEManager implements AutoCloseable {
         return maxProtocolVersion;
     }
 
+    public void addUsers(Iterable<String> userIds) {
+        for (var uid : userIds) {
+            addUser(uid);
+        }
+    }
+
     public void addUser(String userId) {
         recognizedUserIds.add(userId);
         setupKeyRatchetForUser(userId, currentProtocolVersion);

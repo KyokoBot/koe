@@ -4,6 +4,7 @@ import moe.kyokobot.koe.KoeEventListener;
 import moe.kyokobot.koe.internal.json.JsonObject;
 
 import java.net.InetSocketAddress;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -19,7 +20,7 @@ public class EventDispatcher implements KoeEventListener {
         if (Objects.requireNonNull(listener) == this) {
             throw new IllegalArgumentException("Are you trying to register the dispatcher, rly?");
         }
-        
+
         listeners.add(listener);
     }
 
@@ -49,9 +50,16 @@ public class EventDispatcher implements KoeEventListener {
     }
 
     @Override
-    public void userConnected(String id, int audioSSRC, int videoSSRC, int rtxSSRC) {
+    public void userStreamsChanged(String id, int audioSSRC, int videoSSRC, int rtxSSRC) {
         for (var listener : listeners) {
-            listener.userConnected(id, audioSSRC, videoSSRC, rtxSSRC);
+            listener.userStreamsChanged(id, audioSSRC, videoSSRC, rtxSSRC);
+        }
+    }
+
+    @Override
+    public void usersConnected(List<String> userIds) {
+        for (var listener : listeners) {
+            listener.usersConnected(userIds);
         }
     }
 

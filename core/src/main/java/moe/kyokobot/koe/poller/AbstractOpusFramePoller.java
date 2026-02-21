@@ -151,7 +151,7 @@ public abstract class AbstractOpusFramePoller extends AbstractFramePoller {
 
     private class Op12HackListener extends KoeEventAdapter {
         @Override
-        public void userConnected(String id, int audioSSRC, int videoSSRC, int rtxSSRC) {
+        public void userStreamsChanged(String id, int audioSSRC, int videoSSRC, int rtxSSRC) {
             if (speaking) {
                 connection.updateSpeakingState(speakingMask);
             }

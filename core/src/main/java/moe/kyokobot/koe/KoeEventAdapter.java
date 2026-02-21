@@ -3,6 +3,7 @@ package moe.kyokobot.koe;
 import moe.kyokobot.koe.internal.json.JsonObject;
 
 import java.net.InetSocketAddress;
+import java.util.List;
 
 public class KoeEventAdapter implements KoeEventListener {
     @Override
@@ -21,8 +22,13 @@ public class KoeEventAdapter implements KoeEventListener {
     }
 
     @Override
-    public void userConnected(String id, int audioSSRC, int videoSSRC, int rtxSSRC) {
+    public void userStreamsChanged(String id, int audioSSRC, int videoSSRC, int rtxSSRC) {
         //
+    }
+
+    @Override
+    public void usersConnected(List<String> userIds) {
+
     }
 
     @Override

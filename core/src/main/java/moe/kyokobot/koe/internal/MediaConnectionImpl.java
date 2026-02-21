@@ -52,7 +52,8 @@ public class MediaConnectionImpl implements MediaConnection, MediaConnectionExpe
         this.disconnect();
         this.createDAVEManager();
 
-        var conn = client.getGatewayVersion().createConnection(this, info);
+        var gatewayFactory = client.getGatewayVersion().getFactory();
+        var conn = gatewayFactory.create(this, info);
 
         return conn.start().thenAccept(nothing -> {
             MediaConnectionImpl.this.info = info;
