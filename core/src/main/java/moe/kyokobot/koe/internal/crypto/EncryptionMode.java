@@ -1,4 +1,4 @@
-package moe.kyokobot.koe.crypto;
+package moe.kyokobot.koe.internal.crypto;
 
 import io.netty.buffer.ByteBuf;
 
@@ -11,7 +11,7 @@ public interface EncryptionMode {
     int ZERO_BYTES_LENGTH = 32; // For XSalsa20Poly1305
     int TAG_BYTES_LENGTH = 16; // For AEAD
 
-    boolean box(ByteBuf opus, int start, ByteBuf output, byte[] secretKey);
+    boolean box(ByteBuf plain, int start, ByteBuf output, byte[] secretKey);
 
     String getName();
 

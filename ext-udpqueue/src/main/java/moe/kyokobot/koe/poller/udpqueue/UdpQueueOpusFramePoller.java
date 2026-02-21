@@ -37,7 +37,7 @@ public class UdpQueueOpusFramePoller extends AbstractOpusFramePoller {
         }
         var handler = (DiscordUDPConnection) connectionHandler;
 
-        var packet = handler.createPacket(codec.getPayloadType(), timestamp, buf, len, false);
+        var packet = handler.createPacket(codec.getType(), codec.getPayloadType(), timestamp, buf, len, false);
         if (packet == null) {
             return;
         }

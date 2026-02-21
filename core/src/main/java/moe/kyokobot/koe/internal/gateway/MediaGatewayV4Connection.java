@@ -2,7 +2,7 @@ package moe.kyokobot.koe.internal.gateway;
 
 import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.VoiceServerInfo;
-import moe.kyokobot.koe.crypto.EncryptionMode;
+import moe.kyokobot.koe.internal.crypto.EncryptionMode;
 import moe.kyokobot.koe.gateway.Op;
 import moe.kyokobot.koe.internal.MediaConnectionImpl;
 import moe.kyokobot.koe.internal.handler.DiscordUDPConnection;

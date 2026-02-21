@@ -1,25 +1,23 @@
-package moe.kyokobot.koe.crypto;
+package moe.kyokobot.koe.internal.crypto;
 
-import com.google.crypto.tink.aead.internal.InsecureNonceXChaCha20Poly1305;
+import com.google.crypto.tink.aead.internal.InsecureNonceAesGcmJce;
 import io.netty.buffer.ByteBuf;
 
-import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 
-public class AEADXChaCha20Poly1305RTPSizeEncryptionMode implements EncryptionMode {
+public class AEADAES256GCMRTPSizeEncryptionMode implements EncryptionMode {
 
-    private static final int NONCE_BYTES_LENGTH = 24;
+    private static final int NONCE_BYTES_LENGTH = 12;
 
     private final byte[] extendedNonce = new byte[NONCE_BYTES_LENGTH];
-    private final ByteBuffer c = ByteBuffer.allocate(1276 + TAG_BYTES_LENGTH + NONCE_BYTES_LENGTH);
     private final byte[] associatedData = new byte[12];
     private int seq = Math.abs(SECURE_RANDOM.nextInt()) % 418 + 1;
 
     @Override
     @SuppressWarnings("Duplicates")
-    public boolean box(ByteBuf packet, int len, ByteBuf output, byte[] secretKey) {
+    public boolean box(ByteBuf plain, int len, ByteBuf output, byte[] secretKey) {
         var m = new byte[len];
-        packet.readBytes(m, 0, len);
+        plain.readBytes(m, 0, len);
 
         var s = this.seq++;
         extendedNonce[0] = (byte) (s & 0xff);
@@ -31,23 +29,22 @@ public class AEADXChaCha20Poly1305RTPSizeEncryptionMode implements EncryptionMod
         output.readBytes(associatedData);
         output.resetReaderIndex();
 
-        c.clear();
-        c.limit(len + TAG_BYTES_LENGTH);
+        byte[] c;
         try {
-            var xChaCha20Poly1305 = new InsecureNonceXChaCha20Poly1305(secretKey);
+            var aesGcmJce = new InsecureNonceAesGcmJce(secretKey);
 
-            xChaCha20Poly1305.encrypt(c, extendedNonce, m, associatedData);
+            c = aesGcmJce.encrypt(extendedNonce, m, associatedData);
         } catch (GeneralSecurityException e) {
             return false;
         }
 
-        output.writeBytes(c.flip());
+        output.writeBytes(c);
         output.writeIntLE(s);
         return true;
     }
 
     @Override
     public String getName() {
-        return "aead_xchacha20_poly1305_rtpsize";
+        return "aead_aes256_gcm_rtpsize";
     }
 }
