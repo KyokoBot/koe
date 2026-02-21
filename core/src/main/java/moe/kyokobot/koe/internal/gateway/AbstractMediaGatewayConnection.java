@@ -1,4 +1,4 @@
-package moe.kyokobot.koe.gateway;
+package moe.kyokobot.koe.internal.gateway;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
@@ -18,6 +18,9 @@ import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.concurrent.EventExecutor;
 import moe.kyokobot.koe.VoiceServerInfo;
+import moe.kyokobot.koe.gateway.CloseCode;
+import moe.kyokobot.koe.gateway.MediaGatewayConnection;
+import moe.kyokobot.koe.gateway.MediaValve;
 import moe.kyokobot.koe.internal.MediaConnectionImpl;
 import moe.kyokobot.koe.internal.NettyBootstrapFactory;
 import moe.kyokobot.koe.internal.json.JsonObject;

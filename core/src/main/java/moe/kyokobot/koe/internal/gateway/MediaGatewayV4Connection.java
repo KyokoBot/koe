@@ -1,9 +1,9 @@
-package moe.kyokobot.koe.gateway;
+package moe.kyokobot.koe.internal.gateway;
 
 import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.VoiceServerInfo;
-import moe.kyokobot.koe.codec.OpusCodecInfo;
 import moe.kyokobot.koe.crypto.EncryptionMode;
+import moe.kyokobot.koe.gateway.Op;
 import moe.kyokobot.koe.internal.MediaConnectionImpl;
 import moe.kyokobot.koe.internal.handler.DiscordUDPConnection;
 import moe.kyokobot.koe.internal.json.JsonArray;
@@ -117,7 +117,17 @@ public class MediaGatewayV4Connection extends AbstractMediaGatewayConnection {
                 var audioSsrc = data.getInt("audio_ssrc", 0);
                 var videoSsrc = data.getInt("video_ssrc", 0);
                 var rtxSsrc = data.getInt("rtx_ssrc", 0);
-                connection.getDispatcher().userConnected(user, audioSsrc, videoSsrc, rtxSsrc);
+                connection.getDispatcher().userStreamsChanged(user, audioSsrc, videoSsrc, rtxSsrc);
+                break;
+            }
+            case Op.CLIENT_CONNECT: {
+                var data = object.getObject("d");
+                var userIds = data.getArray("user_ids");
+
+                List<String> userIdList = userIds.stream()
+                        .map(o -> (String) o)
+                        .collect(Collectors.toList());
+                connection.getDispatcher().usersConnected(userIdList);
                 break;
             }
             case Op.CLIENT_DISCONNECT: {

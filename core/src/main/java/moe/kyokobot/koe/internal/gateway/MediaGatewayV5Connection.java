@@ -1,8 +1,10 @@
-package moe.kyokobot.koe.gateway;
+package moe.kyokobot.koe.internal.gateway;
 
 import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.VoiceServerInfo;
 import moe.kyokobot.koe.crypto.EncryptionMode;
+import moe.kyokobot.koe.gateway.MediaValve;
+import moe.kyokobot.koe.gateway.Op;
 import moe.kyokobot.koe.internal.MediaConnectionImpl;
 import moe.kyokobot.koe.internal.handler.DiscordUDPConnection;
 import moe.kyokobot.koe.internal.json.JsonArray;
@@ -22,7 +24,7 @@ import java.util.stream.Collectors;
 public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
     private static final Logger logger = LoggerFactory.getLogger(MediaGatewayV5Connection.class);
 
-    private final MediaValve mediaValve = new MediaValve(this);
+    private final MediaValve mediaValve = new MediaValveImpl(this);
     private int ssrc;
     private SocketAddress address;
     private List<String> encryptionModes;
@@ -128,7 +130,23 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
                 var audioSsrc = data.getInt("audio_ssrc", 0);
                 var videoSsrc = data.getInt("video_ssrc", 0);
                 var rtxSsrc = data.getInt("rtx_ssrc", 0);
-                connection.getDispatcher().userConnected(user, audioSsrc, videoSsrc, rtxSsrc);
+                connection.getDispatcher().userStreamsChanged(user, audioSsrc, videoSsrc, rtxSsrc);
+                break;
+            }
+            case Op.CLIENT_CONNECT: {
+                var data = object.getObject("d");
+                var userIds = data.getArray("user_ids");
+
+                List<String> userIdList = userIds.stream()
+                        .map(o -> (String) o)
+                        .collect(Collectors.toList());
+                connection.getDispatcher().usersConnected(userIdList);
+
+//                var manager = connection.getDAVEManager(); // TODO: we don't have MLS implemented in v5
+//                if (manager != null) {
+//                    manager.addUsers(userIdList);
+//                }
+
                 break;
             }
             case Op.CLIENT_DISCONNECT: {
@@ -150,6 +168,7 @@ public class MediaGatewayV5Connection extends AbstractMediaGatewayConnection {
 
                 break;
             }
+            // TODO: MLS
             default:
                 break;
         }

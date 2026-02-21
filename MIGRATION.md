@@ -18,6 +18,11 @@ follows the [binary compatibility policy](README.md#binary-compatibility) descri
 
 The unfinished video support has been moved to the experimental package in intent to be finished in future releases.
 
+## KoeEventListener
+
+1. The old `userConnected` method has been renamed to `userStreamsChanged` to reflect the fact that it's not fired when a user joins the voice channel, but when their stream configuration changes (e.g., starts/stops video).
+2. A new `usersConnected` method has been added if you actually need to know when an user has joined the voice channel. 
+
 ## Refactoring of the poller / provider API
 
 Frame poller classes moved from `moe.kyokobot.koe.codec` to `moe.kyokobot.koe.poller`.
@@ -137,3 +142,7 @@ All codec classes have been renamed with an `Info` suffix:
 | `H264Codec.INSTANCE` | `H264CodecInfo.INSTANCE` |
 | `VP8Codec.INSTANCE`  | `VP8CodecInfo.INSTANCE`  |
 | `VP9Codec.INSTANCE`  | `VP9CodecInfo.INSTANCE`  |
+
+## Gateway
+
+The gateway implementation has been moved to the `internal` package until refactoring for an usable public API is complete.

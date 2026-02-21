@@ -263,7 +263,7 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
 
     private static class ExampleListener extends KoeEventAdapter {
         @Override
-        public void userConnected(String id, int audioSSRC, int videoSSRC, int rtxSSRC) {
+        public void userStreamsChanged(String id, int audioSSRC, int videoSSRC, int rtxSSRC) {
             logger.info("An user with id {} joined the channel!", id);
         }
 
