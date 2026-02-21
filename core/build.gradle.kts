@@ -8,3 +8,9 @@ dependencies {
     implementation("moe.kyokobot.libdave:impl-jni:1.0-SNAPSHOT")
     compileOnly("org.jetbrains:annotations:13.0")
 }
+
+mavenPublishing {
+    pom {
+        name = "core"
+    }
+}

@@ -4,3 +4,9 @@ dependencies {
     implementation("club.minnced:udpqueue-api:0.2.9")
     compileOnly("org.jetbrains:annotations:13.0")
 }
+
+mavenPublishing {
+    pom {
+        name = "ext-udpqueue"
+    }
+}
