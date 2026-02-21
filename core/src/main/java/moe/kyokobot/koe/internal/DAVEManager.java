@@ -3,9 +3,7 @@ package moe.kyokobot.koe.internal;
 import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.codec.OpusCodecInfo;
 import moe.kyokobot.koe.internal.json.JsonObject;
-import moe.kyokobot.libdave.KeyRatchet;
-import moe.kyokobot.libdave.MediaType;
-import moe.kyokobot.libdave.Session;
+import moe.kyokobot.libdave.*;
 import moe.kyokobot.libdave.netty.NettyDaveFactory;
 import moe.kyokobot.libdave.netty.NettyEncryptor;
 import org.jetbrains.annotations.NotNull;
@@ -50,6 +48,10 @@ public class DAVEManager implements AutoCloseable {
         return maxProtocolVersion;
     }
 
+    public int getMaxCiphertextByteSize(MediaType mediaType, int frameSize) {
+        return selfEncryptor.getMaxCiphertextByteSize(mediaType, frameSize);
+    }
+
     public void addUsers(Iterable<String> userIds) {
         for (var uid : userIds) {
             addUser(uid);
@@ -65,7 +67,7 @@ public class DAVEManager implements AutoCloseable {
         recognizedUserIds.remove(userId);
     }
 
-    public ByteBuf encrypt(MediaType mediaType, int ssrc, ByteBuf output, ByteBuf input, int size) {
+    public int encrypt(MediaType mediaType, int ssrc, ByteBuf output, ByteBuf input, int size) {
         if (mediaType == MediaType.AUDIO && size == 3) {
             input.markReaderIndex();
             var b1 = input.readByte() == OpusCodecInfo.SILENCE_FRAME[0];
@@ -75,13 +77,13 @@ public class DAVEManager implements AutoCloseable {
             input.resetReaderIndex();
 
             if (isSilence) {
-                return input;
+                output.writeBytes(OpusCodecInfo.SILENCE_FRAME);
+                return EncryptorResultCode.SUCCESS.getValue();
             }
         }
 
         output.ensureWritable(this.selfEncryptor.getMaxCiphertextByteSize(mediaType, size));
-        var _result = this.selfEncryptor.encrypt(mediaType, ssrc, input, output);
-        return output;
+        return this.selfEncryptor.encrypt(mediaType, ssrc, input, output);
     }
 
     public void handleSessionDescription(@NotNull JsonObject session, long mlsGroupId) {

@@ -5,7 +5,7 @@ dependencies {
     implementation("dev.arbjerg:lavaplayer:2.2.6")
     implementation("com.github.lavalink-devs:lavaplayer-youtube-source:1.16.0")
     implementation("ch.qos.logback:logback-classic:1.5.18")
-    
+
     implementation("moe.kyokobot.libdave:natives-linux-x86-64:1.0-SNAPSHOT")
     implementation("club.minnced:udpqueue-native-linux-x86-64:0.2.12")
     implementation("club.minnced:udpqueue-native-win-x86-64:0.2.12")

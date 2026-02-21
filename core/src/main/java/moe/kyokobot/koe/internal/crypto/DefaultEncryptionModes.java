@@ -1,4 +1,4 @@
-package moe.kyokobot.koe.crypto;
+package moe.kyokobot.koe.internal.crypto;
 
 import java.security.Security;
 import java.util.Collections;

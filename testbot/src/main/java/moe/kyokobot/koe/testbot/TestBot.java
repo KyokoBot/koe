@@ -66,7 +66,7 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
         this.jda = createJDA();
         var options = configureKoe(KoeOptions.builder()
                 .setByteBufAllocator(this.leakDetect.getAllocator())
-                .setDAVEEnabled(false) // TODO: fix segfaults
+//                .setDAVEEnabled(false) // TODO: fix segfaults
         );
         this.koe = Koe.koe(options);
         this.playerManager = createAudioPlayerManager();

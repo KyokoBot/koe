@@ -8,12 +8,15 @@ import io.netty.channel.socket.DatagramChannel;
 import moe.kyokobot.koe.codec.CodecInfo;
 import moe.kyokobot.koe.codec.CodecInstance;
 import moe.kyokobot.koe.codec.CodecRegistry;
-import moe.kyokobot.koe.crypto.EncryptionMode;
+import moe.kyokobot.koe.codec.CodecType;
 import moe.kyokobot.koe.handler.ConnectionHandler;
 import moe.kyokobot.koe.internal.MediaConnectionImpl;
 import moe.kyokobot.koe.internal.NettyBootstrapFactory;
+import moe.kyokobot.koe.internal.crypto.EncryptionMode;
 import moe.kyokobot.koe.internal.json.JsonObject;
 import moe.kyokobot.koe.internal.util.RTPHeaderWriter;
+import moe.kyokobot.libdave.EncryptorResultCode;
+import moe.kyokobot.libdave.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,31 +111,50 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
     }
 
     @Override
-    public void sendFrame(byte payloadType, int timestamp, ByteBuf data, int len, boolean extension) {
-        var buf = createPacket(payloadType, timestamp, data, len, extension);
+    public void sendFrame(CodecType codecType, byte payloadType, int timestamp, ByteBuf data, int len, boolean extension) {
+        var buf = createPacket(codecType, payloadType, timestamp, data, len, extension);
         if (buf != null) {
             channel.writeAndFlush(buf);
         }
     }
 
-    public ByteBuf createPacket(byte payloadType, int timestamp, ByteBuf data, int len, boolean extension) {
+    public ByteBuf createPacket(CodecType codecType, byte payloadType, int timestamp, ByteBuf data, int len, boolean extension) {
         if (secretKey == null) {
             return null;
         }
+
+        var mediaType = codecType == CodecType.AUDIO ? MediaType.AUDIO : MediaType.VIDEO;
+
+        var inputBuffer = data;
+        int inputLen = len;
 
         var buf = allocator.buffer();
         buf.clear();
         var dave = connection.getDAVEManager();
         if (dave != null) {
+            inputBuffer = allocator.buffer();
+            var result = dave.encrypt(mediaType, ssrc, inputBuffer, data, len);
+            inputLen = inputBuffer.readableBytes();
 
+            if (result < 0) {
+                logger.debug("DAVE encryption failed with code {}", result);
+
+                buf.release();
+                inputBuffer.release();
+                return null;
+            }
+        } else {
+            inputBuffer.retain();
         }
 
         RTPHeaderWriter.writeV2(buf, payloadType, nextSeq(), timestamp, ssrc, extension);
-        if (encryptionMode.box(data, len, buf, secretKey)) {
+        if (encryptionMode.box(inputBuffer, inputLen, buf, secretKey)) {
+            inputBuffer.release();
             return buf;
         } else {
             logger.debug("Encryption failed!");
             buf.release();
+            inputBuffer.release();
             // TODO: handle failed encryption?
         }
 

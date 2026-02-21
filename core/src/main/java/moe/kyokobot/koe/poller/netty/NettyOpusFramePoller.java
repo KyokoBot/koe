@@ -23,6 +23,6 @@ public class NettyOpusFramePoller extends AbstractOpusFramePoller {
         if (handler == null) {
             return;
         }
-        handler.sendFrame(codec.getPayloadType(), timestamp, buf, len, false);
+        handler.sendFrame(codec, timestamp, buf, len);
     }
 }

@@ -1,7 +1,6 @@
-package moe.kyokobot.koe.crypto;
+package moe.kyokobot.koe.internal.crypto;
 
 import io.netty.buffer.ByteBuf;
-import moe.kyokobot.koe.internal.crypto.TweetNaclFastInstanced;
 
 public class XSalsa20Poly1305LiteEncryptionMode implements EncryptionMode {
     private final byte[] extendedNonce = new byte[24];
@@ -12,14 +11,14 @@ public class XSalsa20Poly1305LiteEncryptionMode implements EncryptionMode {
 
     @Override
     @SuppressWarnings("Duplicates")
-    public boolean box(ByteBuf packet, int len, ByteBuf output, byte[] secretKey) {
+    public boolean box(ByteBuf plain, int len, ByteBuf output, byte[] secretKey) {
         for (int i = 0; i < c.length; i++) {
             m[i] = 0;
             c[i] = 0;
         }
 
         for (int i = 0; i < len; i++) {
-            m[i + 32] = packet.readByte();
+            m[i + 32] = plain.readByte();
         }
 
         int s = this.seq++;
