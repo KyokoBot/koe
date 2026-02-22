@@ -1,6 +1,12 @@
 dependencies {
-    compileOnly(project(":core"))
-    implementation("dev.arbjerg:lava-common:2.2.1")
-    implementation("club.minnced:udpqueue-api:0.2.9")
-    compileOnly("org.jetbrains:annotations:13.0")
+    compileOnly(projects.core)
+    implementation(libs.lava.common)
+    implementation(libs.udpqueue.api)
+    implementation(libs.jetbrains.annotations)
+}
+
+mavenPublishing {
+    pom {
+        name = "ext-udpqueue"
+    }
 }
