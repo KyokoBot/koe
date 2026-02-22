@@ -10,7 +10,6 @@ val gitVersionInfo = getGitVersion()
 logger.lifecycle("Version: ${gitVersionInfo.version} (isCommitHash: ${gitVersionInfo.isCommitHash})")
 
 subprojects {
-
     apply(plugin = "java-library")
 
     group = "moe.kyokobot.koe"
@@ -31,6 +30,9 @@ subprojects {
         mavenCentral()
         maven {
             url = uri("https://maven.lavalink.dev/releases")
+        }
+        maven {
+            url = uri("https://maven.lavalink.dev/snapshots")
         }
         maven {
             url = uri("https://jitpack.io/")
