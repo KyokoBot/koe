@@ -100,15 +100,6 @@ subprojects {
                 }
             }
         }
-
-        configure<PublishingExtension> {
-            publications {
-                create<MavenPublication>("mavenJava") {
-                    from(components["java"])
-
-                }
-            }
-        }
     }
 }
 
