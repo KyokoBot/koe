@@ -1,3 +1,11 @@
+plugins {
+    id("application")
+}
+
+application {
+    mainClass = "moe.kyokobot.koe.testbot.KoeTestBotLauncher"
+}
+
 dependencies {
     implementation(projects.core)
     implementation(projects.extUdpqueue)
@@ -7,7 +15,7 @@ dependencies {
     implementation(libs.logback.classic)
 
     implementation(libs.libdave.natives.linux)
-    implementation(libs.libdave.natives.windows)
+    implementation(libs.libdave.natives.win)
 
     implementation(libs.udpqueue.native.linux)
     implementation(libs.udpqueue.native.win)

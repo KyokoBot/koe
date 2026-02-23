@@ -32,7 +32,7 @@ dependencyResolutionManagement {
             library("libdave-api", "moe.kyokobot.libdave", "api").versionRef("libdave")
             library("libdave-impl-jni", "moe.kyokobot.libdave", "impl-jni").versionRef("libdave")
             library("libdave-natives-linux", "moe.kyokobot.libdave", "natives-linux-x86-64").versionRef("libdave")
-            library("libdave-natives-windows", "moe.kyokobot.libdave", "natives-win-x86-64").versionRef("libdave")
+            library("libdave-natives-win", "moe.kyokobot.libdave", "natives-win-x86-64").versionRef("libdave")
 
             version("udpqueue", "0.2.12")
             library("udpqueue-api", "club.minnced", "udpqueue-api").versionRef("udpqueue")
