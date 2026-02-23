@@ -115,7 +115,7 @@ public boolean canProvide() {
 ```java
 var queuePool = new QueueManagerPool(
     Runtime.getRuntime().availableProcessors(),
-    UdpQueueFramePollerFactory.DEFAULT_BUFFER_DURATION
+    QueueManagerPool.DEFAULT_BUFFER_DURATION
 );
 
 .setFramePollerFactory(new UdpQueueFramePollerFactory(queuePool));
