@@ -40,6 +40,7 @@ public class DAVEManager implements AutoCloseable {
         this.factory = factory;
         this.daveSession = factory.createSession("", "", this::mlsFailureCallback);
         this.selfEncryptor = factory.fromEncryptor(factory.createEncryptor());
+        this.selfEncryptor.setPassthroughMode(true);
         this.maxProtocolVersion = factory.maxSupportedProtocolVersion();
         this.selfUserIdString = String.valueOf(connection.getClient().getClientId());
     }
@@ -147,6 +148,7 @@ public class DAVEManager implements AutoCloseable {
         if (roster == null) {
             sendMLSInvalidCommitWelcome(transitionId);
             sendMLSKeyPackage();
+            return;
         }
 
         prepareRatchets(transitionId, daveSession.getProtocolVersion());
@@ -175,7 +177,11 @@ public class DAVEManager implements AutoCloseable {
 
     private void setupKeyRatchetForUser(String uid, int protocolVersion) {
         var keyRatchet = makeKeyRatchetForUser(uid, protocolVersion);
-        setSelfKeyRatchet(keyRatchet);
+        if (selfUserIdString.equals(uid)) {
+            setSelfKeyRatchet(keyRatchet);
+        } else if (keyRatchet != null) {
+            keyRatchet.close();
+        }
     }
 
     @Nullable
@@ -255,6 +261,10 @@ public class DAVEManager implements AutoCloseable {
     @Override
     public void close() throws Exception {
         daveSession.close();
+        if (selfKeyRatchet != null) {
+            selfKeyRatchet.close();
+            selfKeyRatchet = null;
+        }
         selfEncryptor.close();
     }
 
@@ -275,10 +285,13 @@ public class DAVEManager implements AutoCloseable {
         }
 
         this.selfKeyRatchet = selfKeyRatchet;
+        this.reinitSelfEncryptor();
 
-        if (this.selfKeyRatchet != null) {
-            this.reinitSelfEncryptor();
+        if (this.selfKeyRatchet == null) {
+            this.selfEncryptor.setPassthroughMode(true);
+        } else {
             this.selfEncryptor.setKeyRatchet(selfKeyRatchet);
+            this.selfEncryptor.setPassthroughMode(false);
         }
     }
 
