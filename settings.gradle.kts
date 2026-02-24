@@ -28,7 +28,7 @@ dependencyResolutionManagement {
 
             library("jda", "net.dv8tion", "JDA").version("5.0.2")
 
-            version("libdave", "6445322dc")
+            version("libdave", "5f254c1fd")
             library("libdave-api", "moe.kyokobot.libdave", "api").versionRef("libdave")
             library("libdave-impl-jni", "moe.kyokobot.libdave", "impl-jni").versionRef("libdave")
             library("libdave-natives-darwin", "moe.kyokobot.libdave", "natives-darwin").versionRef("libdave")
