@@ -25,6 +25,7 @@ public class DAVEManager implements AutoCloseable {
     private final NettyDaveFactory factory;
     private final Session daveSession;
     private final Set<String> recognizedUserIds = ConcurrentHashMap.newKeySet();
+    private final Map<String, byte[]> activeE2EEUsers = new ConcurrentHashMap<>();
     private final Map<Integer, Integer> pendingTransitions = new ConcurrentHashMap<>();
     private final int maxProtocolVersion;
 
@@ -61,11 +62,11 @@ public class DAVEManager implements AutoCloseable {
 
     public void addUser(String userId) {
         recognizedUserIds.add(userId);
-        setupKeyRatchetForUser(userId, currentProtocolVersion);
     }
 
     public void removeUser(String userId) {
         recognizedUserIds.remove(userId);
+        activeE2EEUsers.remove(userId);
     }
 
     public int encrypt(MediaType mediaType, int ssrc, ByteBuf output, ByteBuf input, int size) {
@@ -136,6 +137,8 @@ public class DAVEManager implements AutoCloseable {
             return;
         }
 
+        updateActiveUsers(result.getRosterMap());
+
         prepareRatchets(transitionId, daveSession.getProtocolVersion());
         if (transitionId != 0) {
             sendSecureFramesReadyForTransition(transitionId);
@@ -151,6 +154,8 @@ public class DAVEManager implements AutoCloseable {
             return;
         }
 
+        updateActiveUsers(roster);
+
         prepareRatchets(transitionId, daveSession.getProtocolVersion());
         if (transitionId != 0) {
             sendSecureFramesReadyForTransition(transitionId);
@@ -163,11 +168,23 @@ public class DAVEManager implements AutoCloseable {
             prepareEpoch(MLS_NEW_GROUP_EPOCH, protocolVersion);
             sendMLSKeyPackage();
         } else {
+            activeE2EEUsers.clear();
             prepareRatchets(INIT_TRANSITION_ID, protocolVersion);
             executeTransition(INIT_TRANSITION_ID);
         }
     }
 
+    private void updateActiveUsers(RosterMap roster) {
+        for (var entry : roster.entrySet()) {
+            String userId = String.valueOf(entry.getKey());
+            byte[] key = entry.getValue();
+            if (key == null || key.length == 0) {
+                activeE2EEUsers.remove(userId);
+            } else {
+                activeE2EEUsers.put(userId, key);
+            }
+        }
+    }
 
     private void prepareEpoch(String epoch, int protocolVersion) {
         if (MLS_NEW_GROUP_EPOCH.equals(epoch)) {
@@ -194,12 +211,18 @@ public class DAVEManager implements AutoCloseable {
     }
 
     private void prepareRatchets(int transitionId, int protocolVersion) {
-        for (var uid : recognizedUserIds) {
-            if (selfUserIdString.equals(uid)) {
-                continue;
+        if (protocolVersion == 0) {
+            for (var uid : recognizedUserIds) {
+                setupKeyRatchetForUser(uid, 0);
             }
+        } else {
+            for (var uid : activeE2EEUsers.keySet()) {
+                if (selfUserIdString.equals(uid)) {
+                    continue;
+                }
 
-            setupKeyRatchetForUser(uid, protocolVersion);
+                setupKeyRatchetForUser(uid, protocolVersion);
+            }
         }
 
         if (transitionId == INIT_TRANSITION_ID) {
@@ -219,6 +242,7 @@ public class DAVEManager implements AutoCloseable {
 
         if (protocolVersion == 0) {
             daveSession.reset();
+            activeE2EEUsers.clear();
         }
 
         setupKeyRatchetForUser(selfUserIdString, protocolVersion);
