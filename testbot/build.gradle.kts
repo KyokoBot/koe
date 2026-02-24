@@ -16,7 +16,11 @@ dependencies {
 
     implementation(libs.libdave.natives.linux)
     implementation(libs.libdave.natives.win)
+    implementation(libs.libdave.natives.win.arm64)
+    implementation(libs.libdave.natives.darwin)
 
     implementation(libs.udpqueue.native.linux)
     implementation(libs.udpqueue.native.win)
+    implementation(libs.udpqueue.native.win.arm64)
+    implementation(libs.udpqueue.native.darwin)
 }

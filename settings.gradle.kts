@@ -28,16 +28,20 @@ dependencyResolutionManagement {
 
             library("jda", "net.dv8tion", "JDA").version("5.0.2")
 
-            version("libdave", "32a0ce524")
+            version("libdave", "6445322dc")
             library("libdave-api", "moe.kyokobot.libdave", "api").versionRef("libdave")
             library("libdave-impl-jni", "moe.kyokobot.libdave", "impl-jni").versionRef("libdave")
             library("libdave-natives-linux", "moe.kyokobot.libdave", "natives-linux-x86-64").versionRef("libdave")
             library("libdave-natives-win", "moe.kyokobot.libdave", "natives-win-x86-64").versionRef("libdave")
+            library("libdave-natives-win-arm64", "moe.kyokobot.libdave", "natives-win-aarch64").versionRef("libdave")
+            library("libdave-natives-darwin", "moe.kyokobot.libdave", "natives-darwin").versionRef("libdave")
 
             version("udpqueue", "0.2.12")
             library("udpqueue-api", "club.minnced", "udpqueue-api").versionRef("udpqueue")
             library("udpqueue-native-linux", "club.minnced", "udpqueue-native-linux-x86-64").versionRef("udpqueue")
             library("udpqueue-native-win", "club.minnced", "udpqueue-native-win-x86-64").versionRef("udpqueue")
+            library("udpqueue-native-win-arm64", "club.minnced", "udpqueue-native-win-aarch64").versionRef("udpqueue")
+            library("udpqueue-native-darwin", "club.minnced", "udpqueue-native-darwin").versionRef("udpqueue")
         }
     }
 }
