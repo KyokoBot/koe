@@ -9,7 +9,7 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 dependencyResolutionManagement {
     versionCatalogs {
         create("libs") {
-            version("netty", "4.1.112.Final")
+            version("netty", "4.2.10.Final")
             library("netty-transport", "io.netty", "netty-transport").versionRef("netty")
             library("netty-codec-http", "io.netty", "netty-codec-http").versionRef("netty")
             library("netty-transport-native-epoll-linux", "io.netty", "netty-transport-native-epoll").versionRef("netty")
