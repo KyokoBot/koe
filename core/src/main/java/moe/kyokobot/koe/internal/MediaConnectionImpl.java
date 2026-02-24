@@ -35,7 +35,7 @@ public class MediaConnectionImpl implements MediaConnection, MediaConnectionExpe
     private AbstractFramePoller videoPoller;
     private AudioFrameProvider audioSender;
     private VideoFrameProvider videoSender;
-    private DAVEManager daveManager;
+    private volatile DAVEManager daveManager;
 
     public MediaConnectionImpl(@NotNull KoeClientImpl client, long guildId) {
         this.client = Objects.requireNonNull(client);

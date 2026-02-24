@@ -37,9 +37,9 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
     private final Bootstrap bootstrap;
     private final int ssrc;
 
-    private EncryptionMode encryptionMode;
-    private DatagramChannel channel;
-    private byte[] secretKey;
+    private volatile EncryptionMode encryptionMode;
+    private volatile DatagramChannel channel;
+    private volatile byte[] secretKey;
 
     private char seq;
 
@@ -125,40 +125,50 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
 
         var mediaType = codecType == CodecType.AUDIO ? MediaType.AUDIO : MediaType.VIDEO;
 
+        ByteBuf buf = null;
         var inputBuffer = data;
-        int inputLen = len;
+        var inputLen = len;
+        var inputBufferIsOwned = false; // true if we allocated inputBuffer (DAVE path)
 
-        var buf = allocator.buffer();
-        buf.clear();
-        var dave = connection.getDAVEManager();
-        if (dave != null) {
-            inputBuffer = allocator.buffer();
-            var result = dave.encrypt(mediaType, ssrc, inputBuffer, data, len);
-            inputLen = inputBuffer.readableBytes();
+        try {
+            buf = allocator.buffer();
+            buf.clear();
+            var dave = connection.getDAVEManager();
+            if (dave != null) {
+                inputBuffer = allocator.buffer();
+                inputBufferIsOwned = true;
+                var result = dave.encrypt(mediaType, ssrc, inputBuffer, data, len);
+                inputLen = inputBuffer.readableBytes();
 
-            if (result < 0) {
-                logger.debug("DAVE encryption failed with code {}", result);
-
-                buf.release();
-                inputBuffer.release();
-                return null;
+                if (result < 0) {
+                    logger.debug("DAVE encryption failed with code {}", result);
+                    return null;
+                }
+            } else {
+                inputBuffer.retain();
+                inputBufferIsOwned = true; // we retained, so we must release
             }
-        } else {
-            inputBuffer.retain();
-        }
 
-        RTPHeaderWriter.writeV2(buf, payloadType, nextSeq(), timestamp, ssrc, extension);
-        if (encryptionMode.box(inputBuffer, inputLen, buf, secretKey)) {
-            inputBuffer.release();
-            return buf;
-        } else {
+            RTPHeaderWriter.writeV2(buf, payloadType, nextSeq(), timestamp, ssrc, extension);
+            if (encryptionMode.box(inputBuffer, inputLen, buf, secretKey)) {
+                inputBuffer.release();
+                inputBufferIsOwned = false;
+
+                var result = buf;
+                buf = null; // do not release in finally — caller owns it
+                return result;
+            }
             logger.debug("Encryption failed!");
-            buf.release();
-            inputBuffer.release();
-            // TODO: handle failed encryption?
-        }
+            return null;
+        } finally {
+            if (buf != null && buf.refCnt() > 0) {
+                buf.release();
+            }
 
-        return null;
+            if (inputBufferIsOwned && inputBuffer != null && inputBuffer.refCnt() > 0) {
+                inputBuffer.release();
+            }
+        }
     }
 
     public char nextSeq() {

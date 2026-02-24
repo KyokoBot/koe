@@ -25,9 +25,8 @@ public class AEADAES256GCMRTPSizeEncryptionMode implements EncryptionMode {
         extendedNonce[2] = (byte) ((s >> 16) & 0xff);
         extendedNonce[3] = (byte) ((s >> 24) & 0xff);
 
-        // rtp header was already written to output
-        output.readBytes(associatedData);
-        output.resetReaderIndex();
+        // rtp header was already written to output (read without moving reader index)
+        output.getBytes(0, associatedData);
 
         byte[] c;
         try {

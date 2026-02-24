@@ -1,6 +1,7 @@
 package moe.kyokobot.koe.testbot;
 
 import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.util.ResourceLeakDetector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,6 +11,7 @@ public class NettyLeakDetect {
 
     public NettyLeakDetect() {
         allocator = new PooledByteBufAllocator(true, 1, 1, 8192, 11, 0, 0, false);
+        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID);
     }
 
     public PooledByteBufAllocator getAllocator() {
