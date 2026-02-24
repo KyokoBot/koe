@@ -24,7 +24,7 @@ dependencyResolutionManagement {
             version("lavaplayer", "2.2.6")
             library("lava-common", "dev.arbjerg", "lava-common").versionRef("lavaplayer")
             library("lavaplayer", "dev.arbjerg", "lavaplayer").versionRef("lavaplayer")
-            library("lavaplayer-youtube", "com.github.lavalink-devs", "lavaplayer-youtube-source").version("1.16.0")
+            library("lavaplayer-youtube", "com.github.lavalink-devs", "lavaplayer-youtube-source").version("1.18.0")
 
             library("jda", "net.dv8tion", "JDA").version("5.0.2")
 
