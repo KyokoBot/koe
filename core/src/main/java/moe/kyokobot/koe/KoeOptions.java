@@ -41,5 +41,7 @@ public interface KoeOptions {
 
     boolean isEnableWSSPortOverride();
 
+    boolean isVerifyWSSHostname();
+
     boolean isEnableDAVE();
 }
