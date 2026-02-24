@@ -51,6 +51,7 @@ buildNumber.properties
 
 */build/
 */out/
+/build/
 
 # CMake
 cmake-build-*/
