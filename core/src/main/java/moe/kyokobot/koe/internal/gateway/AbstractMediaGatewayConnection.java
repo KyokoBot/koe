@@ -69,10 +69,17 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
 
             this.connection = Objects.requireNonNull(connection);
             this.voiceServerInfo = Objects.requireNonNull(voiceServerInfo);
+
             this.websocketURI = new URI(String.format("wss://%s/?v=%d", endpoint, version));
             this.bootstrap = NettyBootstrapFactory.socket(connection.getOptions())
                     .handler(new WebSocketInitializer());
-            this.sslContext = SslContextBuilder.forClient().build();
+
+            var sslBuilder = SslContextBuilder.forClient();
+            if (!connection.getOptions().isVerifyWSSHostname()) {
+                sslBuilder.endpointIdentificationAlgorithm(null);
+            }
+            this.sslContext = sslBuilder.build();
+
             this.allocator = connection.getOptions().getByteBufAllocator();
             this.connectFuture = new CompletableFuture<>();
         } catch (SSLException | URISyntaxException e) {
@@ -285,7 +292,9 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
         @Override
         protected void initChannel(SocketChannel ch) {
             var pipeline = ch.pipeline();
-            var engine = sslContext.newEngine(ch.alloc());
+            var engine = connection.getOptions().isVerifyWSSHostname()
+                    ? sslContext.newEngine(ch.alloc(), websocketURI.getHost(), websocketURI.getPort() == -1 ? 443 : websocketURI.getPort())
+                    : sslContext.newEngine(ch.alloc());
             pipeline.addLast("ssl", new SslHandler(engine));
             pipeline.addLast("http-codec", new HttpClientCodec());
             pipeline.addLast("aggregator", new HttpObjectAggregator(65536));

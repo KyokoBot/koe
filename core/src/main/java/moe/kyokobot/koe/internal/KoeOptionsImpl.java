@@ -30,6 +30,7 @@ public class KoeOptionsImpl implements KoeOptionsExperimental {
     private final boolean highPacketPriority;
     private final boolean deafened;
     private final boolean enableWSSPortOverride;
+    private final boolean verifyWSSHostname;
     private final boolean enableDAVE;
 
     public KoeOptionsImpl(
@@ -44,6 +45,7 @@ public class KoeOptionsImpl implements KoeOptionsExperimental {
             boolean highPacketPriority,
             boolean deafened,
             boolean enableWSSPortOverride,
+            boolean verifyWSSHostname,
             boolean daveEnabled
     ) {
         this.eventLoopGroup = Objects.requireNonNull(eventLoopGroup);
@@ -57,6 +59,7 @@ public class KoeOptionsImpl implements KoeOptionsExperimental {
         this.highPacketPriority = highPacketPriority;
         this.deafened = deafened;
         this.enableWSSPortOverride = enableWSSPortOverride;
+        this.verifyWSSHostname = verifyWSSHostname;
         this.enableDAVE = daveEnabled;
     }
 
@@ -120,6 +123,11 @@ public class KoeOptionsImpl implements KoeOptionsExperimental {
     @Override
     public boolean isEnableWSSPortOverride() {
         return enableWSSPortOverride;
+    }
+
+    @Override
+    public boolean isVerifyWSSHostname() {
+        return verifyWSSHostname;
     }
 
     @Override

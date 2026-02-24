@@ -34,6 +34,7 @@ public class KoeOptionsBuilder {
     protected boolean highPacketPriority;
     protected boolean deafened;
     protected boolean enableWSSPortOverride;
+    protected boolean verifyWSSHostname;
     protected boolean enableDAVE;
 
     protected KoeOptionsBuilder() {
@@ -56,7 +57,8 @@ public class KoeOptionsBuilder {
         this.experimental = false;
         this.highPacketPriority = true;
         this.deafened = false;
-        this.enableWSSPortOverride = true;
+        this.enableWSSPortOverride = false;
+        this.verifyWSSHostname = true;
         this.enableDAVE = true;
     }
 
@@ -178,6 +180,17 @@ public class KoeOptionsBuilder {
     }
 
     /**
+     * Sets whether to verify the server certificate hostname for WSS voice gateway connections.
+     * Defaults to true. Set to false only for custom or self-signed voice endpoints.
+     *
+     * @param verifyWSSHostname true to verify hostname (default), false to disable verification
+     */
+    public KoeOptionsBuilder setVerifyWSSHostname(boolean verifyWSSHostname) {
+        this.verifyWSSHostname = verifyWSSHostname;
+        return this;
+    }
+
+    /**
      * Sets whether End-to-End encryption using Discord's <a href="https://daveprotocol.com">DAVE protocol</a> is enabled.
      * Defaults to true.
      */
@@ -189,6 +202,6 @@ public class KoeOptionsBuilder {
     public KoeOptions create() {
         return new KoeOptionsImpl(eventLoopGroup, socketChannelClass, datagramChannelClass, byteBufAllocator,
                 gatewayVersion, framePollerFactory, codecRegistry, experimental,
-                highPacketPriority, deafened, enableWSSPortOverride, enableDAVE);
+                highPacketPriority, deafened, enableWSSPortOverride, verifyWSSHostname, enableDAVE);
     }
 }
