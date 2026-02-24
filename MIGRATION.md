@@ -146,3 +146,7 @@ All codec classes have been renamed with an `Info` suffix:
 ## Gateway
 
 The gateway implementation has been moved to the `internal` package until refactoring for an usable public API is complete.
+
+## Default settings changes
+
+- `enableWSSPortOverride` is now `false` by default.
