@@ -131,11 +131,11 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
         var inputBufferIsOwned = false; // true if we allocated inputBuffer (DAVE path)
 
         try {
-            buf = allocator.buffer();
+            buf = allocator.directBuffer();
             buf.clear();
             var dave = connection.getDAVEManager();
             if (dave != null) {
-                inputBuffer = allocator.buffer();
+                inputBuffer = allocator.directBuffer();
                 inputBufferIsOwned = true;
                 var result = dave.encrypt(mediaType, ssrc, inputBuffer, data, len);
                 inputLen = inputBuffer.readableBytes();
@@ -158,7 +158,11 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
                 buf = null; // do not release in finally — caller owns it
                 return result;
             }
+
             logger.debug("Encryption failed!");
+            return null;
+        } catch (Exception e) {
+            logger.debug("Encryption exception!", e);
             return null;
         } finally {
             if (buf != null && buf.refCnt() > 0) {

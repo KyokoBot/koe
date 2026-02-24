@@ -106,7 +106,7 @@ public abstract class AbstractOpusFramePoller extends AbstractFramePoller {
             return false;
         }
 
-        ByteBuf buf = allocator.buffer();
+        ByteBuf buf = allocator.directBuffer();
         try {
             int start = buf.writerIndex();
             boolean wrote = provider.provideFrame(buf);
@@ -128,7 +128,7 @@ public abstract class AbstractOpusFramePoller extends AbstractFramePoller {
     private boolean sendSilenceFrame() {
         silenceCounter--;
 
-        ByteBuf buf = allocator.buffer(OpusCodecInfo.SILENCE_FRAME.length);
+        ByteBuf buf = allocator.directBuffer(OpusCodecInfo.SILENCE_FRAME.length);
         try {
             buf.writeBytes(OpusCodecInfo.SILENCE_FRAME);
             int len = buf.readableBytes();
