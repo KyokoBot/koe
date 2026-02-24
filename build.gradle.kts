@@ -108,7 +108,7 @@ fun getGitVersion(): VersionInfo {
         standardOutput = versionStr
         errorOutput = versionStr
         isIgnoreExitValue = true
-        commandLine("git", "describe", "--exact-match", "--tags")
+        commandLine("git", "describe", "--exact-match", "--tags", "--dirty")
     }
     if (result.exitValue == 0) {
         return VersionInfo(versionStr.toString().trim(), false)
