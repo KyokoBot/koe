@@ -2,8 +2,6 @@
 
 Tiny, minimal dependency and embeddable library implementing Discord media server protocols, built on [Netty](https://netty.io), aiming for high performance and reduced GC usage.
 
-[Get it on JitPack](https://jitpack.io/#moe.kyokobot.koe/core)
-
 ### Versioning and stability policy
 
 Koe follows [semantic versioning](https://semver.org/). API/ABI stability is defined as follows:
@@ -16,7 +14,7 @@ Example:
 
 ```groovy
 repositories {
-    maven { url 'https://jitpack.io' }
+    maven { url 'https://maven.lavalink.dev/releases' }
 }
 
 // ...
