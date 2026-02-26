@@ -15,6 +15,7 @@ Example:
 ```groovy
 repositories {
     maven { url 'https://maven.lavalink.dev/releases' }
+//    maven { url 'https://maven.lavalink.dev/snapshots' }
 }
 
 // ...
@@ -24,7 +25,7 @@ dependencies {
 }
 ```
 
-`VERSION` can be either a tag or a git commit hash.
+`VERSION` can be either a tag or a git commit hash (first 9 characters).
 
 ### Dependencies
 - Netty
@@ -49,7 +50,7 @@ dependencies {
 
 ### Credits
 
-[LavaLink team](https://github.com/lavalink-devs) for being the main consumer of Koe and providing most feedback and improvements.
+[Lavalink team](https://github.com/lavalink-devs) for being the main consumer of Koe and providing most feedback and improvements.
 [@TheAkio](https://github.com/TheAkio) for name idea.
 
 Koe includes modified/stripped-down parts based on following open-source projects:
