@@ -36,6 +36,7 @@ public class KoeOptionsBuilder {
     protected boolean enableWSSPortOverride;
     protected boolean verifyWSSHostname;
     protected boolean enableDAVE;
+    protected boolean enableDAVELogSink;
 
     protected KoeOptionsBuilder() {
         boolean epoll = Epoll.isAvailable();
@@ -60,6 +61,7 @@ public class KoeOptionsBuilder {
         this.enableWSSPortOverride = false;
         this.verifyWSSHostname = true;
         this.enableDAVE = true;
+        this.enableDAVELogSink = false;
     }
 
     /**
@@ -199,9 +201,21 @@ public class KoeOptionsBuilder {
         return this;
     }
 
+    /**
+     * Sets whether to enable forwarding of libdave logs to the SLF4J logger. If false, nothing will be logged
+     * (recommended for production).
+     *
+     * @param enableDAVELogSink true to enable log forwarding, false to disable (default)
+     */
+    public KoeOptionsBuilder setEnableDAVELogSink(boolean enableDAVELogSink) {
+        this.enableDAVELogSink = enableDAVELogSink;
+        return this;
+    }
+
     public KoeOptions create() {
-        return new KoeOptionsImpl(eventLoopGroup, socketChannelClass, datagramChannelClass, byteBufAllocator,
-                gatewayVersion, framePollerFactory, codecRegistry, experimental,
-                highPacketPriority, deafened, enableWSSPortOverride, verifyWSSHostname, enableDAVE);
+        return new KoeOptionsImpl(eventLoopGroup, socketChannelClass, datagramChannelClass,
+                byteBufAllocator, gatewayVersion, framePollerFactory, codecRegistry, experimental,
+                highPacketPriority, deafened, enableWSSPortOverride, verifyWSSHostname,
+                enableDAVE, enableDAVELogSink);
     }
 }

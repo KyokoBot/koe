@@ -6,6 +6,7 @@ import moe.kyokobot.koe.MediaConnection;
 import moe.kyokobot.koe.experimental.KoeClientExperimental;
 import moe.kyokobot.koe.experimental.MediaConnectionExperimental;
 import moe.kyokobot.koe.gateway.GatewayVersion;
+import moe.kyokobot.koe.internal.dave.DAVELogger;
 import moe.kyokobot.libdave.NativeDaveFactory;
 import moe.kyokobot.libdave.netty.NativeNettyDaveFactory;
 import moe.kyokobot.libdave.netty.NettyDaveFactory;
@@ -35,7 +36,7 @@ public class KoeClientImpl implements KoeClient, KoeClientExperimental {
 
         NettyDaveFactory daveFactory = null;
         if (options.isEnableDAVE()) {
-            daveFactory = createDAVEFactory();
+            daveFactory = createDAVEFactory(options.isEnableDAVELogSink());
         }
 
         this.daveFactory = daveFactory;
@@ -106,10 +107,13 @@ public class KoeClientImpl implements KoeClient, KoeClientExperimental {
         return options.getGatewayVersion();
     }
 
-    private static @Nullable NettyDaveFactory createDAVEFactory() {
+    private static @Nullable NettyDaveFactory createDAVEFactory(boolean enableLogging) {
         // TODO: We have a pure Java implementation planned.
         try {
             NativeDaveFactory.ensureAvailable();
+            DAVELogger.setNativeLoggingEnabled(enableLogging);
+            logger.debug("Using native DAVE implementation (logging {})", enableLogging ? "enabled" : "disabled");
+
             return new NativeNettyDaveFactory();
         } catch (RuntimeException e) {
             logger.warn("DAVE requested but the native library could not be loaded! Did you forget to include 'moe.kyokobot.libdave:natives-{platform}' dependency in your project?", e);

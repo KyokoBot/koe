@@ -32,6 +32,7 @@ public class KoeOptionsImpl implements KoeOptionsExperimental {
     private final boolean enableWSSPortOverride;
     private final boolean verifyWSSHostname;
     private final boolean enableDAVE;
+    private final boolean enableDAVELogSink;
 
     public KoeOptionsImpl(
             @NotNull EventLoopGroup eventLoopGroup,
@@ -46,7 +47,8 @@ public class KoeOptionsImpl implements KoeOptionsExperimental {
             boolean deafened,
             boolean enableWSSPortOverride,
             boolean verifyWSSHostname,
-            boolean daveEnabled
+            boolean enableDAVE,
+            boolean enableDAVELogSink
     ) {
         this.eventLoopGroup = Objects.requireNonNull(eventLoopGroup);
         this.socketChannelClass = Objects.requireNonNull(socketChannelClass);
@@ -60,7 +62,8 @@ public class KoeOptionsImpl implements KoeOptionsExperimental {
         this.deafened = deafened;
         this.enableWSSPortOverride = enableWSSPortOverride;
         this.verifyWSSHostname = verifyWSSHostname;
-        this.enableDAVE = daveEnabled;
+        this.enableDAVE = enableDAVE;
+        this.enableDAVELogSink = enableDAVELogSink;
     }
 
     @NotNull
@@ -135,4 +138,8 @@ public class KoeOptionsImpl implements KoeOptionsExperimental {
         return enableDAVE;
     }
 
+    @Override
+    public boolean isEnableDAVELogSink() {
+        return enableDAVELogSink;
+    }
 }

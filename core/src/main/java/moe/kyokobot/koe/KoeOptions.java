@@ -44,4 +44,6 @@ public interface KoeOptions {
     boolean isVerifyWSSHostname();
 
     boolean isEnableDAVE();
+
+    boolean isEnableDAVELogSink();
 }
