@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.StampedLock;
 
 public class DAVEManager implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(DAVEManager.class);
@@ -29,9 +30,12 @@ public class DAVEManager implements AutoCloseable {
     private final Map<Integer, Integer> pendingTransitions = new ConcurrentHashMap<>();
     private final int maxProtocolVersion;
 
+    private final StampedLock encryptorLock = new StampedLock();
+    private volatile boolean closed = false;
+
     private NettyEncryptor selfEncryptor;
     private @Nullable KeyRatchet selfKeyRatchet = null;
-    private String selfUserIdString;
+    private final String selfUserIdString;
     private long mlsGroupId = 0;
 
     private int currentProtocolVersion = 0;
@@ -50,8 +54,17 @@ public class DAVEManager implements AutoCloseable {
         return maxProtocolVersion;
     }
 
+    public int getCurrentProtocolVersion() {
+        return currentProtocolVersion;
+    }
+
     public int getMaxCiphertextByteSize(MediaType mediaType, int frameSize) {
-        return selfEncryptor.getMaxCiphertextByteSize(mediaType, frameSize);
+        long stamp = encryptorLock.readLock();
+        try {
+            return selfEncryptor.getMaxCiphertextByteSize(mediaType, frameSize);
+        } finally {
+            encryptorLock.unlockRead(stamp);
+        }
     }
 
     public void addUsers(Iterable<String> userIds) {
@@ -84,8 +97,13 @@ public class DAVEManager implements AutoCloseable {
             }
         }
 
-        output.ensureWritable(this.selfEncryptor.getMaxCiphertextByteSize(mediaType, size));
-        return this.selfEncryptor.encrypt(mediaType, ssrc, input, output);
+        long stamp = encryptorLock.readLock();
+        try {
+            output.ensureWritable(this.selfEncryptor.getMaxCiphertextByteSize(mediaType, size));
+            return this.selfEncryptor.encrypt(mediaType, ssrc, input, output);
+        } finally {
+            encryptorLock.unlockRead(stamp);
+        }
     }
 
     public void handleSessionDescription(@NotNull JsonObject session, long mlsGroupId) {
@@ -187,6 +205,7 @@ public class DAVEManager implements AutoCloseable {
     }
 
     private void prepareEpoch(String epoch, int protocolVersion) {
+        if (closed) return;
         if (MLS_NEW_GROUP_EPOCH.equals(epoch)) {
             daveSession.init(protocolVersion, mlsGroupId, selfUserIdString);
         }
@@ -284,12 +303,18 @@ public class DAVEManager implements AutoCloseable {
 
     @Override
     public void close() throws Exception {
-        daveSession.close();
-        if (selfKeyRatchet != null) {
-            selfKeyRatchet.close();
-            selfKeyRatchet = null;
+        closed = true;
+        long stamp = encryptorLock.writeLock();
+        try {
+            daveSession.close();
+            if (selfKeyRatchet != null) {
+                selfKeyRatchet.close();
+                selfKeyRatchet = null;
+            }
+            selfEncryptor.close();
+        } finally {
+            encryptorLock.unlockWrite(stamp);
         }
-        selfEncryptor.close();
     }
 
     private String[] recognizedUserIdArray() {
@@ -304,18 +329,23 @@ public class DAVEManager implements AutoCloseable {
     }
 
     public void setSelfKeyRatchet(KeyRatchet selfKeyRatchet) {
-        if (this.selfKeyRatchet != null) {
-            this.selfKeyRatchet.close();
-        }
+        long stamp = encryptorLock.writeLock();
+        try {
+            if (this.selfKeyRatchet != null) {
+                this.selfKeyRatchet.close();
+            }
 
-        this.selfKeyRatchet = selfKeyRatchet;
-        this.reinitSelfEncryptor();
+            this.selfKeyRatchet = selfKeyRatchet;
+            this.reinitSelfEncryptor();
 
-        if (this.selfKeyRatchet == null) {
-            this.selfEncryptor.setPassthroughMode(true);
-        } else {
-            this.selfEncryptor.setKeyRatchet(selfKeyRatchet);
-            this.selfEncryptor.setPassthroughMode(false);
+            if (this.selfKeyRatchet == null) {
+                this.selfEncryptor.setPassthroughMode(true);
+            } else {
+                this.selfEncryptor.setKeyRatchet(selfKeyRatchet);
+                this.selfEncryptor.setPassthroughMode(false);
+            }
+        } finally {
+            encryptorLock.unlockWrite(stamp);
         }
     }
 
