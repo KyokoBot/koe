@@ -30,10 +30,10 @@ public class DAVEManager implements AutoCloseable {
     private final Map<Integer, Integer> pendingTransitions = new ConcurrentHashMap<>();
     private final int maxProtocolVersion;
 
-    private final StampedLock encryptorLock = new StampedLock();
+    private final StampedLock sessionLock = new StampedLock();
     private volatile boolean closed = false;
 
-    private NettyEncryptor selfEncryptor;
+    private final NettyEncryptor selfEncryptor;
     private @Nullable KeyRatchet selfKeyRatchet = null;
     private final String selfUserIdString;
     private long mlsGroupId = 0;
@@ -59,30 +59,62 @@ public class DAVEManager implements AutoCloseable {
     }
 
     public int getMaxCiphertextByteSize(MediaType mediaType, int frameSize) {
-        long stamp = encryptorLock.readLock();
+        long stamp = sessionLock.readLock();
         try {
             return selfEncryptor.getMaxCiphertextByteSize(mediaType, frameSize);
         } finally {
-            encryptorLock.unlockRead(stamp);
+            sessionLock.unlockRead(stamp);
         }
     }
 
     public void addUsers(Iterable<String> userIds) {
-        for (var uid : userIds) {
-            addUser(uid);
+        if (closed) return;
+        long stamp = sessionLock.writeLock();
+        try {
+            for (var uid : userIds) {
+                addUserLocked(uid);
+            }
+        } finally {
+            sessionLock.unlockWrite(stamp);
         }
     }
 
     public void addUser(String userId) {
+        if (closed) return;
+        long stamp = sessionLock.writeLock();
+        try {
+            addUserLocked(userId);
+        } finally {
+            sessionLock.unlockWrite(stamp);
+        }
+    }
+
+    private void addUserLocked(String userId) {
         recognizedUserIds.add(userId);
+        // TODO: Setup decryption
     }
 
     public void removeUser(String userId) {
+        if (closed) return;
+        long stamp = sessionLock.writeLock();
+        try {
+            removeUserLocked(userId);
+        } finally {
+            sessionLock.unlockWrite(stamp);
+        }
+    }
+
+    private void removeUserLocked(String userId) {
         recognizedUserIds.remove(userId);
         activeE2EEUsers.remove(userId);
+        // TODO: Cleanup decryption
     }
 
     public int encrypt(MediaType mediaType, int ssrc, ByteBuf output, ByteBuf input, int size) {
+        if (closed) {
+            return -EncryptorResultCode.ENCRYPTION_FAILURE.getValue();
+        }
+
         if (mediaType == MediaType.AUDIO && size == 3) {
             input.markReaderIndex();
             var b1 = input.readByte() == OpusCodecInfo.SILENCE_FRAME[0];
@@ -97,86 +129,141 @@ public class DAVEManager implements AutoCloseable {
             }
         }
 
-        long stamp = encryptorLock.readLock();
+        long stamp = sessionLock.readLock();
         try {
             output.ensureWritable(this.selfEncryptor.getMaxCiphertextByteSize(mediaType, size));
             return this.selfEncryptor.encrypt(mediaType, ssrc, input, output);
         } finally {
-            encryptorLock.unlockRead(stamp);
+            sessionLock.unlockRead(stamp);
         }
     }
 
     public void handleSessionDescription(@NotNull JsonObject session, long mlsGroupId) {
-        int protocolVersion = session.getInt("dave_protocol_version", 0);
-        this.mlsGroupId = mlsGroupId;
-        daveProtocolInit(protocolVersion);
+        if (closed) return;
+
+        long stamp = sessionLock.writeLock();
+        try {
+            int protocolVersion = session.getInt("dave_protocol_version", 0);
+            this.mlsGroupId = mlsGroupId;
+            daveProtocolInit(protocolVersion);
+        } finally {
+            sessionLock.unlockWrite(stamp);
+        }
     }
 
     public void handleSecureFramesPrepareProtocolTransition(int transitionId, int newProtocolVersion) {
-        prepareRatchets(transitionId, newProtocolVersion);
-        if (transitionId != 0) {
-            sendSecureFramesReadyForTransition(transitionId);
+        if (closed) return;
+
+        long stamp = sessionLock.writeLock();
+        try {
+            prepareRatchets(transitionId, newProtocolVersion);
+            if (transitionId != 0) {
+                sendSecureFramesReadyForTransition(transitionId);
+            }
+        } finally {
+            sessionLock.unlockWrite(stamp);
         }
     }
 
     public void handleSecureFramesExecuteTransition(int transitionId) {
-        executeTransition(transitionId);
+        if (closed) return;
+
+        long stamp = sessionLock.writeLock();
+        try {
+            executeTransition(transitionId);
+        } finally {
+            sessionLock.unlockWrite(stamp);
+        }
     }
 
     public void handleSecureFramesPrepareEpoch(String epoch, int protocolVersion) {
-        prepareEpoch(epoch, protocolVersion);
+        if (closed) return;
 
-        if (MLS_NEW_GROUP_EPOCH.equals(epoch)) {
-            sendMLSKeyPackage();
+        long stamp = sessionLock.writeLock();
+        try {
+            prepareEpoch(epoch, protocolVersion);
+
+            if (MLS_NEW_GROUP_EPOCH.equals(epoch)) {
+                sendMLSKeyPackage();
+            }
+        } finally {
+            sessionLock.unlockWrite(stamp);
         }
     }
 
     public void handleMLSExternalSender(byte[] payload) {
-        daveSession.setExternalSender(payload);
+        if (closed) return;
+
+        long stamp = sessionLock.writeLock();
+        try {
+            daveSession.setExternalSender(payload);
+        } finally {
+            sessionLock.unlockWrite(stamp);
+        }
     }
 
     public void handleMLSProposals(byte[] payload) {
-        var userIds = recognizedUserIdArray();
+        if (closed) return;
 
-        var commitWelcome = daveSession.processProposals(payload, userIds);
-        if (commitWelcome != null) {
-            sendMLSCommitWelcome(commitWelcome);
+        long stamp = sessionLock.writeLock();
+        try {
+            var userIds = recognizedUserIdArray();
+
+            var commitWelcome = daveSession.processProposals(payload, userIds);
+            if (commitWelcome != null) {
+                sendMLSCommitWelcome(commitWelcome);
+            }
+        } finally {
+            sessionLock.unlockWrite(stamp);
         }
     }
 
     public void handleMLSPrepareCommitTransition(int transitionId, byte[] commit) {
-        var result = daveSession.processCommit(commit);
-        if (result.isIgnored()) return;
+        if (closed) return;
 
+        long stamp = sessionLock.writeLock();
+        try {
+            var result = daveSession.processCommit(commit);
+            if (result.isIgnored()) return;
 
-        if (result.isFailed()) {
-            sendMLSInvalidCommitWelcome(transitionId);
-            daveProtocolInit(daveSession.getProtocolVersion());
-            return;
-        }
+            if (result.isFailed()) {
+                sendMLSInvalidCommitWelcome(transitionId);
+                daveProtocolInit(daveSession.getProtocolVersion());
+                return;
+            }
 
-        updateActiveUsers(result.getRosterMap());
+            updateActiveUsers(result.getRosterMap());
 
-        prepareRatchets(transitionId, daveSession.getProtocolVersion());
-        if (transitionId != 0) {
-            sendSecureFramesReadyForTransition(transitionId);
+            prepareRatchets(transitionId, daveSession.getProtocolVersion());
+            if (transitionId != 0) {
+                sendSecureFramesReadyForTransition(transitionId);
+            }
+        } finally {
+            sessionLock.unlockWrite(stamp);
         }
     }
 
     public void handleMLSWelcome(int transitionId, byte[] welcome) {
-        var roster = daveSession.processWelcome(welcome, recognizedUserIdArray());
+        if (closed) return;
 
-        if (roster == null) {
-            sendMLSInvalidCommitWelcome(transitionId);
-            sendMLSKeyPackage();
-            return;
-        }
+        long stamp = sessionLock.writeLock();
+        try {
+            var roster = daveSession.processWelcome(welcome, recognizedUserIdArray());
 
-        updateActiveUsers(roster);
+            if (roster == null) {
+                sendMLSInvalidCommitWelcome(transitionId);
+                sendMLSKeyPackage();
+                return;
+            }
 
-        prepareRatchets(transitionId, daveSession.getProtocolVersion());
-        if (transitionId != 0) {
-            sendSecureFramesReadyForTransition(transitionId);
+            updateActiveUsers(roster);
+
+            prepareRatchets(transitionId, daveSession.getProtocolVersion());
+            if (transitionId != 0) {
+                sendSecureFramesReadyForTransition(transitionId);
+            }
+        } finally {
+            sessionLock.unlockWrite(stamp);
         }
     }
 
@@ -304,7 +391,7 @@ public class DAVEManager implements AutoCloseable {
     @Override
     public void close() throws Exception {
         closed = true;
-        long stamp = encryptorLock.writeLock();
+        long stamp = sessionLock.writeLock();
         try {
             daveSession.close();
             if (selfKeyRatchet != null) {
@@ -313,7 +400,7 @@ public class DAVEManager implements AutoCloseable {
             }
             selfEncryptor.close();
         } finally {
-            encryptorLock.unlockWrite(stamp);
+            sessionLock.unlockWrite(stamp);
         }
     }
 
@@ -328,32 +415,18 @@ public class DAVEManager implements AutoCloseable {
         return userIds;
     }
 
-    public void setSelfKeyRatchet(KeyRatchet selfKeyRatchet) {
-        long stamp = encryptorLock.writeLock();
-        try {
-            if (this.selfKeyRatchet != null) {
-                this.selfKeyRatchet.close();
-            }
-
-            this.selfKeyRatchet = selfKeyRatchet;
-            this.reinitSelfEncryptor();
-
-            if (this.selfKeyRatchet == null) {
-                this.selfEncryptor.setPassthroughMode(true);
-            } else {
-                this.selfEncryptor.setKeyRatchet(selfKeyRatchet);
-                this.selfEncryptor.setPassthroughMode(false);
-            }
-        } finally {
-            encryptorLock.unlockWrite(stamp);
-        }
-    }
-
-    private void reinitSelfEncryptor() {
-        if (this.selfEncryptor != null) {
-            this.selfEncryptor.close();
+    private void setSelfKeyRatchet(KeyRatchet selfKeyRatchet) {
+        if (this.selfKeyRatchet != null) {
+            this.selfKeyRatchet.close();
         }
 
-        this.selfEncryptor = factory.fromEncryptor(factory.createEncryptor());
+        this.selfKeyRatchet = selfKeyRatchet;
+
+        if (this.selfKeyRatchet == null) {
+            this.selfEncryptor.setPassthroughMode(true);
+        } else {
+            this.selfEncryptor.setKeyRatchet(selfKeyRatchet);
+            this.selfEncryptor.setPassthroughMode(false);
+        }
     }
 }
