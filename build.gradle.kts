@@ -62,8 +62,8 @@ subprojects {
 
                 configure<MavenPublishBaseExtension> {
                     coordinates(group.toString(), project.the<BasePluginExtension>().archivesName.get(), version.toString())
-                    val mavenCentralUsername = findProperty("MAVEN_CENTRAL_USERNAME") as String?
-                    val mavenCentralPassword = findProperty("MAVEN_CENTRAL_PASSWORD") as String?
+                    val mavenCentralUsername = findProperty("mavenCentralUsername") as String?
+                    val mavenCentralPassword = findProperty("mavenCentralPassword") as String?
                     if (!mavenCentralUsername.isNullOrEmpty() && !mavenCentralPassword.isNullOrEmpty()) {
                         publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, false)
                         if (!gitVersionInfo.isCommitHash) {
