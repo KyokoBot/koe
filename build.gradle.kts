@@ -74,6 +74,7 @@ subprojects {
                     }
 
                     pom {
+                        description.set("Koe is a tiny, minimal dependency and embeddable library implementing Discord media server protocols, built on Netty, aiming for high performance and reduced GC usage.")
                         url.set("https://github.com/KyokoBot/koe")
                         licenses {
                             license {
