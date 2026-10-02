@@ -61,6 +61,7 @@ public class DAVEManager implements AutoCloseable {
     public int getMaxCiphertextByteSize(MediaType mediaType, int frameSize) {
         long stamp = sessionLock.readLock();
         try {
+            if (closed) return frameSize;
             return selfEncryptor.getMaxCiphertextByteSize(mediaType, frameSize);
         } finally {
             sessionLock.unlockRead(stamp);
@@ -68,9 +69,9 @@ public class DAVEManager implements AutoCloseable {
     }
 
     public void addUsers(Iterable<String> userIds) {
-        if (closed) return;
         long stamp = sessionLock.writeLock();
         try {
+            if (closed) return;
             for (var uid : userIds) {
                 addUserLocked(uid);
             }
@@ -80,9 +81,9 @@ public class DAVEManager implements AutoCloseable {
     }
 
     public void addUser(String userId) {
-        if (closed) return;
         long stamp = sessionLock.writeLock();
         try {
+            if (closed) return;
             addUserLocked(userId);
         } finally {
             sessionLock.unlockWrite(stamp);
@@ -95,9 +96,9 @@ public class DAVEManager implements AutoCloseable {
     }
 
     public void removeUser(String userId) {
-        if (closed) return;
         long stamp = sessionLock.writeLock();
         try {
+            if (closed) return;
             removeUserLocked(userId);
         } finally {
             sessionLock.unlockWrite(stamp);
@@ -111,38 +112,38 @@ public class DAVEManager implements AutoCloseable {
     }
 
     public int encrypt(MediaType mediaType, int ssrc, ByteBuf output, ByteBuf input, int size) {
-        if (closed) {
-            return -EncryptorResultCode.ENCRYPTION_FAILURE.getValue();
-        }
-
-        if (mediaType == MediaType.AUDIO && size == 3) {
-            input.markReaderIndex();
-            var b1 = input.readByte() == OpusCodecInfo.SILENCE_FRAME[0];
-            var b2 = input.readByte() == OpusCodecInfo.SILENCE_FRAME[1];
-            var b3 = input.readByte() == OpusCodecInfo.SILENCE_FRAME[2];
-            var isSilence = b1 && b2 && b3;
-            input.resetReaderIndex();
-
-            if (isSilence) {
-                output.writeBytes(OpusCodecInfo.SILENCE_FRAME);
-                return EncryptorResultCode.SUCCESS.getValue();
-            }
-        }
-
-        long stamp = sessionLock.readLock();
+        // The native encryptor is not reentrant, so encryption must be serialized under the write lock.
+        long stamp = sessionLock.writeLock();
         try {
+            if (closed) {
+                return -EncryptorResultCode.ENCRYPTION_FAILURE.getValue();
+            }
+
+            if (mediaType == MediaType.AUDIO && size == 3) {
+                input.markReaderIndex();
+                var b1 = input.readByte() == OpusCodecInfo.SILENCE_FRAME[0];
+                var b2 = input.readByte() == OpusCodecInfo.SILENCE_FRAME[1];
+                var b3 = input.readByte() == OpusCodecInfo.SILENCE_FRAME[2];
+                var isSilence = b1 && b2 && b3;
+                input.resetReaderIndex();
+
+                if (isSilence) {
+                    output.writeBytes(OpusCodecInfo.SILENCE_FRAME);
+                    return EncryptorResultCode.SUCCESS.getValue();
+                }
+            }
+
             output.ensureWritable(this.selfEncryptor.getMaxCiphertextByteSize(mediaType, size));
             return this.selfEncryptor.encrypt(mediaType, ssrc, input, output);
         } finally {
-            sessionLock.unlockRead(stamp);
+            sessionLock.unlockWrite(stamp);
         }
     }
 
     public void handleSessionDescription(@NotNull JsonObject session, long mlsGroupId) {
-        if (closed) return;
-
         long stamp = sessionLock.writeLock();
         try {
+            if (closed) return;
             int protocolVersion = session.getInt("dave_protocol_version", 0);
             this.mlsGroupId = mlsGroupId;
             daveProtocolInit(protocolVersion);
@@ -152,10 +153,9 @@ public class DAVEManager implements AutoCloseable {
     }
 
     public void handleSecureFramesPrepareProtocolTransition(int transitionId, int newProtocolVersion) {
-        if (closed) return;
-
         long stamp = sessionLock.writeLock();
         try {
+            if (closed) return;
             prepareRatchets(transitionId, newProtocolVersion);
             if (transitionId != 0) {
                 sendSecureFramesReadyForTransition(transitionId);
@@ -166,10 +166,9 @@ public class DAVEManager implements AutoCloseable {
     }
 
     public void handleSecureFramesExecuteTransition(int transitionId) {
-        if (closed) return;
-
         long stamp = sessionLock.writeLock();
         try {
+            if (closed) return;
             executeTransition(transitionId);
         } finally {
             sessionLock.unlockWrite(stamp);
@@ -177,10 +176,9 @@ public class DAVEManager implements AutoCloseable {
     }
 
     public void handleSecureFramesPrepareEpoch(String epoch, int protocolVersion) {
-        if (closed) return;
-
         long stamp = sessionLock.writeLock();
         try {
+            if (closed) return;
             prepareEpoch(epoch, protocolVersion);
 
             if (MLS_NEW_GROUP_EPOCH.equals(epoch)) {
@@ -192,10 +190,9 @@ public class DAVEManager implements AutoCloseable {
     }
 
     public void handleMLSExternalSender(byte[] payload) {
-        if (closed) return;
-
         long stamp = sessionLock.writeLock();
         try {
+            if (closed) return;
             daveSession.setExternalSender(payload);
         } finally {
             sessionLock.unlockWrite(stamp);
@@ -203,10 +200,9 @@ public class DAVEManager implements AutoCloseable {
     }
 
     public void handleMLSProposals(byte[] payload) {
-        if (closed) return;
-
         long stamp = sessionLock.writeLock();
         try {
+            if (closed) return;
             var userIds = recognizedUserIdArray();
 
             var commitWelcome = daveSession.processProposals(payload, userIds);
@@ -219,10 +215,9 @@ public class DAVEManager implements AutoCloseable {
     }
 
     public void handleMLSPrepareCommitTransition(int transitionId, byte[] commit) {
-        if (closed) return;
-
         long stamp = sessionLock.writeLock();
         try {
+            if (closed) return;
             var result = daveSession.processCommit(commit);
             if (result.isIgnored()) return;
 
@@ -244,10 +239,9 @@ public class DAVEManager implements AutoCloseable {
     }
 
     public void handleMLSWelcome(int transitionId, byte[] welcome) {
-        if (closed) return;
-
         long stamp = sessionLock.writeLock();
         try {
+            if (closed) return;
             var roster = daveSession.processWelcome(welcome, recognizedUserIdArray());
 
             if (roster == null) {
@@ -342,17 +336,19 @@ public class DAVEManager implements AutoCloseable {
 
     private void executeTransition(int transitionId) {
         var protocolVersion = pendingTransitions.remove(transitionId);
-        if (protocolVersion == null) {
+        if (protocolVersion == null && transitionId != INIT_TRANSITION_ID) {
             return;
         }
 
-        if (protocolVersion == 0) {
+        int version = protocolVersion != null ? protocolVersion : currentProtocolVersion;
+
+        if (version == 0) {
             daveSession.reset();
             activeE2EEUsers.clear();
         }
 
-        setupKeyRatchetForUser(selfUserIdString, protocolVersion);
-        logger.debug("Transition executed: ID={}, Protocol version={}", transitionId, protocolVersion);
+        setupKeyRatchetForUser(selfUserIdString, version);
+        logger.debug("Transition executed: ID={}, Protocol version={}", transitionId, version);
     }
 
     private void sendMLSKeyPackage() {

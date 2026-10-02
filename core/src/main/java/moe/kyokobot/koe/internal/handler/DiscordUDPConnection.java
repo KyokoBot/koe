@@ -114,7 +114,12 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
     public void sendFrame(CodecType codecType, byte payloadType, int timestamp, ByteBuf data, int len, boolean extension) {
         var buf = createPacket(codecType, payloadType, timestamp, data, len, extension);
         if (buf != null) {
-            channel.writeAndFlush(buf);
+            var ch = channel;
+            if (ch != null && ch.isOpen()) {
+                ch.writeAndFlush(buf);
+            } else {
+                buf.release();
+            }
         }
     }
 

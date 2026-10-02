@@ -2,6 +2,7 @@ package moe.kyokobot.koe.internal.gateway;
 
 import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.VoiceServerInfo;
+import moe.kyokobot.koe.internal.DAVEManager;
 import moe.kyokobot.koe.internal.crypto.EncryptionMode;
 import moe.kyokobot.koe.gateway.MediaValve;
 import moe.kyokobot.koe.gateway.Op;
@@ -25,6 +26,7 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
     private static final Logger logger = LoggerFactory.getLogger(MediaGatewayV8Connection.class);
 
     private final MediaValve mediaValve = new MediaValveImpl(this);
+    private final DAVEManager daveManager;
     private int ssrc;
     private SocketAddress address;
     private List<String> encryptionModes;
@@ -37,6 +39,12 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
 
     public MediaGatewayV8Connection(MediaConnectionImpl connection, VoiceServerInfo voiceServerInfo) {
         super(connection, voiceServerInfo, 8);
+        this.daveManager = connection.createDAVEManager();
+    }
+
+    @Nullable
+    public DAVEManager getDAVEManager() {
+        return this.daveManager;
     }
 
     @Nullable
@@ -50,9 +58,8 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
         logger.debug("Identifying...");
 
         int maxDAVEVersion = 0;
-        var manager = connection.getDAVEManager();
-        if (manager != null) {
-            maxDAVEVersion = manager.getMaxDAVEProtocolVersion();
+        if (daveManager != null) {
+            maxDAVEVersion = daveManager.getMaxDAVEProtocolVersion();
         }
 
         logger.debug("Max DAVE Protocol Version: {}", maxDAVEVersion);
@@ -127,7 +134,6 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
 
                 connection.getDispatcher().sessionDescription(data);
                 connection.getConnectionHandler().handleSessionDescription(data);
-                var daveManager = connection.getDAVEManager();
                 if (daveManager != null) {
                     daveManager.handleSessionDescription(data, voiceServerInfo.getChannelId());
                 }
@@ -163,9 +169,8 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
                         .collect(Collectors.toList());
                 connection.getDispatcher().usersConnected(userIdList);
 
-                var manager = connection.getDAVEManager();
-                if (manager != null) {
-                    manager.addUsers(userIdList);
+                if (daveManager != null) {
+                    daveManager.addUsers(userIdList);
                 }
 
                 break;
@@ -177,9 +182,8 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
                 var user = data.getString("user_id");
                 connection.getDispatcher().userDisconnected(user);
 
-                var manager = connection.getDAVEManager();
-                if (manager != null) {
-                    manager.removeUser(user);
+                if (daveManager != null) {
+                    daveManager.removeUser(user);
                 }
 
                 break;
@@ -206,9 +210,8 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
                 var transitionId = data.getInt("transition_id");
                 var protocolVersion = data.getInt("protocol_version");
 
-                var manager = connection.getDAVEManager();
-                if (manager != null) {
-                    manager.handleSecureFramesPrepareProtocolTransition(transitionId, protocolVersion);
+                if (daveManager != null) {
+                    daveManager.handleSecureFramesPrepareProtocolTransition(transitionId, protocolVersion);
                 }
 
                 break;
@@ -218,9 +221,8 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
                 logger.debug("Secure frames execute transition: {}", data);
                 var transitionId = data.getInt("transition_id");
 
-                var manager = connection.getDAVEManager();
-                if (manager != null) {
-                    manager.handleSecureFramesExecuteTransition(transitionId);
+                if (daveManager != null) {
+                    daveManager.handleSecureFramesExecuteTransition(transitionId);
                 }
 
                 break;
@@ -237,9 +239,8 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
                 var epoch = data.getInt("epoch");
                 var protocolVersion = data.getInt("protocol_version");
 
-                var manager = connection.getDAVEManager();
-                if (manager != null) {
-                    manager.handleSecureFramesPrepareEpoch(Integer.toString(epoch), protocolVersion);
+                if (daveManager != null) {
+                    daveManager.handleSecureFramesPrepareEpoch(Integer.toString(epoch), protocolVersion);
                 }
 
                 break;
@@ -255,8 +256,7 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
         var op = byteBuf.readByte();
 
         sequence = seq;
-        var manager = connection.getDAVEManager();
-        if (manager == null) {
+        if (daveManager == null) {
             return;
         }
 
@@ -266,7 +266,7 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
                 var payload = new byte[byteBuf.readableBytes()];
                 logger.debug("MLS welcome, transId: {} payload: <{} bytes>", transId, payload.length);
                 byteBuf.readBytes(payload);
-                manager.handleMLSWelcome(transId, payload);
+                daveManager.handleMLSWelcome(transId, payload);
 
                 break;
             }
@@ -275,7 +275,7 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
 
                 var payload = new byte[byteBuf.readableBytes()];
                 byteBuf.readBytes(payload);
-                manager.handleMLSExternalSender(payload);
+                daveManager.handleMLSExternalSender(payload);
 
                 break;
             }
@@ -288,7 +288,7 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
 
                 var payload = new byte[byteBuf.readableBytes()];
                 byteBuf.readBytes(payload);
-                manager.handleMLSProposals(payload);
+                daveManager.handleMLSProposals(payload);
                 break;
             }
 //            case Op.MLS_COMMIT_WELCOME: {
@@ -301,7 +301,7 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
                 logger.debug("MLS prepare commit transition, transId: {} payload: <{} bytes>", transId, payload.length);
 
                 byteBuf.readBytes(payload);
-                manager.handleMLSPrepareCommitTransition(transId, payload);
+                daveManager.handleMLSPrepareCommitTransition(transId, payload);
                 break;
             }
             default:

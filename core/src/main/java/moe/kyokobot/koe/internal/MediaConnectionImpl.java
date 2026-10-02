@@ -9,6 +9,7 @@ import moe.kyokobot.koe.experimental.media.VideoFrameProvider;
 import moe.kyokobot.koe.gateway.MediaGatewayConnection;
 import moe.kyokobot.koe.gateway.MediaValve;
 import moe.kyokobot.koe.handler.ConnectionHandler;
+import moe.kyokobot.koe.internal.gateway.MediaGatewayV8Connection;
 import moe.kyokobot.koe.media.AudioFrameProvider;
 import moe.kyokobot.koe.poller.AbstractFramePoller;
 import org.jetbrains.annotations.NotNull;
@@ -50,7 +51,6 @@ public class MediaConnectionImpl implements MediaConnection, MediaConnectionExpe
     @Override
     public CompletionStage<Void> connect(VoiceServerInfo info) {
         this.disconnect();
-        this.createDAVEManager();
 
         var gatewayFactory = client.getGatewayVersion().getFactory();
         var conn = gatewayFactory.create(this, info);
@@ -287,16 +287,23 @@ public class MediaConnectionImpl implements MediaConnection, MediaConnectionExpe
     }
 
     public DAVEManager getDAVEManager() {
-        return daveManager;
+        var conn = gatewayConnection;
+        if (conn instanceof MediaGatewayV8Connection) {
+            // The manager bound to the active gateway connection, so reconnects which
+            // recreate it stay in sync and stale sockets can't reach the new instance.
+            return ((MediaGatewayV8Connection) conn).getDAVEManager();
+        }
+        return null;
     }
 
-    public void createDAVEManager() {
+    public DAVEManager createDAVEManager() {
         this.destroyDAVEManager();
 
         var daveFactory = client.getDaveFactory();
         if (daveFactory != null) {
             daveManager = new DAVEManager(this, daveFactory);
         }
+        return daveManager;
     }
 
     public void destroyDAVEManager() {
@@ -305,6 +312,8 @@ public class MediaConnectionImpl implements MediaConnection, MediaConnectionExpe
                 this.daveManager.close();
             } catch (Exception e) {
                 logger.error("Error closing old DAVE manager", e);
+            } finally {
+                this.daveManager = null;
             }
         }
     }
