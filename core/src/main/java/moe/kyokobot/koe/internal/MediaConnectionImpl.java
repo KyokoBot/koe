@@ -55,10 +55,10 @@ public class MediaConnectionImpl implements MediaConnection, MediaConnectionExpe
         var gatewayFactory = client.getGatewayVersion().getFactory();
         var conn = gatewayFactory.create(this, info);
 
-        return conn.start().thenAccept(nothing -> {
-            MediaConnectionImpl.this.info = info;
-            MediaConnectionImpl.this.gatewayConnection = conn;
+        this.info = info;
+        this.gatewayConnection = conn;
 
+        return conn.start().thenAccept(nothing -> {
             MediaValve valve = conn.getValve();
             if (valve != null && getOptions().isDeafened()) {
                 valve.setDeafen(true);
@@ -72,7 +72,7 @@ public class MediaConnectionImpl implements MediaConnection, MediaConnectionExpe
         stopAudioFramePolling();
         stopVideoFramePolling();
 
-        if (gatewayConnection != null && gatewayConnection.isOpen()) {
+        if (gatewayConnection != null) {
             gatewayConnection.close(1000, null);
             gatewayConnection = null;
         }

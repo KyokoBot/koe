@@ -35,6 +35,7 @@ public class KoeOptionsBuilder {
     protected boolean deafened;
     protected boolean enableWSSPortOverride;
     protected boolean verifyWSSHostname;
+    protected long gatewayConnectTimeout;
     protected boolean enableDAVE;
     protected boolean enableDAVELogSink;
 
@@ -60,6 +61,7 @@ public class KoeOptionsBuilder {
         this.deafened = false;
         this.enableWSSPortOverride = false;
         this.verifyWSSHostname = true;
+        this.gatewayConnectTimeout = 10_000;
         this.enableDAVE = true;
         this.enableDAVELogSink = false;
     }
@@ -193,6 +195,20 @@ public class KoeOptionsBuilder {
     }
 
     /**
+     * Sets how long to wait for the voice gateway WebSocket connection to be established before failing it.
+     * Defaults to 10000 milliseconds.
+     *
+     * @param gatewayConnectTimeout timeout in milliseconds, 0 disables the timeout
+     */
+    public KoeOptionsBuilder setGatewayConnectTimeout(long gatewayConnectTimeout) {
+        if (gatewayConnectTimeout < 0) {
+            throw new IllegalArgumentException("gatewayConnectTimeout cannot be negative");
+        }
+        this.gatewayConnectTimeout = gatewayConnectTimeout;
+        return this;
+    }
+
+    /**
      * Sets whether End-to-End encryption using Discord's <a href="https://daveprotocol.com">DAVE protocol</a> is enabled.
      * Defaults to true.
      */
@@ -215,7 +231,7 @@ public class KoeOptionsBuilder {
     public KoeOptions create() {
         return new KoeOptionsImpl(eventLoopGroup, socketChannelClass, datagramChannelClass,
                 byteBufAllocator, gatewayVersion, framePollerFactory, codecRegistry, experimental,
-                highPacketPriority, deafened, enableWSSPortOverride, verifyWSSHostname,
-                enableDAVE, enableDAVELogSink);
+                highPacketPriority, deafened, enableWSSPortOverride, verifyWSSHostname, 
+                gatewayConnectTimeout, enableDAVE, enableDAVELogSink);
     }
 }

@@ -25,19 +25,20 @@ import moe.kyokobot.koe.internal.MediaConnectionImpl;
 import moe.kyokobot.koe.internal.NettyBootstrapFactory;
 import moe.kyokobot.koe.internal.json.JsonObject;
 import moe.kyokobot.koe.internal.json.JsonParser;
-import moe.kyokobot.koe.internal.util.NettyFutureWrapper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLException;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.channels.NotYetConnectedException;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public abstract class AbstractMediaGatewayConnection implements MediaGatewayConnection {
     private static final Logger logger = LoggerFactory.getLogger(AbstractMediaGatewayConnection.class);
@@ -48,12 +49,13 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
     protected final Bootstrap bootstrap;
     protected final SslContext sslContext;
     protected final ByteBufAllocator allocator;
-    protected CompletableFuture<Void> connectFuture;
+    protected final CompletableFuture<Void> connectFuture;
 
     protected EventExecutor eventExecutor;
     protected Channel channel;
     protected int connectAttempt = 0;
     protected boolean resumable = false;
+    private boolean started = false;
     private boolean open = false;
     private boolean closed = false;
 
@@ -61,7 +63,7 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
                                           @NotNull VoiceServerInfo voiceServerInfo,
                                           int version) {
         try {
-            var endpoint = voiceServerInfo.getEndpoint();
+            var endpoint = stripScheme(voiceServerInfo.getEndpoint());
 
             if (connection.getOptions().isEnableWSSPortOverride()) {
                 endpoint = stripPort80(endpoint);
@@ -95,32 +97,66 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
 
     @Override
     public CompletableFuture<Void> start() {
-        if (connectFuture.isDone()) return connectFuture;
+        if (!started) {
+            started = true;
+            connect();
+        }
 
-        var future = new CompletableFuture<Void>();
+        return connectFuture;
+    }
+
+    private void connect() {
         logger.debug("Connecting to {}, attempt {}/3", websocketURI, connectAttempt);
+        open = false;
+        closed = false;
 
         var chFuture = bootstrap.connect(websocketURI.getHost(), websocketURI.getPort() == -1 ? 443 : websocketURI.getPort());
-        chFuture.addListener(new NettyFutureWrapper<>(future));
-        future.thenAccept(v -> this.channel = chFuture.channel());
-        return connectFuture;
+        var ch = chFuture.channel();
+        this.channel = ch;
+        chFuture.addListener(future -> {
+            if (!future.isSuccess()) {
+                onConnectFailure(ch, future.cause());
+            }
+        });
+
+        long timeout = connection.getOptions().getGatewayConnectTimeout();
+        if (timeout > 0) {
+            ch.eventLoop().schedule(() -> {
+                if (!open) {
+                    onConnectFailure(ch, new TimeoutException("Voice gateway connection timed out after " + timeout + " ms"));
+                }
+            }, timeout, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    private void onConnectFailure(Channel ch, Throwable cause) {
+        // Ignore failures of channels which were already replaced by a newer connection attempt.
+        if (ch != channel || closed) {
+            return;
+        }
+
+        logger.warn("Failed to connect to the voice gateway (Guild ID={})", connection.getGuildId(), cause);
+        connection.getDispatcher().gatewayError(cause);
+
+        if (!connectFuture.isDone()) {
+            connectFuture.completeExceptionally(cause);
+        }
+
+        close(CloseCode.ABNORMAL_CLOSURE, cause.getMessage());
     }
 
     @Override
     public void close(int code, @Nullable String reason) {
-        if (channel != null && channel.isOpen()) {
+        var ch = channel;
+        if (ch != null && ch.isOpen()) {
             // Code 1006 must never be sent, according to RFC 6455
             if (code != 1006) {
-                channel.writeAndFlush(new CloseWebSocketFrame(code, reason));
+                ch.writeAndFlush(new CloseWebSocketFrame(code, reason));
             }
-            channel.close();
+            ch.close();
         }
 
         onClose(code, reason, false);
-
-        if (!connectFuture.isDone()) {
-            connectFuture.completeExceptionally(new NotYetConnectedException());
-        }
     }
 
     @Override
@@ -146,6 +182,17 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
     protected void onClose(int code, @Nullable String reason, boolean remote) {
         if (!closed) {
             closed = true;
+            open = false;
+
+            if (!connectFuture.isDone()) {
+                connectFuture.completeExceptionally(new IOException(String.format(
+                        "Voice gateway connection closed before it was established (code=%d, reason=%s)", code, reason)));
+            }
+
+            // Only sessions that have been established make sense to resume.
+            if (connectFuture.isCompletedExceptionally()) {
+                return;
+            }
 
             if (connectAttempt <= 3) {
                 switch (code) {
@@ -162,9 +209,8 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
                     case CloseCode.UNKNOWN_ENCRYPTION_MODE:
                     case CloseCode.BAD_REQUEST:
                     case CloseCode.KOE_RECONNECT:
-                        connectFuture = new CompletableFuture<>();
-                        start();
                         connectAttempt++;
+                        connect();
                         break;
                     default:
                         connection.getDispatcher().gatewayClosed(code, reason, remote);
@@ -221,19 +267,23 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
 
         @Override
         public void channelInactive(@NotNull ChannelHandlerContext ctx) {
-            close(1006, "Abnormal closure");
+            if (ctx.channel() == channel) {
+                close(1006, "Abnormal closure");
+            }
         }
 
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
             var ch = ctx.channel();
+            if (ch != channel) {
+                return;
+            }
 
             if (!handshaker.isHandshakeComplete()) {
                 if (msg instanceof FullHttpResponse) {
                     try {
                         handshaker.finishHandshake(ch, (FullHttpResponse) msg);
                         AbstractMediaGatewayConnection.this.open = true;
-                        closed = false;
 
                         connectFuture.complete(null);
 
@@ -243,7 +293,7 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
                             AbstractMediaGatewayConnection.this.identify();
                         }
                     } catch (WebSocketHandshakeException e) {
-                        connectFuture.completeExceptionally(e);
+                        onConnectFailure(ch, e);
                     }
                 }
                 return;
@@ -276,6 +326,11 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+            if (ctx.channel() != channel) {
+                ctx.close();
+                return;
+            }
+
             if (!connectFuture.isDone()) {
                 connectFuture.completeExceptionally(cause);
             }
@@ -300,6 +355,18 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
             pipeline.addLast("aggregator", new HttpObjectAggregator(65536));
             pipeline.addLast("handler", new WebSocketClientHandler());
         }
+    }
+
+    /**
+     * Strips the scheme from endpoints passed as a URL (e.g. "wss://host:443") instead of "host:port".
+     */
+    protected static String stripScheme(String endpoint) {
+        int idx = endpoint.indexOf("://");
+        if (idx != -1) {
+            return endpoint.substring(idx + 3);
+        }
+
+        return endpoint;
     }
 
     protected static String stripPort80(String endpoint) {

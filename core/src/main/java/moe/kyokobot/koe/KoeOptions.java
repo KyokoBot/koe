@@ -43,6 +43,8 @@ public interface KoeOptions {
 
     boolean isVerifyWSSHostname();
 
+    long getGatewayConnectTimeout();
+
     boolean isEnableDAVE();
 
     boolean isEnableDAVELogSink();

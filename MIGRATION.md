@@ -150,3 +150,5 @@ The gateway implementation has been moved to the `internal` package until refact
 ## Default settings changes
 
 - `enableWSSPortOverride` is now `false` by default.
+- (3.1.0+) Voice gateway connections now time out after 10 seconds (configurable with `KoeOptionsBuilder.setGatewayConnectTimeout`, `0` disables it).
+  The `CompletionStage` returned by `MediaConnection.connect()` now completes exceptionally when the connection can't be established, instead of never completing.
