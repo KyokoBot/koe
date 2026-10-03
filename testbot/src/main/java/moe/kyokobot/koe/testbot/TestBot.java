@@ -136,6 +136,7 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
 
             if (voiceStateUpdate.getChannel() == null) {
                 koeClient.destroyConnection(voiceStateUpdate.getGuildIdLong());
+                logger.info("Destroyed connection for guild {}", voiceStateUpdate.getGuildIdLong());
                 vsuChannelMap.remove(voiceStateUpdate.getGuildIdLong());
                 return true;
             } else {
@@ -208,13 +209,8 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
         }
 
         if (content.startsWith("!disconnect")) {
-            var conn = koeClient.getConnection(event.getGuild().getIdLong());
-            if (conn != null) {
-                conn.close();
-                event.getChannel().sendMessage("Disconnected from voice channel!").queue();
-            } else {
-                event.getChannel().sendMessage("I'm not connected to a voice channel!").queue();
-            }
+            jda.getDirectAudioController().disconnect(event.getGuild());
+            event.getChannel().sendMessage("Disconnected from voice channel!").queue();
             return;
         }
 
