@@ -39,6 +39,7 @@ public class DAVEManager implements AutoCloseable {
     private long mlsGroupId = 0;
 
     private int currentProtocolVersion = 0;
+    private int selfProtocolVersion = 0;
 
     DAVEManager(@NotNull MediaConnectionImpl connection, @NotNull NettyDaveFactory factory) {
         this.connection = connection;
@@ -131,6 +132,14 @@ public class DAVEManager implements AutoCloseable {
                     output.writeBytes(OpusCodecInfo.SILENCE_FRAME);
                     return EncryptorResultCode.SUCCESS.getValue();
                 }
+            }
+
+            if (selfProtocolVersion > 0 && selfKeyRatchet == null) {
+                if (mediaType == MediaType.AUDIO) {
+                    output.writeBytes(OpusCodecInfo.SILENCE_FRAME);
+                    return EncryptorResultCode.SUCCESS.getValue();
+                }
+                return -EncryptorResultCode.MISSING_KEY_RATCHET.getValue();
             }
 
             output.ensureWritable(this.selfEncryptor.getMaxCiphertextByteSize(mediaType, size));
@@ -264,6 +273,7 @@ public class DAVEManager implements AutoCloseable {
     private void daveProtocolInit(int protocolVersion) {
         logger.debug("DAVE Init - Protocol version={}, MLS Group ID={}", protocolVersion, mlsGroupId);
         if (protocolVersion > 0) {
+            selfProtocolVersion = protocolVersion;
             prepareEpoch(MLS_NEW_GROUP_EPOCH, protocolVersion);
             sendMLSKeyPackage();
         } else {
@@ -295,6 +305,7 @@ public class DAVEManager implements AutoCloseable {
     private void setupKeyRatchetForUser(String uid, int protocolVersion) {
         var keyRatchet = makeKeyRatchetForUser(uid, protocolVersion);
         if (selfUserIdString.equals(uid)) {
+            selfProtocolVersion = protocolVersion;
             setSelfKeyRatchet(keyRatchet);
         } else if (keyRatchet != null) {
             keyRatchet.close();
