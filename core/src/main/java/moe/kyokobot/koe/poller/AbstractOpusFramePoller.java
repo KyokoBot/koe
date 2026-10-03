@@ -5,6 +5,7 @@ import moe.kyokobot.koe.KoeEventAdapter;
 import moe.kyokobot.koe.MediaConnection;
 import moe.kyokobot.koe.codec.CodecInstance;
 import moe.kyokobot.koe.codec.OpusCodecInfo;
+import moe.kyokobot.koe.internal.json.JsonObject;
 import moe.kyokobot.koe.media.AudioFrameProvider;
 import moe.kyokobot.koe.media.IntReference;
 
@@ -21,7 +22,7 @@ public abstract class AbstractOpusFramePoller extends AbstractFramePoller {
     private int silenceCounter = 0;
     private boolean lastProvide = false;
     private boolean lastSpeaking = false;
-    private boolean speaking = false;
+    private volatile boolean speaking = false;
 
     protected AbstractOpusFramePoller(MediaConnection connection, CodecInstance codec) {
         super(connection);
@@ -159,12 +160,21 @@ public abstract class AbstractOpusFramePoller extends AbstractFramePoller {
         }
     }
 
+    private void resendSpeakingState() {
+        if (speaking) {
+            connection.updateSpeakingState(connection.getSpeakingMask());
+        }
+    }
+
     private class Op12HackListener extends KoeEventAdapter {
         @Override
         public void userStreamsChanged(String id, int audioSSRC, int videoSSRC, int rtxSSRC) {
-            if (speaking) {
-                connection.updateSpeakingState(connection.getSpeakingMask());
-            }
+            resendSpeakingState();
+        }
+
+        @Override
+        public void sessionDescription(JsonObject session) {
+            resendSpeakingState();
         }
     }
 
