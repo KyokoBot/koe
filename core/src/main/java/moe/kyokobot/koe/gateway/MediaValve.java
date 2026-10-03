@@ -1,7 +1,9 @@
 package moe.kyokobot.koe.gateway;
 
 import moe.kyokobot.koe.internal.json.JsonObject;
+import org.jetbrains.annotations.ApiStatus;
 
+@ApiStatus.NonExtendable
 public interface MediaValve {
     /**
      * Whether we're deafened, i.e., we are not receiving audio from any user.

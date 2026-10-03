@@ -5,6 +5,7 @@ import moe.kyokobot.koe.codec.CodecInstance;
 import moe.kyokobot.koe.codec.CodecType;
 import moe.kyokobot.koe.internal.json.JsonObject;
 import moe.kyokobot.libdave.MediaType;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.util.concurrent.CompletionStage;
 
@@ -15,6 +16,7 @@ import java.util.concurrent.CompletionStage;
  *
  * @param <R> type of the result returned if connection succeeds
  */
+@ApiStatus.NonExtendable
 public interface ConnectionHandler<R> {
     void close();
 

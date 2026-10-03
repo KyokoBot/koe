@@ -6,12 +6,14 @@ import moe.kyokobot.koe.gateway.MediaGatewayConnection;
 import moe.kyokobot.koe.gateway.SpeakingFlags;
 import moe.kyokobot.koe.handler.ConnectionHandler;
 import moe.kyokobot.koe.media.AudioFrameProvider;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.Closeable;
 import java.util.concurrent.CompletionStage;
 
+@ApiStatus.NonExtendable
 public interface MediaConnection extends Closeable {
     /**
      * Connects to Discord voice server using specified info.

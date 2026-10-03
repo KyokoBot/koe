@@ -7,8 +7,10 @@ import io.netty.channel.socket.SocketChannel;
 import moe.kyokobot.koe.codec.CodecRegistry;
 import moe.kyokobot.koe.gateway.GatewayVersion;
 import moe.kyokobot.koe.poller.FramePollerFactory;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
+@ApiStatus.NonExtendable
 public interface KoeOptions {
     /**
      * Creates a new {@link KoeOptionsBuilder} instance with default options.

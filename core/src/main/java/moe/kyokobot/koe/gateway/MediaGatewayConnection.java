@@ -1,9 +1,11 @@
 package moe.kyokobot.koe.gateway;
 
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.CompletableFuture;
 
+@ApiStatus.NonExtendable
 public interface MediaGatewayConnection {
     long getPing();
 

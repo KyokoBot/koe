@@ -7,6 +7,7 @@ Tiny, minimal dependency and embeddable library implementing Discord media serve
 Koe follows [semantic versioning](https://semver.org/). API/ABI stability is defined as follows:
 
 - 🟢 **Public API** (all packages except `.experimental` and `.internal`) is guaranteed to be stable and is only extended when needed. Minor and patch releases preserve binary compatibility for the public API.
+  - Interfaces annotated with `@ApiStatus.NonExtendable` are implemented by Koe only and aren't meant to be implemented by users, so new abstract methods may be added to them in minor releases.
 - 🚧 **Experimental API** (`moe.kyokobot.koe.experimental`) - APIs in this package are subject to change or removal in any **minor** release (e.g. 3.1, 3.2). Use only if you can tolerate breaking changes between minor versions.
 - 🔒 **Internal API** (`moe.kyokobot.koe.internal`) - For internal use only. Not part of the public API; may change or break in any release, including **patch** releases.
 

@@ -1,12 +1,14 @@
 package moe.kyokobot.koe;
 
 import moe.kyokobot.koe.gateway.GatewayVersion;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.Closeable;
 import java.util.Map;
 
+@ApiStatus.NonExtendable
 public interface KoeClient extends Closeable {
     @NotNull
     MediaConnection createConnection(long guildId);

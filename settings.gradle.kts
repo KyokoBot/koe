@@ -16,7 +16,7 @@ dependencyResolutionManagement {
 
             library("tink", "com.google.crypto.tink", "tink").version("1.14.1")
 
-            library("jetbrains-annotations", "org.jetbrains", "annotations").version("13.0")
+            library("jetbrains-annotations", "org.jetbrains", "annotations").version("26.1.0")
 
             library("slf4j-api", "org.slf4j", "slf4j-api").version("1.8.0-beta4")
             library("logback-classic", "ch.qos.logback", "logback-classic").version("1.5.18")
