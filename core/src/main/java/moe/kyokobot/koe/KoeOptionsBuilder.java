@@ -3,11 +3,9 @@ package moe.kyokobot.koe;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.epoll.Epoll;
-import io.netty.channel.epoll.EpollDatagramChannel;
-import io.netty.channel.epoll.EpollEventLoopGroup;
-import io.netty.channel.epoll.EpollSocketChannel;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
+import io.netty.channel.epoll.*;
+import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
@@ -42,9 +40,9 @@ public class KoeOptionsBuilder {
 
     protected KoeOptionsBuilder() {
         boolean epoll = Epoll.isAvailable();
-        this.eventLoopGroup = epoll
-                ? new EpollEventLoopGroup()
-                : new NioEventLoopGroup();
+        var ioHandlerFactory = epoll ? EpollIoHandler.newFactory() : NioIoHandler.newFactory();
+
+        this.eventLoopGroup = new MultiThreadIoEventLoopGroup(ioHandlerFactory);
         this.socketChannelClass = epoll
                 ? EpollSocketChannel.class
                 : NioSocketChannel.class;
@@ -247,7 +245,7 @@ public class KoeOptionsBuilder {
     public KoeOptions create() {
         return new KoeOptionsImpl(eventLoopGroup, socketChannelClass, datagramChannelClass,
                 byteBufAllocator, gatewayVersion, framePollerFactory, codecRegistry, experimental,
-                highPacketPriority, deafened, enableWSSPortOverride, verifyWSSHostname, 
+                highPacketPriority, deafened, enableWSSPortOverride, verifyWSSHostname,
                 gatewayConnectTimeout, sendSpeakingStop, enableDAVE, enableDAVELogSink);
     }
 }
