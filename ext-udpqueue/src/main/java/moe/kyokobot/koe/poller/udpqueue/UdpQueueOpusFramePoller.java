@@ -6,17 +6,21 @@ import moe.kyokobot.koe.codec.CodecInstance;
 import moe.kyokobot.koe.internal.handler.DiscordUDPConnection;
 import moe.kyokobot.koe.poller.AbstractOpusFramePoller;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.net.InetSocketAddress;
 
 public class UdpQueueOpusFramePoller extends AbstractOpusFramePoller {
-    private final QueueManagerPool.UdpQueueWrapper manager;
+    private final @Nullable QueueManagerPool pool;
+    private QueueManagerPool.UdpQueueWrapper manager;
+    private InetSocketAddress lastAddress;
 
-    public UdpQueueOpusFramePoller(QueueManagerPool.UdpQueueWrapper manager,
-                                   @NotNull CodecInstance codec,
-                                   @NotNull MediaConnection connection) {
+    UdpQueueOpusFramePoller(@NotNull QueueManagerPool pool,
+                            @NotNull CodecInstance codec,
+                            @NotNull MediaConnection connection) {
         super(connection, codec);
-        this.manager = manager;
+        this.pool = pool;
+        this.manager = pool.getNextWrapper();
     }
 
     @Override
@@ -43,7 +47,13 @@ public class UdpQueueOpusFramePoller extends AbstractOpusFramePoller {
         }
 
         try {
-            manager.queuePacket(packet.nioBuffer(), (InetSocketAddress) handler.getServerAddress());
+            var address = (InetSocketAddress) handler.getServerAddress();
+            if (pool != null && lastAddress != null && !lastAddress.equals(address)) {
+                manager = pool.getNextWrapper();
+            }
+            lastAddress = address;
+
+            manager.queuePacket(packet.nioBuffer(), address);
         } finally {
             packet.release();
         }

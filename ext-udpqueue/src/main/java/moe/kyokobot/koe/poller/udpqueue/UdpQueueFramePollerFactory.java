@@ -21,7 +21,7 @@ public class UdpQueueFramePollerFactory implements FramePollerFactory {
     @Nullable
     public AbstractFramePoller createFramePoller(CodecInstance codec, MediaConnection connection) {
         if (codec.getInfo() instanceof OpusCodecInfo) {
-            return new UdpQueueOpusFramePoller(this.pool.getNextWrapper(), codec, connection);
+            return new UdpQueueOpusFramePoller(this.pool, codec, connection);
         }
         return null;
     }
