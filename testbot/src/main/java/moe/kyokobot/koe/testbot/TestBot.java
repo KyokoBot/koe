@@ -20,6 +20,7 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.channel.concrete.StageChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.AudioChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -130,7 +131,8 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
     @Override
     public boolean onVoiceStateUpdate(VoiceStateUpdate voiceStateUpdate) {
         if (voiceStateUpdate.getVoiceState().getIdLong() == jda.getSelfUser().getIdLong()) {
-            logger.info("VSU {} {}", voiceStateUpdate.getGuild(), voiceStateUpdate.getChannel());
+            logger.info("VSU {} {} suppressed={}", voiceStateUpdate.getGuild(), voiceStateUpdate.getChannel(),
+                    voiceStateUpdate.getVoiceState().isSuppressed());
 
             if (voiceStateUpdate.getChannel() == null) {
                 koeClient.destroyConnection(voiceStateUpdate.getGuildIdLong());
@@ -149,6 +151,17 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
         if (event.getAuthor().isBot()) return;
 
         var content = event.getMessage().getContentRaw();
+
+        if (content.equals("!help")) {
+            event.getChannel().sendMessage("**Commands:**\n"
+                    + "`!help` - shows this message\n"
+                    + "`!ping` - replies with Pong!\n"
+                    + "`!join` - joins your voice or stage channel\n"
+                    + "`!play <url or search>` - joins your channel and plays a track\n"
+                    + "`!disconnect` - disconnects from the voice channel\n"
+                    + "`!gcpress` - toggles the GC pressure generator").queue();
+            return;
+        }
 
         if (content.equals("!ping")) {
             event.getChannel().sendMessage("Pong!").queue();
@@ -176,12 +189,31 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
                 var player = playerMap.computeIfAbsent(event.getGuild(), n -> playerManager.createPlayer());
                 conn.setAudioSender(new OpusProvider(player));
                 conn.registerListener(new ExampleListener());
+
+                if (channel instanceof StageChannel) {
+                    var messageChannel = event.getChannel();
+                    event.getGuild().requestToSpeak()
+                            .onSuccess(v -> messageChannel.sendMessage("Requested to speak in `" + channel.getName() + "`.").queue())
+                            .onError(e -> messageChannel.sendMessage("**Error:** Failed to request to speak: " + e.getMessage()).queue());
+                }
+
                 connect(channel);
                 event.getChannel().sendMessage("Joined channel `" + channel.getName() + "`!").queue();
             }
 
             if (isPlay) {
                 resolve(event.getGuild(), event.getChannel().asGuildMessageChannel(), content.substring(6));
+            }
+            return;
+        }
+
+        if (content.startsWith("!disconnect")) {
+            var conn = koeClient.getConnection(event.getGuild().getIdLong());
+            if (conn != null) {
+                conn.close();
+                event.getChannel().sendMessage("Disconnected from voice channel!").queue();
+            } else {
+                event.getChannel().sendMessage("I'm not connected to a voice channel!").queue();
             }
             return;
         }
