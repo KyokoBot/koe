@@ -9,6 +9,9 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 dependencyResolutionManagement {
     versionCatalogs {
         create("libs") {
+            // Last release, which the public API is checked for compatibility against
+            version("koe-api-baseline", "3.0.0")
+
             version("netty", "4.2.18.Final")
             library("netty-transport", "io.netty", "netty-transport").versionRef("netty")
             library("netty-codec-http", "io.netty", "netty-codec-http").versionRef("netty")

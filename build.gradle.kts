@@ -1,11 +1,17 @@
 import com.vanniktech.maven.publish.MavenPublishBaseExtension
 import com.vanniktech.maven.publish.SonatypeHost
+import japicmp.model.JApiCompatibilityChangeType
+import me.champeau.gradle.japicmp.JapicmpTask
+import moe.kyokobot.koe.gradle.AbstractMethodAddedRule
 
 plugins {
     id("com.vanniktech.maven.publish") version "0.32.0" apply false
+    // Version is set in buildSrc, which also contains custom rules for it.
+    id("me.champeau.gradle.japicmp") apply false
 }
 
 val gitVersionInfo = getGitVersion()
+val apiBaselineVersion = libs.versions.koe.api.baseline.get()
 logger.lifecycle("Version: ${gitVersionInfo.version} (isCommitHash: ${gitVersionInfo.isCommitHash})")
 
 subprojects {
@@ -40,6 +46,48 @@ subprojects {
     }
     if (name != "testbot") {
         apply(plugin = "com.vanniktech.maven.publish")
+        apply(plugin = "me.champeau.gradle.japicmp")
+
+        // Public API must stay compatible with the last release, see "Versioning and stability policy" in README.md.
+        val apiBaseline = configurations.create("apiBaseline") { isTransitive = false }
+        val apiBaselineClasspath = configurations.create("apiBaselineClasspath")
+        dependencies {
+            apiBaseline("moe.kyokobot.koe:${project.name}:$apiBaselineVersion")
+            apiBaselineClasspath("moe.kyokobot.koe:${project.name}:$apiBaselineVersion")
+            if (project.name != "core") {
+                apiBaselineClasspath("moe.kyokobot.koe:core:$apiBaselineVersion")
+            }
+        }
+
+        val apiCompatibilityCheck = tasks.register<JapicmpTask>("apiCompatibilityCheck") {
+            group = "verification"
+            description = "Checks the public API for breaking changes against Koe $apiBaselineVersion."
+
+            oldArchives.from(apiBaseline)
+            oldClasspath.from(apiBaselineClasspath)
+            newArchives.from(tasks.named("jar"))
+            newClasspath.from(tasks.named("jar"), configurations.named("compileClasspath"))
+            packageExcludes.addAll(
+                "moe.kyokobot.koe.internal", "moe.kyokobot.koe.internal.*",
+                "moe.kyokobot.koe.experimental", "moe.kyokobot.koe.experimental.*",
+            )
+
+            richReport {
+                title.set("${project.name}: API changes since $apiBaselineVersion")
+                reportName.set("api-compatibility.html")
+                addDefaultRules.set(true)
+                listOf(
+                    JApiCompatibilityChangeType.METHOD_ADDED_TO_INTERFACE,
+                    JApiCompatibilityChangeType.METHOD_ABSTRACT_ADDED_TO_CLASS,
+                    JApiCompatibilityChangeType.METHOD_ABSTRACT_ADDED_IN_SUPERCLASS,
+                    JApiCompatibilityChangeType.METHOD_ABSTRACT_ADDED_IN_IMPLEMENTED_INTERFACE,
+                ).forEach { addRule(it, AbstractMethodAddedRule::class.java) }
+            }
+        }
+
+        tasks.named("check") {
+            dependsOn(apiCompatibilityCheck)
+        }
 
         afterEvaluate {
             plugins.withId("com.vanniktech.maven.publish.base") {
