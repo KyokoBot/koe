@@ -1,6 +1,5 @@
 import com.vanniktech.maven.publish.MavenPublishBaseExtension
 import com.vanniktech.maven.publish.SonatypeHost
-import java.io.ByteArrayOutputStream
 
 plugins {
     id("com.vanniktech.maven.publish") version "0.32.0" apply false
@@ -19,6 +18,10 @@ subprojects {
     configure<JavaPluginExtension> {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    tasks.withType<JavaCompile>().configureEach {
+        options.release.set(11)
     }
 
     repositories {
@@ -104,24 +107,17 @@ subprojects {
 data class VersionInfo(val version: String, val isCommitHash: Boolean)
 
 fun getGitVersion(): VersionInfo {
-    var versionStr = ByteArrayOutputStream()
-    val result = exec {
-        standardOutput = versionStr
-        errorOutput = versionStr
+    val tagged = providers.exec {
         isIgnoreExitValue = true
         commandLine("git", "describe", "--exact-match", "--tags", "--dirty")
     }
-    if (result.exitValue == 0) {
-        return VersionInfo(versionStr.toString().trim(), false)
+    if (tagged.result.get().exitValue == 0) {
+        return VersionInfo(tagged.standardOutput.asText.get().trim(), false)
     }
 
-
-    versionStr = ByteArrayOutputStream()
-    exec {
-        standardOutput = versionStr
-        errorOutput = versionStr
+    val commit = providers.exec {
         commandLine("git", "describe", "--match=NeVeRmAtCh", "--always", "--abbrev=9", "--dirty")
     }
 
-    return VersionInfo(versionStr.toString().trim(), true)
+    return VersionInfo(commit.standardOutput.asText.get().trim(), true)
 }
