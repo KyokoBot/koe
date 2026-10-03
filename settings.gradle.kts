@@ -9,7 +9,7 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 dependencyResolutionManagement {
     versionCatalogs {
         create("libs") {
-            version("netty", "4.2.10.Final")
+            version("netty", "4.2.18.Final")
             library("netty-transport", "io.netty", "netty-transport").versionRef("netty")
             library("netty-codec-http", "io.netty", "netty-codec-http").versionRef("netty")
             library("netty-transport-native-epoll-linux", "io.netty", "netty-transport-native-epoll").versionRef("netty")
@@ -21,14 +21,14 @@ dependencyResolutionManagement {
             library("slf4j-api", "org.slf4j", "slf4j-api").version("1.8.0-beta4")
             library("logback-classic", "ch.qos.logback", "logback-classic").version("1.5.18")
 
-            version("lavaplayer", "2.2.6")
+            version("lavaplayer", "2.2.7")
             library("lava-common", "dev.arbjerg", "lava-common").versionRef("lavaplayer")
             library("lavaplayer", "dev.arbjerg", "lavaplayer").versionRef("lavaplayer")
-            library("lavaplayer-youtube", "com.github.lavalink-devs", "lavaplayer-youtube-source").version("1.18.0")
+            library("lavaplayer-youtube", "dev.lavalink.youtube", "v2").version("2be8e542d3f6f178e048dca565892684c2e40177-SNAPSHOT")
 
-            library("jda", "net.dv8tion", "JDA").version("5.0.2")
+            library("jda", "net.dv8tion", "JDA").version("6.7.0")
 
-            version("libdave", "0.1.2")
+            version("libdave", "93a59a594")
             library("libdave-api", "moe.kyokobot.libdave", "api").versionRef("libdave")
             library("libdave-impl-jni", "moe.kyokobot.libdave", "impl-jni").versionRef("libdave")
             library("libdave-natives-darwin", "moe.kyokobot.libdave", "natives-darwin").versionRef("libdave")
