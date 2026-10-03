@@ -32,6 +32,7 @@ public class KoeOptionsImpl implements KoeOptionsExperimental {
     private final boolean enableWSSPortOverride;
     private final boolean verifyWSSHostname;
     private final long gatewayConnectTimeout;
+    private final boolean sendSpeakingStop;
     private final boolean enableDAVE;
     private final boolean enableDAVELogSink;
 
@@ -49,6 +50,7 @@ public class KoeOptionsImpl implements KoeOptionsExperimental {
             boolean enableWSSPortOverride,
             boolean verifyWSSHostname,
             long gatewayConnectTimeout,
+            boolean sendSpeakingStop,
             boolean enableDAVE,
             boolean enableDAVELogSink
     ) {
@@ -65,6 +67,7 @@ public class KoeOptionsImpl implements KoeOptionsExperimental {
         this.enableWSSPortOverride = enableWSSPortOverride;
         this.verifyWSSHostname = verifyWSSHostname;
         this.gatewayConnectTimeout = gatewayConnectTimeout;
+        this.sendSpeakingStop = sendSpeakingStop;
         this.enableDAVE = enableDAVE;
         this.enableDAVELogSink = enableDAVELogSink;
     }
@@ -139,6 +142,11 @@ public class KoeOptionsImpl implements KoeOptionsExperimental {
     @Override
     public long getGatewayConnectTimeout() {
         return gatewayConnectTimeout;
+    }
+
+    @Override
+    public boolean isSendSpeakingStop() {
+        return sendSpeakingStop;
     }
 
     @Override

@@ -8,6 +8,7 @@ import moe.kyokobot.koe.experimental.MediaConnectionExperimental;
 import moe.kyokobot.koe.experimental.media.VideoFrameProvider;
 import moe.kyokobot.koe.gateway.MediaGatewayConnection;
 import moe.kyokobot.koe.gateway.MediaValve;
+import moe.kyokobot.koe.gateway.SpeakingFlags;
 import moe.kyokobot.koe.handler.ConnectionHandler;
 import moe.kyokobot.koe.internal.gateway.MediaGatewayV8Connection;
 import moe.kyokobot.koe.media.AudioFrameProvider;
@@ -26,7 +27,10 @@ public class MediaConnectionImpl implements MediaConnection, MediaConnectionExpe
     private final KoeClientImpl client;
     private final long guildId;
     private final EventDispatcher dispatcher;
+    private final Object speakingLock = new Object();
 
+    private volatile int speakingMask = SpeakingFlags.NORMAL;
+    private int announcedSpeakingMask = 0;
     private MediaGatewayConnection gatewayConnection;
     private ConnectionHandler<?> connectionHandler;
     private VoiceServerInfo info;
@@ -273,8 +277,27 @@ public class MediaConnectionImpl implements MediaConnection, MediaConnectionExpe
 
     @Override
     public void updateSpeakingState(int mask) {
-        if (this.gatewayConnection != null) {
-            this.gatewayConnection.updateSpeaking(mask);
+        synchronized (speakingLock) {
+            this.announcedSpeakingMask = mask;
+            if (this.gatewayConnection != null) {
+                this.gatewayConnection.updateSpeaking(mask);
+            }
+        }
+    }
+
+    @Override
+    public int getSpeakingMask() {
+        return speakingMask;
+    }
+
+    @Override
+    public void setSpeakingMask(int mask) {
+        synchronized (speakingLock) {
+            this.speakingMask = mask;
+            // Otherwise the new mask is announced once playback starts.
+            if (this.announcedSpeakingMask != 0 && this.announcedSpeakingMask != mask) {
+                updateSpeakingState(mask);
+            }
         }
     }
 

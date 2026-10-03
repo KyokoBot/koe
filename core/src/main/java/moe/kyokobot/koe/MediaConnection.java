@@ -3,6 +3,7 @@ package moe.kyokobot.koe;
 import moe.kyokobot.koe.codec.CodecInfo;
 import moe.kyokobot.koe.codec.CodecInstance;
 import moe.kyokobot.koe.gateway.MediaGatewayConnection;
+import moe.kyokobot.koe.gateway.SpeakingFlags;
 import moe.kyokobot.koe.handler.ConnectionHandler;
 import moe.kyokobot.koe.media.AudioFrameProvider;
 import org.jetbrains.annotations.NotNull;
@@ -90,6 +91,20 @@ public interface MediaConnection extends Closeable {
      * @param mask new speaking state
      */
     void updateSpeakingState(int mask);
+
+    /**
+     * @return speaking flags announced to the gateway when audio playback starts, see {@link SpeakingFlags}.
+     */
+    int getSpeakingMask();
+
+    /**
+     * Sets speaking flags announced to the gateway when audio playback starts, see {@link SpeakingFlags}.
+     * If the connection is currently announced as speaking, the new flags are sent immediately.
+     * Defaults to {@link SpeakingFlags#NORMAL}.
+     *
+     * @param mask new speaking flags
+     */
+    void setSpeakingMask(int mask);
 
     /**
      * Closes and disposes this connection, cannot be used after this method is called.

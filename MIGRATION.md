@@ -152,3 +152,5 @@ The gateway implementation has been moved to the `internal` package until refact
 - `enableWSSPortOverride` is now `false` by default.
 - (3.1.0+) Voice gateway connections now time out after 10 seconds (configurable with `KoeOptionsBuilder.setGatewayConnectTimeout`, `0` disables it).
   The `CompletionStage` returned by `MediaConnection.connect()` now completes exceptionally when the connection can't be established, instead of never completing.
+- (3.1.0+) Speaking state updates with an empty mask are no longer sent when playback stops, since Discord clients detect it on their own and early updates could cut off buffered audio.
+  Use `KoeOptionsBuilder.setSendSpeakingStop(true)` to restore the previous behavior.

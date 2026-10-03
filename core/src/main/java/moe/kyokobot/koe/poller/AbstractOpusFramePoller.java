@@ -5,7 +5,6 @@ import moe.kyokobot.koe.KoeEventAdapter;
 import moe.kyokobot.koe.MediaConnection;
 import moe.kyokobot.koe.codec.CodecInstance;
 import moe.kyokobot.koe.codec.OpusCodecInfo;
-import moe.kyokobot.koe.gateway.SpeakingFlags;
 import moe.kyokobot.koe.media.AudioFrameProvider;
 import moe.kyokobot.koe.media.IntReference;
 
@@ -23,7 +22,6 @@ public abstract class AbstractOpusFramePoller extends AbstractFramePoller {
     private boolean lastProvide = false;
     private boolean lastSpeaking = false;
     private boolean speaking = false;
-    private int speakingMask = SpeakingFlags.NORMAL;
 
     protected AbstractOpusFramePoller(MediaConnection connection, CodecInstance codec) {
         super(connection);
@@ -37,12 +35,20 @@ public abstract class AbstractOpusFramePoller extends AbstractFramePoller {
         this.connection.registerListener(this.hackListener);
     }
 
+    /**
+     * @deprecated Use {@link MediaConnection#getSpeakingMask()} instead.
+     */
+    @Deprecated
     public int getSpeakingMask() {
-        return speakingMask;
+        return connection.getSpeakingMask();
     }
 
+    /**
+     * @deprecated Use {@link MediaConnection#setSpeakingMask(int)} instead.
+     */
+    @Deprecated
     public void setSpeakingMask(int speakingMask) {
-        this.speakingMask = speakingMask;
+        connection.setSpeakingMask(speakingMask);
     }
 
     @Override
@@ -145,7 +151,11 @@ public abstract class AbstractOpusFramePoller extends AbstractFramePoller {
         this.speaking = state;
         if (this.speaking != this.lastSpeaking) {
             this.lastSpeaking = state;
-            connection.updateSpeakingState(state ? this.speakingMask : 0);
+            if (state) {
+                connection.updateSpeakingState(connection.getSpeakingMask());
+            } else if (connection.getOptions().isSendSpeakingStop()) {
+                connection.updateSpeakingState(0);
+            }
         }
     }
 
@@ -153,7 +163,7 @@ public abstract class AbstractOpusFramePoller extends AbstractFramePoller {
         @Override
         public void userStreamsChanged(String id, int audioSSRC, int videoSSRC, int rtxSSRC) {
             if (speaking) {
-                connection.updateSpeakingState(speakingMask);
+                connection.updateSpeakingState(connection.getSpeakingMask());
             }
         }
     }

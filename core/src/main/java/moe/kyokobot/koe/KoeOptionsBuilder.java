@@ -36,6 +36,7 @@ public class KoeOptionsBuilder {
     protected boolean enableWSSPortOverride;
     protected boolean verifyWSSHostname;
     protected long gatewayConnectTimeout;
+    protected boolean sendSpeakingStop;
     protected boolean enableDAVE;
     protected boolean enableDAVELogSink;
 
@@ -62,6 +63,7 @@ public class KoeOptionsBuilder {
         this.enableWSSPortOverride = false;
         this.verifyWSSHostname = true;
         this.gatewayConnectTimeout = 10_000;
+        this.sendSpeakingStop = false;
         this.enableDAVE = true;
         this.enableDAVELogSink = false;
     }
@@ -209,6 +211,20 @@ public class KoeOptionsBuilder {
     }
 
     /**
+     * Sets whether to send a speaking state update with an empty mask when audio playback stops.
+     * Discord clients detect the end of speech on their own when packets stop arriving, so sending it isn't
+     * necessary, and sending it too early (e.g. while the audio is still buffered on the receiving side)
+     * may cut off the end of the audio.
+     * Defaults to false.
+     *
+     * @param sendSpeakingStop true to send speaking stop updates, false to only send updates when playback starts (default)
+     */
+    public KoeOptionsBuilder setSendSpeakingStop(boolean sendSpeakingStop) {
+        this.sendSpeakingStop = sendSpeakingStop;
+        return this;
+    }
+
+    /**
      * Sets whether End-to-End encryption using Discord's <a href="https://daveprotocol.com">DAVE protocol</a> is enabled.
      * Defaults to true.
      */
@@ -232,6 +248,6 @@ public class KoeOptionsBuilder {
         return new KoeOptionsImpl(eventLoopGroup, socketChannelClass, datagramChannelClass,
                 byteBufAllocator, gatewayVersion, framePollerFactory, codecRegistry, experimental,
                 highPacketPriority, deafened, enableWSSPortOverride, verifyWSSHostname, 
-                gatewayConnectTimeout, enableDAVE, enableDAVELogSink);
+                gatewayConnectTimeout, sendSpeakingStop, enableDAVE, enableDAVELogSink);
     }
 }

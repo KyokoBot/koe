@@ -45,6 +45,8 @@ public interface KoeOptions {
 
     long getGatewayConnectTimeout();
 
+    boolean isSendSpeakingStop();
+
     boolean isEnableDAVE();
 
     boolean isEnableDAVELogSink();
