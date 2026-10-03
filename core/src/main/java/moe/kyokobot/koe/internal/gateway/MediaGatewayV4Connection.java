@@ -164,7 +164,7 @@ public class MediaGatewayV4Connection extends AbstractMediaGatewayConnection {
         sendInternalPayload(Op.SPEAKING, new JsonObject()
                 .add("speaking", mask)
                 .add("delay", 0)
-                .add("ssrc", ssrc));
+                .add("ssrc", Integer.toUnsignedLong(ssrc)));
     }
 
     private void setupHeartbeats(int interval) {
@@ -214,7 +214,7 @@ public class MediaGatewayV4Connection extends AbstractMediaGatewayConnection {
                         .combine(udpInfo));
 
                 sendInternalPayload(Op.VIDEO, new JsonObject()
-                        .add("audio_ssrc", ssrc)
+                        .add("audio_ssrc", Integer.toUnsignedLong(ssrc))
                         .add("video_ssrc", 0)
                         .add("rtx_ssrc", 0));
             });

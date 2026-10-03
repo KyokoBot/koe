@@ -45,7 +45,7 @@ public class MediaValveImpl implements MediaValve {
 
         // add any unwanted streams.
         for (int[] streams : unwantedStreams.values()) {
-            for (int ssrc : streams) d.add(Integer.toString(ssrc), 0);
+            for (int ssrc : streams) d.add(Integer.toUnsignedString(ssrc), 0);
         }
 
         this.gatewayConnection.sendInternalPayload(Op.MEDIA_SINK_WANTS, d);
