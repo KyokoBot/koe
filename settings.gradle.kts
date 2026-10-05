@@ -24,6 +24,13 @@ dependencyResolutionManagement {
             library("slf4j-api", "org.slf4j", "slf4j-api").version("1.8.0-beta4")
             library("logback-classic", "ch.qos.logback", "logback-classic").version("1.5.18")
 
+            // JUnit 6 requires Java 17, we still target Java 11
+            library("junit-bom", "org.junit", "junit-bom").version("5.14.4")
+            library("junit-jupiter", "org.junit.jupiter", "junit-jupiter").withoutVersion()
+            library("junit-platform-launcher", "org.junit.platform", "junit-platform-launcher").withoutVersion()
+            // Reference XSalsa20/Poly1305 implementation for encryption mode tests
+            library("bouncycastle", "org.bouncycastle", "bcprov-jdk18on").version("1.86")
+
             version("lavaplayer", "2.2.7")
             library("lava-common", "dev.arbjerg", "lava-common").versionRef("lavaplayer")
             library("lavaplayer", "dev.arbjerg", "lavaplayer").versionRef("lavaplayer")

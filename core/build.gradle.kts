@@ -12,6 +12,15 @@ dependencies {
     implementation(libs.libdave.api)
     implementation(libs.libdave.impl.jni)
     implementation(libs.jetbrains.annotations)
+
+    testImplementation(libs.bouncycastle)
+    testRuntimeOnly(libs.libdave.natives.darwin)
+    testRuntimeOnly(libs.libdave.natives.linux.glibc.aarch64)
+    testRuntimeOnly(libs.libdave.natives.linux.glibc.amd64)
+    testRuntimeOnly(libs.libdave.natives.linux.musl.aarch64)
+    testRuntimeOnly(libs.libdave.natives.linux.musl.amd64)
+    testRuntimeOnly(libs.libdave.natives.win.aarch64)
+    testRuntimeOnly(libs.libdave.natives.win.amd64)
 }
 
 mavenPublishing {

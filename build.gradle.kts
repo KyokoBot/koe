@@ -30,6 +30,16 @@ subprojects {
         options.release.set(11)
     }
 
+    dependencies {
+        "testImplementation"(platform(rootProject.libs.junit.bom))
+        "testImplementation"(rootProject.libs.junit.jupiter)
+        "testRuntimeOnly"(rootProject.libs.junit.platform.launcher)
+    }
+
+    tasks.withType<Test>().configureEach {
+        useJUnitPlatform()
+    }
+
     repositories {
         mavenLocal()
 

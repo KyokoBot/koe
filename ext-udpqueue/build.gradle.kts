@@ -3,6 +3,15 @@ dependencies {
     implementation(libs.lava.common)
     implementation(libs.udpqueue.api)
     implementation(libs.jetbrains.annotations)
+
+    testImplementation(projects.core)
+    testRuntimeOnly(libs.udpqueue.native.linux.glibc.aarch64)
+    testRuntimeOnly(libs.udpqueue.native.linux.glibc.amd64)
+    testRuntimeOnly(libs.udpqueue.native.linux.musl.aarch64)
+    testRuntimeOnly(libs.udpqueue.native.linux.musl.amd64)
+    testRuntimeOnly(libs.udpqueue.native.win.aarch64)
+    testRuntimeOnly(libs.udpqueue.native.win.amd64)
+    testRuntimeOnly(libs.udpqueue.native.darwin)
 }
 
 mavenPublishing {
