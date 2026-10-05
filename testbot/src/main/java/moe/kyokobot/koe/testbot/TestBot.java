@@ -12,9 +12,14 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.playback.MutableAudioFrame;
 import dev.lavalink.youtube.YoutubeAudioSourceManager;
 import io.netty.buffer.ByteBuf;
-import moe.kyokobot.koe.*;
+import moe.kyokobot.koe.KoeClient;
+import moe.kyokobot.koe.KoeEventAdapter;
+import moe.kyokobot.koe.VoiceServerInfo;
 import moe.kyokobot.koe.codec.CodecInstance;
 import moe.kyokobot.koe.codec.OpusCodecInfo;
+import moe.kyokobot.koe.experimental.KoeExperimental;
+import moe.kyokobot.koe.experimental.KoeOptionsBuilderExperimental;
+import moe.kyokobot.koe.experimental.KoeOptionsExperimental;
 import moe.kyokobot.koe.media.AudioFrameProvider;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -52,7 +57,7 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
 
     private final NettyLeakDetect leakDetect;
     private JDA jda;
-    private Koe koe;
+    private KoeExperimental koe;
     private KoeClient koeClient;
     private AudioPlayerManager playerManager;
     private final Map<Guild, AudioPlayer> playerMap = new ConcurrentHashMap<>();
@@ -65,11 +70,11 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
 
     public void start() {
         this.jda = createJDA();
-        var options = configureKoe(KoeOptions.builder()
+        var options = configureKoe((KoeOptionsBuilderExperimental) KoeOptionsExperimental.builder()
                 .setByteBufAllocator(this.leakDetect.getAllocator())
                 .setEnableDAVELogSink(true)
         );
-        this.koe = Koe.koe(options);
+        this.koe = KoeExperimental.koe(options);
         this.playerManager = createAudioPlayerManager();
     }
 
@@ -86,7 +91,7 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
         }
     }
 
-    public KoeOptions configureKoe(KoeOptionsBuilder builder) {
+    public KoeOptionsExperimental configureKoe(KoeOptionsBuilderExperimental builder) {
         return builder.create();
     }
 
