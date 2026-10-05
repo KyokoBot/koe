@@ -194,7 +194,7 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
                 return;
             }
 
-            if (connectAttempt <= 3) {
+            if (connectAttempt < 3) {
                 switch (code) {
                     case CloseCode.GOING_AWAY:
                     case CloseCode.ABNORMAL_CLOSURE:
