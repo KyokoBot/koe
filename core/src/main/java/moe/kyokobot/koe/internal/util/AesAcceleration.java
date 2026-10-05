@@ -1,11 +1,6 @@
 package moe.kyokobot.koe.internal.util;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public final class AesAcceleration {
-    private static final Logger logger = LoggerFactory.getLogger(AesAcceleration.class);
-
     private static volatile Boolean accelerated;
 
     private AesAcceleration() {
@@ -28,7 +23,6 @@ public final class AesAcceleration {
      */
     private static boolean detect() {
         var flag = readHotSpotFlag();
-        logger.debug("AES instructions according to HotSpot: {}", flag != null ? flag : "unknown");
         return Boolean.TRUE.equals(flag);
     }
 
