@@ -17,6 +17,7 @@ class DefaultEncryptionModes {
     static final Map<String, Supplier<EncryptionMode>> encryptionModes;
 
     static {
+        // Bump CipherBenchmark.Report.VERSION after changes that make a mode notably faster or slower.
         // sorted by priority
         var modes = new HashMap<String, Supplier<EncryptionMode>>();
 

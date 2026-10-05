@@ -39,6 +39,10 @@ public interface EncryptionMode {
         throw new UnsupportedEncryptionModeException("Cannot find a suitable encryption mode for this connection!");
     }
 
+    static Set<String> supportedModes() {
+        return DefaultEncryptionModes.encryptionModes.keySet();
+    }
+
     static EncryptionMode get(String mode) {
         var factory = DefaultEncryptionModes.encryptionModes.get(mode);
         return factory != null ? factory.get() : null;
