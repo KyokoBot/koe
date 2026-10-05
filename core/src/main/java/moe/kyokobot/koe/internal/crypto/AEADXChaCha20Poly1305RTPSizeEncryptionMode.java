@@ -13,7 +13,15 @@ public class AEADXChaCha20Poly1305RTPSizeEncryptionMode implements EncryptionMod
     private final byte[] extendedNonce = new byte[NONCE_BYTES_LENGTH];
     private final ByteBuffer c = ByteBuffer.allocate(1276 + TAG_BYTES_LENGTH + NONCE_BYTES_LENGTH);
     private final byte[] associatedData = new byte[12];
-    private int seq = Math.abs(SECURE_RANDOM.nextInt()) % 418 + 1;
+    private int seq;
+
+    public AEADXChaCha20Poly1305RTPSizeEncryptionMode() {
+        this(Math.abs(SECURE_RANDOM.nextInt()) % 418 + 1);
+    }
+
+    AEADXChaCha20Poly1305RTPSizeEncryptionMode(int initialSeq) {
+        this.seq = initialSeq;
+    }
 
     @Override
     @SuppressWarnings("Duplicates")

@@ -11,7 +11,15 @@ public class AEADAES256GCMRTPSizeEncryptionMode implements EncryptionMode {
 
     private final byte[] extendedNonce = new byte[NONCE_BYTES_LENGTH];
     private final byte[] associatedData = new byte[12];
-    private int seq = Math.abs(SECURE_RANDOM.nextInt()) % 418 + 1;
+    private int seq;
+
+    public AEADAES256GCMRTPSizeEncryptionMode() {
+        this(Math.abs(SECURE_RANDOM.nextInt()) % 418 + 1);
+    }
+
+    AEADAES256GCMRTPSizeEncryptionMode(int initialSeq) {
+        this.seq = initialSeq;
+    }
 
     @Override
     @SuppressWarnings("Duplicates")

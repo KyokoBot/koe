@@ -4,9 +4,13 @@ import io.netty.buffer.ByteBuf;
 
 public class PlainEncryptionMode implements EncryptionMode {
     @Override
-    public boolean box(ByteBuf plain, int start, ByteBuf output, byte[] secretKey) {
-        plain.readerIndex(start);
-        output.writeBytes(plain);
+    public void validateKey(byte[] secretKey) {
+        // unused
+    }
+
+    @Override
+    public boolean box(ByteBuf plain, int len, ByteBuf output, byte[] secretKey) {
+        output.writeBytes(plain, len);
         return true;
     }
 

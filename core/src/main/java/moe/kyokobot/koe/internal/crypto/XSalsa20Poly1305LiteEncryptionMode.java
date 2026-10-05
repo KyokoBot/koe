@@ -7,7 +7,15 @@ public class XSalsa20Poly1305LiteEncryptionMode implements EncryptionMode {
     private final byte[] m = new byte[1276 + ZERO_BYTES_LENGTH];
     private final byte[] c = new byte[1276 + ZERO_BYTES_LENGTH];
     private final TweetNaclFastInstanced nacl = new TweetNaclFastInstanced();
-    private int seq = 0x80000000;
+    private int seq;
+
+    public XSalsa20Poly1305LiteEncryptionMode() {
+        this(0x80000000);
+    }
+
+    XSalsa20Poly1305LiteEncryptionMode(int initialSeq) {
+        this.seq = initialSeq;
+    }
 
     @Override
     @SuppressWarnings("Duplicates")

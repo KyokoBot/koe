@@ -10,6 +10,19 @@ public interface EncryptionMode {
 
     int ZERO_BYTES_LENGTH = 32; // For XSalsa20Poly1305
     int TAG_BYTES_LENGTH = 16; // For AEAD
+    int SECRET_KEY_LENGTH = 32;
+
+    /**
+     * Checks the key once per session, {@link #box} assumes it was validated.
+     *
+     * @throws IllegalArgumentException if the key can't be used with this mode
+     */
+    default void validateKey(byte[] secretKey) {
+        if (secretKey == null || secretKey.length != SECRET_KEY_LENGTH) {
+            throw new IllegalArgumentException(getName() + " requires a " + SECRET_KEY_LENGTH + " byte key, got "
+                    + (secretKey == null ? "none" : secretKey.length + " bytes"));
+        }
+    }
 
     boolean box(ByteBuf plain, int start, ByteBuf output, byte[] secretKey);
 

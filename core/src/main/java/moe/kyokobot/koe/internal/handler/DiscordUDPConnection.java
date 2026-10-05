@@ -100,11 +100,14 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
         }
 
         var keyArray = object.getArray("secret_key");
-        this.secretKey = new byte[keyArray.size()];
+        var key = new byte[keyArray.size()];
 
-        for (int i = 0; i < secretKey.length; i++) {
-            this.secretKey[i] = (byte) (keyArray.getInt(i) & 0xff);
+        for (int i = 0; i < key.length; i++) {
+            key[i] = (byte) (keyArray.getInt(i) & 0xff);
         }
+
+        encryptionMode.validateKey(key);
+        this.secretKey = key;
 
         connection.startAudioFramePolling();
         connection.startVideoFramePolling();
