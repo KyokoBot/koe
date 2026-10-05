@@ -33,6 +33,21 @@ dependencies {
 - slf4j
 - Java 11+
 
+### Running on Java 24+
+
+Java 24 warns about `sun.misc.Unsafe` memory access ([JEP 498](https://openjdk.org/jeps/498)), so Netty stops using it
+unless it's explicitly allowed. Netty then falls back to slower direct buffers which can allocate on every packet, and
+frees direct memory less promptly ([details](https://netty.io/wiki/java-24-and-sun.misc.unsafe.html)). Java 24 also
+warns when native libraries are loaded ([JEP 472](https://openjdk.org/jeps/472)), which Koe does for DAVE, the epoll
+transport and udp-queue. Start the JVM with:
+
+```
+--sun-misc-unsafe-memory-access=allow --enable-native-access=ALL-UNNAMED
+```
+
+If Netty and the other libraries are on the module path, pass their module names to `--enable-native-access` instead
+of `ALL-UNNAMED`.
+
 ### Features
 
 - Supports voice gateway v4, v5 and v8.
