@@ -16,6 +16,11 @@ dependencies {
 
     implementation(libs.libdave.api)
     implementation(libs.libdave.impl.jni)
+    runtimeOnly(libs.libdave.impl.ffm) {
+        attributes {
+            attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 22)
+        }
+    }
     implementation(libs.libdave.natives.darwin)
     implementation(libs.libdave.natives.linux.glibc.aarch64)
     implementation(libs.libdave.natives.linux.glibc.arm)

@@ -4,11 +4,9 @@ import moe.kyokobot.koe.KoeClient;
 import moe.kyokobot.koe.KoeOptions;
 import moe.kyokobot.koe.MediaConnection;
 import moe.kyokobot.koe.experimental.KoeClientExperimental;
+import moe.kyokobot.koe.experimental.KoeOptionsExperimental;
 import moe.kyokobot.koe.experimental.MediaConnectionExperimental;
 import moe.kyokobot.koe.gateway.GatewayVersion;
-import moe.kyokobot.koe.internal.dave.DAVELogger;
-import moe.kyokobot.libdave.NativeDaveFactory;
-import moe.kyokobot.libdave.netty.NativeNettyDaveFactory;
 import moe.kyokobot.libdave.netty.NettyDaveFactory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -34,9 +32,12 @@ public class KoeClientImpl implements KoeClient, KoeClientExperimental {
 
         this.connections = new ConcurrentHashMap<>();
 
-        NettyDaveFactory daveFactory = null;
+        var expOptions = (KoeOptionsExperimental) options;
+        @Nullable NettyDaveFactory daveFactory;
         if (options.isEnableDAVE()) {
-            daveFactory = createDAVEFactory(options.isEnableDAVELogSink());
+            daveFactory = expOptions.getDaveFactoryProvider().getFactory(options.isEnableDAVELogSink());
+        } else {
+            daveFactory = null;
         }
 
         this.daveFactory = daveFactory;
@@ -105,20 +106,5 @@ public class KoeClientImpl implements KoeClient, KoeClientExperimental {
     @NotNull
     public GatewayVersion getGatewayVersion() {
         return options.getGatewayVersion();
-    }
-
-    private static @Nullable NettyDaveFactory createDAVEFactory(boolean enableLogging) {
-        // TODO: We have a pure Java implementation planned.
-        try {
-            NativeDaveFactory.ensureAvailable();
-            DAVELogger.setNativeLoggingEnabled(enableLogging);
-            logger.debug("Using native DAVE implementation (logging {})", enableLogging ? "enabled" : "disabled");
-
-            return new NativeNettyDaveFactory();
-        } catch (RuntimeException e) {
-            logger.warn("DAVE requested but the native library could not be loaded! Did you forget to include 'moe.kyokobot.libdave:natives-{platform}' dependency in your project?", e);
-        }
-
-        return null;
     }
 }

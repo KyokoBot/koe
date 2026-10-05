@@ -49,6 +49,10 @@ public interface KoeOptions {
 
     boolean isSendSpeakingStop();
 
+    /**
+     * @deprecated This method is deprecated and will be removed in a future version.
+     */
+    @Deprecated(forRemoval = true)
     boolean isEnableDAVE();
 
     boolean isEnableDAVELogSink();

@@ -1,6 +1,5 @@
 package moe.kyokobot.koe.internal.dave;
 
-import moe.kyokobot.libdave.NativeDaveFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,14 +22,6 @@ public class DAVELogger {
                 break;
             default:
                 break;
-        }
-    }
-
-    public static void setNativeLoggingEnabled(boolean enableLogging) {
-        if (enableLogging) {
-            NativeDaveFactory.setLogSink(DAVELogger::log);
-        } else {
-            NativeDaveFactory.setLogSink(null);
         }
     }
 }

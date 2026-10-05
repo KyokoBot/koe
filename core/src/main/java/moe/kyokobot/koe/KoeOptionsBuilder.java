@@ -4,7 +4,10 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.MultiThreadIoEventLoopGroup;
-import io.netty.channel.epoll.*;
+import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.EpollDatagramChannel;
+import io.netty.channel.epoll.EpollIoHandler;
+import io.netty.channel.epoll.EpollSocketChannel;
 import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.SocketChannel;
@@ -12,8 +15,10 @@ import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import moe.kyokobot.koe.codec.CodecRegistry;
 import moe.kyokobot.koe.codec.DefaultCodecRegistry;
+import moe.kyokobot.koe.experimental.DaveFactoryProvider;
 import moe.kyokobot.koe.experimental.crypto.CipherPreferencePolicy;
 import moe.kyokobot.koe.gateway.GatewayVersion;
+import moe.kyokobot.koe.internal.DefaultDaveFactoryProvider;
 import moe.kyokobot.koe.internal.KoeOptionsImpl;
 import moe.kyokobot.koe.poller.FramePollerFactory;
 import moe.kyokobot.koe.poller.netty.NettyFramePollerFactory;
@@ -39,6 +44,7 @@ public class KoeOptionsBuilder {
     protected boolean enableDAVE;
     protected boolean enableDAVELogSink;
     protected CipherPreferencePolicy cipherPreferencePolicy;
+    protected DaveFactoryProvider daveFactoryProvider;
 
     protected KoeOptionsBuilder() {
         boolean epoll = Epoll.isAvailable();
@@ -67,6 +73,7 @@ public class KoeOptionsBuilder {
         this.enableDAVE = true;
         this.enableDAVELogSink = false;
         this.cipherPreferencePolicy = CipherPreferencePolicy.heuristic();
+        this.daveFactoryProvider = DefaultDaveFactoryProvider.INSTANCE;
     }
 
     /**
@@ -250,6 +257,6 @@ public class KoeOptionsBuilder {
                 byteBufAllocator, gatewayVersion, framePollerFactory, codecRegistry, experimental,
                 highPacketPriority, deafened, enableWSSPortOverride, verifyWSSHostname,
                 gatewayConnectTimeout, sendSpeakingStop, enableDAVE, enableDAVELogSink,
-                cipherPreferencePolicy);
+                cipherPreferencePolicy, daveFactoryProvider);
     }
 }

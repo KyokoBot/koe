@@ -6,13 +6,16 @@ import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.SocketChannel;
 import moe.kyokobot.koe.KoeOptionsBuilder;
 import moe.kyokobot.koe.codec.CodecRegistry;
+import moe.kyokobot.koe.experimental.DaveFactoryProvider;
 import moe.kyokobot.koe.experimental.KoeOptionsExperimental;
 import moe.kyokobot.koe.experimental.crypto.CipherPreferencePolicy;
 import moe.kyokobot.koe.gateway.GatewayVersion;
 import moe.kyokobot.koe.poller.FramePollerFactory;
+import moe.kyokobot.libdave.netty.NettyDaveFactory;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
+import java.util.function.Function;
 
 /**
  * KoeOptions is a class that holds various options for configuring the Koe client.
@@ -37,6 +40,7 @@ public class KoeOptionsImpl implements KoeOptionsExperimental {
     private final boolean enableDAVE;
     private final boolean enableDAVELogSink;
     private final CipherPreferencePolicy cipherPreferencePolicy;
+    private final DaveFactoryProvider daveFactoryProvider;
 
     public KoeOptionsImpl(
             @NotNull EventLoopGroup eventLoopGroup,
@@ -55,7 +59,8 @@ public class KoeOptionsImpl implements KoeOptionsExperimental {
             boolean sendSpeakingStop,
             boolean enableDAVE,
             boolean enableDAVELogSink,
-            @NotNull CipherPreferencePolicy cipherPreferencePolicy
+            @NotNull CipherPreferencePolicy cipherPreferencePolicy,
+            @NotNull DaveFactoryProvider daveFactoryProvider
     ) {
         this.eventLoopGroup = Objects.requireNonNull(eventLoopGroup);
         this.socketChannelClass = Objects.requireNonNull(socketChannelClass);
@@ -74,6 +79,7 @@ public class KoeOptionsImpl implements KoeOptionsExperimental {
         this.enableDAVE = enableDAVE;
         this.enableDAVELogSink = enableDAVELogSink;
         this.cipherPreferencePolicy = Objects.requireNonNull(cipherPreferencePolicy);
+        this.daveFactoryProvider = Objects.requireNonNull(daveFactoryProvider);
     }
 
     @NotNull
@@ -167,5 +173,11 @@ public class KoeOptionsImpl implements KoeOptionsExperimental {
     @NotNull
     public CipherPreferencePolicy getCipherPreferencePolicy() {
         return cipherPreferencePolicy;
+    }
+
+    @Override
+    @NotNull
+    public DaveFactoryProvider getDaveFactoryProvider() {
+        return daveFactoryProvider;
     }
 }

@@ -39,6 +39,7 @@ dependencyResolutionManagement {
             version("libdave", "269cc586e")
             library("libdave-api", "moe.kyokobot.libdave", "api").versionRef("libdave")
             library("libdave-impl-jni", "moe.kyokobot.libdave", "impl-jni").versionRef("libdave")
+            library("libdave-impl-ffm", "moe.kyokobot.libdave", "impl-ffm").versionRef("libdave")
             library("libdave-natives-darwin", "moe.kyokobot.libdave", "natives-darwin").versionRef("libdave")
             library("libdave-natives-linux-glibc-aarch64", "moe.kyokobot.libdave", "natives-linux-aarch64").versionRef("libdave")
             library("libdave-natives-linux-glibc-arm", "moe.kyokobot.libdave", "natives-linux-arm").versionRef("libdave")
