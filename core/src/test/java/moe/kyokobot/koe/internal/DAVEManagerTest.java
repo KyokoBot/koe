@@ -102,14 +102,16 @@ class DAVEManagerTest {
     }
 
     @Test
-    void invalidCommitIsReportedAndRejoinRequested() {
+    void commitWithoutGroupStateIsIgnored() {
         startSession(1);
         connection.sent.clear();
 
+        // libdave ignores commits until a group exists, so an in-flight commit during a reset doesn't cause another one.
         dave.handleMLSPrepareCommitTransition(9, GARBAGE);
 
-        assertEquals(List.of("sendMLSInvalidCommitWelcome(9)", "sendMLSKeyPackage"), connection.sent);
+        assertEquals(List.of(), connection.sent);
         assertArrayEquals(OpusCodecInfo.SILENCE_FRAME, encryptOk(MediaType.AUDIO, opusFrame()));
+        assertEncryptFails(MediaType.VIDEO, opusFrame());
     }
 
     @Test
