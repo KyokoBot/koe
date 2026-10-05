@@ -66,6 +66,7 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
 
         sendInternalPayload(Op.IDENTIFY, new JsonObject()
                 .addAsString("server_id", connection.getGuildId())
+                .addAsString("channel_id", voiceServerInfo.getChannelId())
                 .addAsString("user_id", connection.getClient().getClientId())
                 .add("max_dave_protocol_version", maxDAVEVersion)
                 .add("session_id", voiceServerInfo.getSessionId())

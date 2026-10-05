@@ -124,8 +124,24 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
             conn.connect(info).thenAccept(avoid -> {
                 logger.info("Koe connection succeeded!");
                 this.leakDetect.printAllocStats();
+                // requestToSpeakIfSuppressed(voiceServerUpdate.getGuild());
             });
         }
+    }
+
+    private void requestToSpeakIfSuppressed(Guild guild) {
+        // Bots join stages as suppressed audience members, so nobody hears them until they become a speaker.
+        // Becoming a speaker while the voice connection is still being set up doesn't always take effect,
+        // so the request is only sent once Koe is connected.
+        var voiceState = guild.getSelfMember().getVoiceState();
+        if (voiceState == null || !voiceState.isSuppressed() || !(voiceState.getChannel() instanceof StageChannel)) {
+            return;
+        }
+
+        var stage = (StageChannel) voiceState.getChannel();
+        stage.requestToSpeak().queue(
+                v -> logger.info("Requested to speak in {}", stage),
+                e -> logger.warn("Failed to request to speak in {}", stage, e));
     }
 
     @Override
@@ -159,6 +175,7 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
                     + "`!ping` - replies with Pong!\n"
                     + "`!join` - joins your voice or stage channel\n"
                     + "`!play <url or search>` - joins your channel and plays a track\n"
+                    + "`!stop` - stops the current track\n"
                     + "`!disconnect` - disconnects from the voice channel\n"
                     + "`!gcpress` - toggles the GC pressure generator").queue();
             return;
@@ -192,10 +209,7 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
                 conn.registerListener(new ExampleListener());
 
                 if (channel instanceof StageChannel) {
-                    var messageChannel = event.getChannel();
-                    event.getGuild().requestToSpeak()
-                            .onSuccess(v -> messageChannel.sendMessage("Requested to speak in `" + channel.getName() + "`.").queue())
-                            .onError(e -> messageChannel.sendMessage("**Error:** Failed to request to speak: " + e.getMessage()).queue());
+                    requestToSpeakIfSuppressed(event.getGuild());
                 }
 
                 connect(channel);
@@ -204,6 +218,17 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
 
             if (isPlay) {
                 resolve(event.getGuild(), event.getChannel().asGuildMessageChannel(), content.substring(6));
+            }
+            return;
+        }
+
+        if (content.equals("!stop")) {
+            var player = playerMap.get(event.getGuild());
+            if (player != null) {
+                player.stopTrack();
+                event.getChannel().sendMessage("Stopped the current track!").queue();
+            } else {
+                event.getChannel().sendMessage("No track is currently playing!").queue();
             }
             return;
         }
