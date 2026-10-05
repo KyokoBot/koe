@@ -7,6 +7,7 @@ import moe.kyokobot.koe.MediaConnection;
 import moe.kyokobot.koe.codec.CodecInstance;
 import moe.kyokobot.koe.codec.OpusCodecInfo;
 import moe.kyokobot.koe.gateway.SpeakingFlags;
+import moe.kyokobot.koe.internal.DAVEManager;
 import moe.kyokobot.koe.internal.KoeClientImpl;
 import moe.kyokobot.koe.internal.MediaConnectionImpl;
 import moe.kyokobot.koe.internal.json.JsonObject;
@@ -128,6 +129,25 @@ class AbstractOpusFramePollerTest {
     }
 
     @Test
+    void framesAreKeptUntilKeyRatchetIsReady() {
+        setUp(false, true);
+        provider.script(FRAME_A);
+        var dave = connection.createDAVEManager();
+        assertNotNull(dave, "libdave natives are not available on this platform");
+        connection.dave = dave;
+        dave.handleSessionDescription(new JsonObject().add("dave_protocol_version", 1), 3L);
+
+        assertFalse(poller.pollAndSend());
+        assertEquals(1, provider.remaining(), "frame was consumed and lost");
+        assertEquals(List.of(), connection.speaking);
+
+        dave.handleSecureFramesPrepareProtocolTransition(5, 0);
+        dave.handleSecureFramesExecuteTransition(5);
+        tick(1);
+        assertSent(FRAME_A);
+    }
+
+    @Test
     void speakingIsReannouncedOnSessionChangesOnlyWhileSpeaking() {
         setUp(false);
         provider.script(FRAME_A, FRAME_B);
@@ -158,8 +178,12 @@ class AbstractOpusFramePollerTest {
     }
 
     private void setUp(boolean sendSpeakingStop) {
+        setUp(sendSpeakingStop, false);
+    }
+
+    private void setUp(boolean sendSpeakingStop, boolean enableDAVE) {
         options = KoeOptions.builder()
-                .setDAVEEnabled(false)
+                .setDAVEEnabled(enableDAVE)
                 .setByteBufAllocator(allocator)
                 .setSendSpeakingStop(sendSpeakingStop)
                 .create();
@@ -256,9 +280,15 @@ class AbstractOpusFramePollerTest {
 
     private static final class RecordingConnection extends MediaConnectionImpl {
         final List<Integer> speaking = new ArrayList<>();
+        DAVEManager dave;
 
         RecordingConnection(KoeClientImpl client) {
             super(client, 2L);
+        }
+
+        @Override
+        public DAVEManager getDAVEManager() {
+            return dave;
         }
 
         @Override

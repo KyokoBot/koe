@@ -5,6 +5,7 @@ import moe.kyokobot.koe.KoeEventAdapter;
 import moe.kyokobot.koe.MediaConnection;
 import moe.kyokobot.koe.codec.CodecInstance;
 import moe.kyokobot.koe.codec.OpusCodecInfo;
+import moe.kyokobot.koe.internal.MediaConnectionImpl;
 import moe.kyokobot.koe.internal.json.JsonObject;
 import moe.kyokobot.koe.media.AudioFrameProvider;
 import moe.kyokobot.koe.media.IntReference;
@@ -87,7 +88,7 @@ public abstract class AbstractOpusFramePoller extends AbstractFramePoller {
     protected abstract void sendFramePayload(ByteBuf buf, int len, int timestamp);
 
     private boolean pollSingleFrame() {
-        if (!canSendFrame()) {
+        if (!canSendFrame() || !isE2EEReady()) {
             return false;
         }
 
@@ -130,6 +131,15 @@ public abstract class AbstractOpusFramePoller extends AbstractFramePoller {
 
         silenceCounter = SILENCE_FRAME_COUNT;
         return false;
+    }
+
+    // Frames polled before the key ratchet is ready would be replaced with silence, cutting off the start of the audio.
+    private boolean isE2EEReady() {
+        if (!(connection instanceof MediaConnectionImpl)) {
+            return true;
+        }
+        var dave = ((MediaConnectionImpl) connection).getDAVEManager();
+        return dave == null || dave.isReadyToSend();
     }
 
     private boolean sendSilenceFrame() {

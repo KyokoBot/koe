@@ -112,6 +112,24 @@ public class DAVEManager implements AutoCloseable {
         // TODO: Cleanup decryption
     }
 
+    public boolean isReadyToSend() {
+        long stamp = sessionLock.tryOptimisticRead();
+        boolean ready = !closed && !isAwaitingKeyRatchet();
+        if (!sessionLock.validate(stamp)) {
+            stamp = sessionLock.readLock();
+            try {
+                ready = !closed && !isAwaitingKeyRatchet();
+            } finally {
+                sessionLock.unlockRead(stamp);
+            }
+        }
+        return ready;
+    }
+
+    private boolean isAwaitingKeyRatchet() {
+        return selfProtocolVersion > 0 && selfKeyRatchet == null;
+    }
+
     public int encrypt(MediaType mediaType, int ssrc, ByteBuf output, ByteBuf input, int size) {
         // The native encryptor is not reentrant, so encryption must be serialized under the write lock.
         long stamp = sessionLock.writeLock();
@@ -134,7 +152,7 @@ public class DAVEManager implements AutoCloseable {
                 }
             }
 
-            if (selfProtocolVersion > 0 && selfKeyRatchet == null) {
+            if (isAwaitingKeyRatchet()) {
                 if (mediaType == MediaType.AUDIO) {
                     output.writeBytes(OpusCodecInfo.SILENCE_FRAME);
                     return EncryptorResultCode.SUCCESS.getValue();

@@ -67,6 +67,27 @@ class DAVEManagerTest {
     }
 
     @Test
+    void notReadyToSendUntilKeyRatchetIsReady() {
+        startSession(1);
+        assertFalse(dave.isReadyToSend());
+
+        dave.handleSecureFramesPrepareProtocolTransition(5, 0);
+        assertFalse(dave.isReadyToSend());
+
+        dave.handleSecureFramesExecuteTransition(5);
+        assertTrue(dave.isReadyToSend());
+    }
+
+    @Test
+    void sessionWithoutE2EEIsReadyToSendUntilClosed() throws Exception {
+        startSession(0);
+        assertTrue(dave.isReadyToSend());
+
+        dave.close();
+        assertFalse(dave.isReadyToSend());
+    }
+
+    @Test
     void silenceIsSentAsIs() {
         startSession(1);
 
