@@ -125,11 +125,11 @@ subprojects {
                     coordinates(group.toString(), project.the<BasePluginExtension>().archivesName.get(), version.toString())
                     val mavenCentralUsername = findProperty("mavenCentralUsername") as String?
                     val mavenCentralPassword = findProperty("mavenCentralPassword") as String?
-                    if (!mavenCentralUsername.isNullOrEmpty() && !mavenCentralPassword.isNullOrEmpty()) {
+                    if (gitVersionInfo.isCommitHash) {
+                        logger.lifecycle("Not publishing snapshots to Maven Central")
+                    } else if (!mavenCentralUsername.isNullOrEmpty() && !mavenCentralPassword.isNullOrEmpty()) {
                         publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, false)
-                        if (!gitVersionInfo.isCommitHash) {
-                            signAllPublications()
-                        }
+                        signAllPublications()
                     } else {
                         logger.lifecycle("Not publishing to OSSRH due to missing credentials")
                     }
