@@ -8,8 +8,7 @@ import java.util.List;
 public interface EncryptionMode {
     SecureRandom SECURE_RANDOM = new SecureRandom();
 
-    int ZERO_BYTES_LENGTH = 32; // For XSalsa20Poly1305
-    int TAG_BYTES_LENGTH = 16; // For AEAD
+    int TAG_BYTES_LENGTH = 16;
     int SECRET_KEY_LENGTH = 32;
 
     /**

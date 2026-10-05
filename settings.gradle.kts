@@ -17,8 +17,6 @@ dependencyResolutionManagement {
             library("netty-codec-http", "io.netty", "netty-codec-http").versionRef("netty")
             library("netty-transport-native-epoll-linux", "io.netty", "netty-transport-native-epoll").versionRef("netty")
 
-            library("tink", "com.google.crypto.tink", "tink").version("1.14.1")
-
             library("jetbrains-annotations", "org.jetbrains", "annotations").version("26.1.0")
 
             library("slf4j-api", "org.slf4j", "slf4j-api").version("1.8.0-beta4")

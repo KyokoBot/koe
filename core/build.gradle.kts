@@ -8,7 +8,6 @@ dependencies {
     }
 
     implementation(libs.slf4j.api)
-    implementation(libs.tink)
     implementation(libs.libdave.api)
     implementation(libs.libdave.impl.jni)
     implementation(libs.jetbrains.annotations)

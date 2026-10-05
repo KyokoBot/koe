@@ -3,10 +3,10 @@ package moe.kyokobot.koe.internal.crypto;
 import io.netty.buffer.ByteBuf;
 
 public class XSalsa20Poly1305LiteEncryptionMode implements EncryptionMode {
+    private final XSalsa20Poly1305 cipher = new XSalsa20Poly1305();
     private final byte[] extendedNonce = new byte[24];
-    private final byte[] m = new byte[1276 + ZERO_BYTES_LENGTH];
-    private final byte[] c = new byte[1276 + ZERO_BYTES_LENGTH];
-    private final TweetNaclFastInstanced nacl = new TweetNaclFastInstanced();
+    private final byte[] tag = new byte[TAG_BYTES_LENGTH];
+    private byte[] payload = new byte[1276];
     private int seq;
 
     public XSalsa20Poly1305LiteEncryptionMode() {
@@ -20,30 +20,27 @@ public class XSalsa20Poly1305LiteEncryptionMode implements EncryptionMode {
     @Override
     @SuppressWarnings("Duplicates")
     public boolean box(ByteBuf plain, int len, ByteBuf output, byte[] secretKey) {
-        for (int i = 0; i < c.length; i++) {
-            m[i] = 0;
-            c[i] = 0;
+        if (payload.length < len) {
+            // Only bigger video frames get here, the buffer is reused afterwards.
+            payload = new byte[len];
         }
 
-        for (int i = 0; i < len; i++) {
-            m[i + 32] = plain.readByte();
-        }
-
-        int s = this.seq++;
+        int s = this.seq;
         extendedNonce[0] = (byte) (s & 0xff);
         extendedNonce[1] = (byte) ((s >> 8) & 0xff);
         extendedNonce[2] = (byte) ((s >> 16) & 0xff);
         extendedNonce[3] = (byte) ((s >> 24) & 0xff);
 
-        if (0 == nacl.cryptoSecretboxXSalsa20Poly1305(c, m, len + 32, extendedNonce, secretKey)) {
-            for (int i = 0; i < (len + 16); i++) {
-                output.writeByte(c[i + 16]);
-            }
-            output.writeIntLE(s);
-            return true;
-        } else {
-            return false;
-        }
+        plain.getBytes(plain.readerIndex(), payload, 0, len);
+
+        cipher.seal(secretKey, extendedNonce, payload, len, tag);
+
+        plain.skipBytes(len);
+        this.seq++;
+        output.writeBytes(tag);
+        output.writeBytes(payload, 0, len);
+        output.writeIntLE(s);
+        return true;
     }
 
     @Override

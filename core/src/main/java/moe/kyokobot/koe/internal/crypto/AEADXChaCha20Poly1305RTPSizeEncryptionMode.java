@@ -1,18 +1,16 @@
 package moe.kyokobot.koe.internal.crypto;
 
-import com.google.crypto.tink.aead.internal.InsecureNonceXChaCha20Poly1305;
 import io.netty.buffer.ByteBuf;
-
-import java.nio.ByteBuffer;
-import java.security.GeneralSecurityException;
 
 public class AEADXChaCha20Poly1305RTPSizeEncryptionMode implements EncryptionMode {
 
     private static final int NONCE_BYTES_LENGTH = 24;
 
+    private final XChaCha20Poly1305 cipher = new XChaCha20Poly1305();
     private final byte[] extendedNonce = new byte[NONCE_BYTES_LENGTH];
-    private final ByteBuffer c = ByteBuffer.allocate(1276 + TAG_BYTES_LENGTH + NONCE_BYTES_LENGTH);
     private final byte[] associatedData = new byte[12];
+    private final byte[] tag = new byte[TAG_BYTES_LENGTH];
+    private byte[] payload = new byte[1276];
     private int seq;
 
     public AEADXChaCha20Poly1305RTPSizeEncryptionMode() {
@@ -26,10 +24,12 @@ public class AEADXChaCha20Poly1305RTPSizeEncryptionMode implements EncryptionMod
     @Override
     @SuppressWarnings("Duplicates")
     public boolean box(ByteBuf plain, int len, ByteBuf output, byte[] secretKey) {
-        var m = new byte[len];
-        plain.readBytes(m, 0, len);
+        if (payload.length < len) {
+            // Only bigger video frames get here, the buffer is reused afterwards.
+            payload = new byte[len];
+        }
 
-        var s = this.seq++;
+        int s = this.seq;
         extendedNonce[0] = (byte) (s & 0xff);
         extendedNonce[1] = (byte) ((s >> 8) & 0xff);
         extendedNonce[2] = (byte) ((s >> 16) & 0xff);
@@ -37,18 +37,14 @@ public class AEADXChaCha20Poly1305RTPSizeEncryptionMode implements EncryptionMod
 
         // rtp header was already written to output (read without moving reader index)
         output.getBytes(0, associatedData);
+        plain.getBytes(plain.readerIndex(), payload, 0, len);
 
-        c.clear();
-        c.limit(len + TAG_BYTES_LENGTH);
-        try {
-            var xChaCha20Poly1305 = new InsecureNonceXChaCha20Poly1305(secretKey);
+        cipher.seal(secretKey, extendedNonce, associatedData, associatedData.length, payload, len, tag);
 
-            xChaCha20Poly1305.encrypt(c, extendedNonce, m, associatedData);
-        } catch (GeneralSecurityException e) {
-            return false;
-        }
-
-        output.writeBytes(c.flip());
+        plain.skipBytes(len);
+        this.seq++;
+        output.writeBytes(payload, 0, len);
+        output.writeBytes(tag);
         output.writeIntLE(s);
         return true;
     }

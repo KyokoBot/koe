@@ -11,6 +11,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.lang.management.ManagementFactory;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.*;
@@ -19,6 +20,7 @@ import java.util.function.Supplier;
 import static moe.kyokobot.koe.TestUtils.*;
 import static moe.kyokobot.koe.internal.crypto.ReferenceCrypto.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Checks every encryption mode against {@link ReferenceCrypto}, so that the packets stay decodable by Discord
@@ -209,6 +211,38 @@ class EncryptionModeOracleTest {
         }
     }
 
+    // AES-GCM goes through JCE, which allocates internally, and plain is only used for testing.
+    @ParameterizedTest
+    @ValueSource(strings = {"aead_xchacha20_poly1305_rtpsize", "xsalsa20_poly1305", "xsalsa20_poly1305_lite", "xsalsa20_poly1305_suffix"})
+    void doesNotAllocatePerPacket(String name) {
+        var threads = ManagementFactory.getThreadMXBean();
+        assumeTrue(threads instanceof com.sun.management.ThreadMXBean
+                && ((com.sun.management.ThreadMXBean) threads).isThreadAllocatedMemorySupported());
+        var allocations = (com.sun.management.ThreadMXBean) threads;
+
+        var mode = EncryptionMode.get(name);
+        var payload = randomBytes(MAX_OPUS_FRAME);
+        ByteBuf plain = Unpooled.directBuffer(MAX_OPUS_FRAME);
+        ByteBuf output = Unpooled.directBuffer(2048);
+        try {
+            for (int i = 0; i < 10_000; i++) {
+                boxInto(mode, plain, output, payload, i);
+            }
+
+            long threadId = Thread.currentThread().getId();
+            long before = allocations.getThreadAllocatedBytes(threadId);
+            for (int i = 0; i < 1000; i++) {
+                boxInto(mode, plain, output, payload, i);
+            }
+            long allocated = allocations.getThreadAllocatedBytes(threadId) - before;
+
+            assertTrue(allocated < 1000, "allocated " + allocated + " bytes for 1000 packets");
+        } finally {
+            plain.release();
+            output.release();
+        }
+    }
+
     @Test
     void selectPicksFirstSupportedModeInServerOrder() throws Exception {
         assertEquals("aead_xchacha20_poly1305_rtpsize",
@@ -236,6 +270,13 @@ class EncryptionModeOracleTest {
             plain.release();
             output.release();
         }
+    }
+
+    private void boxInto(EncryptionMode mode, ByteBuf plain, ByteBuf output, byte[] payload, int seq) {
+        plain.clear().writeBytes(payload);
+        output.clear();
+        RTPHeaderWriter.writeV2(output, (byte) 120, (char) seq, seq * 960, SSRC, false);
+        assertTrue(mode.box(plain, payload.length, output, key), "box failed");
     }
 
     private static byte[] header(int seq) {

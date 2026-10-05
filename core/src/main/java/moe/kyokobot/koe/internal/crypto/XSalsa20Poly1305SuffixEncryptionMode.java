@@ -6,11 +6,11 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
 public class XSalsa20Poly1305SuffixEncryptionMode implements EncryptionMode {
+    private final XSalsa20Poly1305 cipher = new XSalsa20Poly1305();
     private final byte[] extendedNonce = new byte[24];
-    private final byte[] m = new byte[1276 + ZERO_BYTES_LENGTH];
-    private final byte[] c = new byte[1276 + ZERO_BYTES_LENGTH];
-    private final TweetNaclFastInstanced nacl = new TweetNaclFastInstanced();
+    private final byte[] tag = new byte[TAG_BYTES_LENGTH];
     private final Consumer<byte[]> nonceGenerator;
+    private byte[] payload = new byte[1276];
 
     public XSalsa20Poly1305SuffixEncryptionMode() {
         this(nonce -> ThreadLocalRandom.current().nextBytes(nonce));
@@ -23,26 +23,21 @@ public class XSalsa20Poly1305SuffixEncryptionMode implements EncryptionMode {
     @Override
     @SuppressWarnings("Duplicates")
     public boolean box(ByteBuf plain, int len, ByteBuf output, byte[] secretKey) {
-        for (int i = 0; i < c.length; i++) {
-            m[i] = 0;
-            c[i] = 0;
-        }
-
-        for (int i = 0; i < len; i++) {
-            m[i + 32] = plain.readByte();
+        if (payload.length < len) {
+            // Only bigger video frames get here, the buffer is reused afterwards.
+            payload = new byte[len];
         }
 
         nonceGenerator.accept(extendedNonce);
+        plain.getBytes(plain.readerIndex(), payload, 0, len);
 
-        if (0 == nacl.cryptoSecretboxXSalsa20Poly1305(c, m, len + 32, extendedNonce, secretKey)) {
-            for (int i = 0; i < (len + 16); i++) {
-                output.writeByte(c[i + 16]);
-            }
-            output.writeBytes(extendedNonce);
-            return true;
-        } else {
-            return false;
-        }
+        cipher.seal(secretKey, extendedNonce, payload, len, tag);
+
+        plain.skipBytes(len);
+        output.writeBytes(tag);
+        output.writeBytes(payload, 0, len);
+        output.writeBytes(extendedNonce);
+        return true;
     }
 
     @Override
