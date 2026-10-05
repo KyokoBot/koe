@@ -1,6 +1,8 @@
 package moe.kyokobot.koe.experimental;
 
 import moe.kyokobot.koe.KoeOptions;
+import moe.kyokobot.koe.experimental.crypto.CipherPreferencePolicy;
+import org.jetbrains.annotations.NotNull;
 
 public interface KoeOptionsExperimental extends KoeOptions {
     /**
@@ -12,4 +14,10 @@ public interface KoeOptionsExperimental extends KoeOptions {
     static KoeOptionsBuilderExperimental builder() {
         return new KoeOptionsBuilderExperimental();
     }
+
+    /**
+     * @return the policy which picks the transport encryption mode of voice sessions
+     */
+    @NotNull
+    CipherPreferencePolicy getCipherPreferencePolicy();
 }

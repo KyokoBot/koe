@@ -12,6 +12,7 @@ import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import moe.kyokobot.koe.codec.CodecRegistry;
 import moe.kyokobot.koe.codec.DefaultCodecRegistry;
+import moe.kyokobot.koe.experimental.crypto.CipherPreferencePolicy;
 import moe.kyokobot.koe.gateway.GatewayVersion;
 import moe.kyokobot.koe.internal.KoeOptionsImpl;
 import moe.kyokobot.koe.poller.FramePollerFactory;
@@ -37,6 +38,7 @@ public class KoeOptionsBuilder {
     protected boolean sendSpeakingStop;
     protected boolean enableDAVE;
     protected boolean enableDAVELogSink;
+    protected CipherPreferencePolicy cipherPreferencePolicy;
 
     protected KoeOptionsBuilder() {
         boolean epoll = Epoll.isAvailable();
@@ -64,6 +66,7 @@ public class KoeOptionsBuilder {
         this.sendSpeakingStop = false;
         this.enableDAVE = true;
         this.enableDAVELogSink = false;
+        this.cipherPreferencePolicy = CipherPreferencePolicy.heuristic();
     }
 
     /**
@@ -246,6 +249,7 @@ public class KoeOptionsBuilder {
         return new KoeOptionsImpl(eventLoopGroup, socketChannelClass, datagramChannelClass,
                 byteBufAllocator, gatewayVersion, framePollerFactory, codecRegistry, experimental,
                 highPacketPriority, deafened, enableWSSPortOverride, verifyWSSHostname,
-                gatewayConnectTimeout, sendSpeakingStop, enableDAVE, enableDAVELogSink);
+                gatewayConnectTimeout, sendSpeakingStop, enableDAVE, enableDAVELogSink,
+                cipherPreferencePolicy);
     }
 }

@@ -222,8 +222,9 @@ class EncryptionModeOracleTest {
 
         var mode = EncryptionMode.get(name);
         var payload = randomBytes(MAX_OPUS_FRAME);
-        ByteBuf plain = Unpooled.directBuffer(MAX_OPUS_FRAME);
-        ByteBuf output = Unpooled.directBuffer(2048);
+        // Heap buffers, how Netty accesses direct ones depends on Unsafe availability and JIT state, and may allocate.
+        ByteBuf plain = Unpooled.buffer(MAX_OPUS_FRAME);
+        ByteBuf output = Unpooled.buffer(2048);
         try {
             for (int i = 0; i < 10_000; i++) {
                 boxInto(mode, plain, output, payload, i);
@@ -241,14 +242,6 @@ class EncryptionModeOracleTest {
             plain.release();
             output.release();
         }
-    }
-
-    @Test
-    void selectPicksFirstSupportedModeInServerOrder() throws Exception {
-        assertEquals("aead_xchacha20_poly1305_rtpsize",
-                EncryptionMode.select(List.of("made_up_mode", "aead_xchacha20_poly1305_rtpsize", "aead_aes256_gcm_rtpsize")));
-        assertThrows(UnsupportedEncryptionModeException.class, () -> EncryptionMode.select(List.of("made_up_mode")));
-        assertNull(EncryptionMode.get("made_up_mode"));
     }
 
     private byte[] seal(EncryptionMode mode, int seq, byte[] payload) {

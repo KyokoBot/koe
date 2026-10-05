@@ -1,9 +1,11 @@
 package moe.kyokobot.koe.internal.crypto;
 
 import io.netty.buffer.ByteBuf;
+import moe.kyokobot.koe.experimental.crypto.CipherPreferencePolicy;
 
 import java.security.SecureRandom;
 import java.util.List;
+import java.util.Set;
 
 public interface EncryptionMode {
     SecureRandom SECURE_RANDOM = new SecureRandom();
@@ -27,16 +29,25 @@ public interface EncryptionMode {
 
     String getName();
 
-    static String select(List<String> modes) throws UnsupportedEncryptionModeException {
-        for (String mode : modes) {
-            var impl = DefaultEncryptionModes.encryptionModes.get(mode);
+    /**
+     * @param offered modes offered by the voice server
+     * @return the mode picked by the policy
+     * @throws UnsupportedEncryptionModeException if the policy picked nothing, or a mode that isn't both offered and
+     *                                            supported
+     */
+    static String select(List<String> offered, CipherPreferencePolicy policy) throws UnsupportedEncryptionModeException {
+        var supported = supportedModes();
+        var mode = policy.select(List.copyOf(offered), supported);
 
-            if (impl != null) {
-                return mode;
-            }
+        if (mode == null) {
+            throw new UnsupportedEncryptionModeException("Cannot find a suitable encryption mode for this connection! "
+                    + "Offered by the server: " + offered);
         }
-
-        throw new UnsupportedEncryptionModeException("Cannot find a suitable encryption mode for this connection!");
+        if (!offered.contains(mode) || !supported.contains(mode)) {
+            throw new UnsupportedEncryptionModeException("Encryption mode " + mode + " picked by " + policy
+                    + " is not both offered by the server " + offered + " and supported " + supported);
+        }
+        return mode;
     }
 
     static Set<String> supportedModes() {

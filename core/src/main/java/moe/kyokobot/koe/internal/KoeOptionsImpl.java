@@ -7,6 +7,7 @@ import io.netty.channel.socket.SocketChannel;
 import moe.kyokobot.koe.KoeOptionsBuilder;
 import moe.kyokobot.koe.codec.CodecRegistry;
 import moe.kyokobot.koe.experimental.KoeOptionsExperimental;
+import moe.kyokobot.koe.experimental.crypto.CipherPreferencePolicy;
 import moe.kyokobot.koe.gateway.GatewayVersion;
 import moe.kyokobot.koe.poller.FramePollerFactory;
 import org.jetbrains.annotations.NotNull;
@@ -35,6 +36,7 @@ public class KoeOptionsImpl implements KoeOptionsExperimental {
     private final boolean sendSpeakingStop;
     private final boolean enableDAVE;
     private final boolean enableDAVELogSink;
+    private final CipherPreferencePolicy cipherPreferencePolicy;
 
     public KoeOptionsImpl(
             @NotNull EventLoopGroup eventLoopGroup,
@@ -52,7 +54,8 @@ public class KoeOptionsImpl implements KoeOptionsExperimental {
             long gatewayConnectTimeout,
             boolean sendSpeakingStop,
             boolean enableDAVE,
-            boolean enableDAVELogSink
+            boolean enableDAVELogSink,
+            @NotNull CipherPreferencePolicy cipherPreferencePolicy
     ) {
         this.eventLoopGroup = Objects.requireNonNull(eventLoopGroup);
         this.socketChannelClass = Objects.requireNonNull(socketChannelClass);
@@ -70,6 +73,7 @@ public class KoeOptionsImpl implements KoeOptionsExperimental {
         this.sendSpeakingStop = sendSpeakingStop;
         this.enableDAVE = enableDAVE;
         this.enableDAVELogSink = enableDAVELogSink;
+        this.cipherPreferencePolicy = Objects.requireNonNull(cipherPreferencePolicy);
     }
 
     @NotNull
@@ -157,5 +161,11 @@ public class KoeOptionsImpl implements KoeOptionsExperimental {
     @Override
     public boolean isEnableDAVELogSink() {
         return enableDAVELogSink;
+    }
+
+    @Override
+    @NotNull
+    public CipherPreferencePolicy getCipherPreferencePolicy() {
+        return cipherPreferencePolicy;
     }
 }

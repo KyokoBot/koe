@@ -2,6 +2,7 @@ package moe.kyokobot.koe.internal.gateway;
 
 import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.VoiceServerInfo;
+import moe.kyokobot.koe.internal.crypto.CipherPolicies;
 import moe.kyokobot.koe.internal.crypto.EncryptionMode;
 import moe.kyokobot.koe.gateway.Op;
 import moe.kyokobot.koe.internal.MediaConnectionImpl;
@@ -180,7 +181,7 @@ public class MediaGatewayV4Connection extends AbstractMediaGatewayConnection {
     }
 
     private void selectProtocol(String protocol) {
-        var mode = EncryptionMode.select(encryptionModes);
+        var mode = EncryptionMode.select(encryptionModes, CipherPolicies.forOptions(connection.getOptions()));
         logger.debug("Selected preferred encryption mode: {}", mode);
 
         rtcConnectionId = UUID.randomUUID();
