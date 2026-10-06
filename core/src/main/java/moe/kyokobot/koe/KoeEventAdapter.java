@@ -5,6 +5,11 @@ import moe.kyokobot.koe.internal.json.JsonObject;
 import java.net.InetSocketAddress;
 import java.util.List;
 
+/**
+ * @deprecated Every {@link KoeEventListener} method has an empty default implementation now, implement
+ * {@link KoeEventListener} directly instead.
+ */
+@Deprecated(forRemoval = true)
 public class KoeEventAdapter implements KoeEventListener {
     @Override
     public void gatewayError(Throwable cause) {
