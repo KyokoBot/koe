@@ -50,6 +50,13 @@ public class EventDispatcher implements KoeEventListener {
     }
 
     @Override
+    public void sessionLost(int code, String reason) {
+        for (var listener : listeners) {
+            listener.sessionLost(code, reason);
+        }
+    }
+
+    @Override
     public void userStreamsChanged(String id, int audioSSRC, int videoSSRC, int rtxSSRC) {
         for (var listener : listeners) {
             listener.userStreamsChanged(id, audioSSRC, videoSSRC, rtxSSRC);

@@ -1,7 +1,7 @@
 package moe.kyokobot.koe.internal.gateway;
 
 import moe.kyokobot.koe.Koe;
-import moe.kyokobot.koe.KoeEventAdapter;
+import moe.kyokobot.koe.KoeEventListener;
 import moe.kyokobot.koe.KoeOptions;
 import moe.kyokobot.koe.MediaConnection;
 import moe.kyokobot.koe.VoiceServerInfo;
@@ -13,6 +13,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.net.ConnectException;
+import java.util.List;
 import java.util.concurrent.*;
 
 import static moe.kyokobot.koe.TestUtils.await;
@@ -110,7 +111,6 @@ class GatewayFailureTest {
     @ValueSource(ints = {
             CloseCode.NORMAL,
             CloseCode.AUTHENTICATION_FAILED,
-            CloseCode.SESSION_NO_LONGER_VALID,
             CloseCode.SERVER_NOT_FOUND,
             CloseCode.DISCONNECTED,
             CloseCode.RATE_LIMIT_EXCEEDED,
@@ -156,6 +156,48 @@ class GatewayFailureTest {
         await(() -> stub.accepted.get() == 1, WAIT_SECONDS, "did not reconnect");
         assertNull(listener.closes.poll(300, TimeUnit.MILLISECONDS), "close must not be reported while reconnecting");
         gateway.close(CloseCode.NORMAL, null);
+    }
+
+    @Test
+    void invalidSessionStartsANewOne() throws Exception {
+        stub = new TcpStub(TcpStub.Behavior.SILENT);
+        var gateway = establishedGateway(0);
+        gateway.resumable = true;
+
+        gateway.remoteClose(CloseCode.SESSION_NO_LONGER_VALID);
+
+        await(() -> stub.accepted.get() == 1, WAIT_SECONDS, "did not reconnect");
+        assertFalse(gateway.resumable, "must identify instead of resuming the invalid session");
+        assertNull(listener.closes.poll(300, TimeUnit.MILLISECONDS), "close must not be reported while reconnecting");
+        assertTrue(listener.lostSessions.isEmpty());
+        gateway.close(CloseCode.NORMAL, null);
+    }
+
+    @Test
+    void sessionIsLostWhenANewOneIsRejected() throws Exception {
+        stub = new TcpStub(TcpStub.Behavior.SILENT);
+        var gateway = establishedGateway(0);
+
+        gateway.remoteClose(CloseCode.SESSION_NO_LONGER_VALID);
+
+        var close = listener.closes.poll(WAIT_SECONDS, TimeUnit.SECONDS);
+        assertNotNull(close);
+        assertEquals(CloseCode.SESSION_NO_LONGER_VALID, close.code);
+        assertEquals(List.of(CloseCode.SESSION_NO_LONGER_VALID), List.copyOf(listener.lostSessions));
+        Thread.sleep(300);
+        assertEquals(0, stub.accepted.get());
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {CloseCode.NORMAL, CloseCode.AUTHENTICATION_FAILED, CloseCode.DISCONNECTED})
+    void otherClosesDoNotLoseTheSession(int code) throws Exception {
+        stub = new TcpStub(TcpStub.Behavior.SILENT);
+        var gateway = establishedGateway(0);
+
+        gateway.remoteClose(code);
+
+        assertNotNull(listener.closes.poll(WAIT_SECONDS, TimeUnit.SECONDS));
+        assertTrue(listener.lostSessions.isEmpty());
     }
 
     @Test
@@ -246,9 +288,10 @@ class GatewayFailureTest {
         }
     }
 
-    private static final class RecordingListener extends KoeEventAdapter {
+    private static final class RecordingListener implements KoeEventListener {
         final BlockingQueue<Throwable> errors = new LinkedBlockingQueue<>();
         final BlockingQueue<Close> closes = new LinkedBlockingQueue<>();
+        final BlockingQueue<Integer> lostSessions = new LinkedBlockingQueue<>();
 
         @Override
         public void gatewayError(Throwable cause) {
@@ -258,6 +301,11 @@ class GatewayFailureTest {
         @Override
         public void gatewayClosed(int code, String reason, boolean byRemote) {
             closes.add(new Close(code, byRemote));
+        }
+
+        @Override
+        public void sessionLost(int code, String reason) {
+            lostSessions.add(code);
         }
     }
 }

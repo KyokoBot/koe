@@ -27,6 +27,18 @@ public interface KoeEventListener {
     }
 
     /**
+     * Called after {@link #gatewayClosed} when the voice server no longer knows the session and Koe couldn't start a
+     * new one. Koe can't recover from this on its own, the bot has to rejoin the voice channel through the main
+     * gateway (opcode 4) to get a new session and pass the new server info to {@link MediaConnection#connect}.
+     *
+     * @param code   the WebSocket close code.
+     * @param reason the close reason if present, null otherwise.
+     */
+    default void sessionLost(int code, @Nullable String reason) {
+        //
+    }
+
+    /**
      * Called when the stream information for a user has changed. Not state tracked by Koe, provides data from {@link moe.kyokobot.koe.gateway.Op#USER_SPEAKING} as-is.
      *
      * @param id        the user ID of the user whose stream information has changed.

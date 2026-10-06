@@ -212,13 +212,30 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
                         connectAttempt++;
                         connect();
                         break;
+                    case CloseCode.SESSION_NO_LONGER_VALID:
+                        if (resumable) {
+                            // The server forgot the session, so try to start a new one instead of resuming.
+                            resumable = false;
+                            connectAttempt++;
+                            connect();
+                        } else {
+                            reportClose(code, reason, remote);
+                        }
+                        break;
                     default:
-                        connection.getDispatcher().gatewayClosed(code, reason, remote);
+                        reportClose(code, reason, remote);
                         break;
                 }
             } else {
-                connection.getDispatcher().gatewayClosed(code, reason, remote);
+                reportClose(code, reason, remote);
             }
+        }
+    }
+
+    private void reportClose(int code, @Nullable String reason, boolean remote) {
+        connection.getDispatcher().gatewayClosed(code, reason, remote);
+        if (code == CloseCode.SESSION_NO_LONGER_VALID) {
+            connection.getDispatcher().sessionLost(code, reason);
         }
     }
 

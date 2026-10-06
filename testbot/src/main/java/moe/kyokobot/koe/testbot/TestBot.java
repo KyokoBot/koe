@@ -13,7 +13,7 @@ import com.sedmelluq.discord.lavaplayer.track.playback.MutableAudioFrame;
 import dev.lavalink.youtube.YoutubeAudioSourceManager;
 import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.KoeClient;
-import moe.kyokobot.koe.KoeEventAdapter;
+import moe.kyokobot.koe.KoeEventListener;
 import moe.kyokobot.koe.VoiceServerInfo;
 import moe.kyokobot.koe.codec.CodecInstance;
 import moe.kyokobot.koe.codec.OpusCodecInfo;
@@ -319,7 +319,7 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
         }
     }
 
-    private static class ExampleListener extends KoeEventAdapter {
+    private static class ExampleListener implements KoeEventListener {
         @Override
         public void userStreamsChanged(String id, int audioSSRC, int videoSSRC, int rtxSSRC) {
             logger.info("An user with id {} joined the channel!", id);

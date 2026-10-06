@@ -173,6 +173,7 @@ public class DAVEManager implements AutoCloseable {
             if (closed) return;
             int protocolVersion = session.getInt("dave_protocol_version", 0);
             this.mlsGroupId = mlsGroupId;
+            setSelfKeyRatchet(null);
             daveProtocolInit(protocolVersion);
         } finally {
             sessionLock.unlockWrite(stamp);

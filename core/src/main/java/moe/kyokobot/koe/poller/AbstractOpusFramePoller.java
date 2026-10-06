@@ -1,7 +1,7 @@
 package moe.kyokobot.koe.poller;
 
 import io.netty.buffer.ByteBuf;
-import moe.kyokobot.koe.KoeEventAdapter;
+import moe.kyokobot.koe.KoeEventListener;
 import moe.kyokobot.koe.MediaConnection;
 import moe.kyokobot.koe.codec.CodecInstance;
 import moe.kyokobot.koe.codec.OpusCodecInfo;
@@ -176,7 +176,7 @@ public abstract class AbstractOpusFramePoller extends AbstractFramePoller {
         }
     }
 
-    private class Op12HackListener extends KoeEventAdapter {
+    private class Op12HackListener implements KoeEventListener {
         @Override
         public void userStreamsChanged(String id, int audioSSRC, int videoSSRC, int rtxSSRC) {
             resendSpeakingState();

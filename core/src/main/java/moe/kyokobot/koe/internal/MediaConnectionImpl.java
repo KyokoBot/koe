@@ -306,7 +306,11 @@ public class MediaConnectionImpl implements MediaConnection, MediaConnectionExpe
     }
 
     public void setConnectionHandler(ConnectionHandler<?> connectionHandler) {
+        var previous = this.connectionHandler;
         this.connectionHandler = connectionHandler;
+        if (previous != null && previous != connectionHandler) {
+            previous.close();
+        }
     }
 
     public DAVEManager getDAVEManager() {
