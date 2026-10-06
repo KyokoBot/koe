@@ -8,7 +8,7 @@ public class AEADXChaCha20Poly1305RTPSizeEncryptionMode implements EncryptionMod
 
     private final XChaCha20Poly1305 cipher = new XChaCha20Poly1305();
     private final byte[] extendedNonce = new byte[NONCE_BYTES_LENGTH];
-    private final byte[] associatedData = new byte[12];
+    private byte[] associatedData = new byte[16];
     private final byte[] tag = new byte[TAG_BYTES_LENGTH];
     private byte[] payload = new byte[1276];
     private int seq;
@@ -36,16 +36,25 @@ public class AEADXChaCha20Poly1305RTPSizeEncryptionMode implements EncryptionMod
         extendedNonce[3] = (byte) ((s >> 24) & 0xff);
 
         // rtp header was already written to output (read without moving reader index)
-        output.getBytes(0, associatedData);
+        int headerLength = output.writerIndex();
+        if (associatedData.length < headerLength) {
+            associatedData = new byte[headerLength];
+        }
+        output.getBytes(0, associatedData, 0, headerLength);
         plain.getBytes(plain.readerIndex(), payload, 0, len);
 
-        cipher.seal(secretKey, extendedNonce, associatedData, associatedData.length, payload, len, tag);
+        cipher.seal(secretKey, extendedNonce, associatedData, headerLength, payload, len, tag);
 
         plain.skipBytes(len);
         this.seq++;
         output.writeBytes(payload, 0, len);
         output.writeBytes(tag);
         output.writeIntLE(s);
+        return true;
+    }
+
+    @Override
+    public boolean isRtpSize() {
         return true;
     }
 

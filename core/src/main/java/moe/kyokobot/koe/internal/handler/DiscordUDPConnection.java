@@ -30,6 +30,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSocketAddress> {
     private static final Logger logger = LoggerFactory.getLogger(DiscordUDPConnection.class);
+    private static final int RTP_HEADER_EXTENSION_PREAMBLE_LENGTH = 4;
 
     private final MediaConnectionImpl connection;
     private final ByteBufAllocator allocator;
@@ -132,6 +133,11 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
         }
 
         var mediaType = codecType == CodecType.AUDIO ? MediaType.AUDIO : MediaType.VIDEO;
+        int extensionLength = extension ? headerExtensionLength(data, len) : 0;
+        if (extensionLength < 0) {
+            logger.debug("Dropping a frame with an invalid RTP header extension");
+            return null;
+        }
 
         ByteBuf buf = null;
         var inputBuffer = data;
@@ -145,7 +151,13 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
             if (dave != null) {
                 inputBuffer = allocator.directBuffer();
                 inputBufferIsOwned = true;
-                var result = dave.encrypt(mediaType, ssrc, inputBuffer, data, len);
+                var media = data;
+                if (extensionLength > 0) {
+                    // The header extension is part of the RTP packet, not of the frame encrypted by DAVE.
+                    inputBuffer.writeBytes(data, data.readerIndex(), extensionLength);
+                    media = data.slice(data.readerIndex() + extensionLength, len - extensionLength);
+                }
+                var result = dave.encrypt(mediaType, ssrc, inputBuffer, media, len - extensionLength);
                 inputLen = inputBuffer.readableBytes();
 
                 if (result < 0) {
@@ -158,7 +170,12 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
             }
 
             RTPHeaderWriter.writeV2(buf, payloadType, nextSeq(), timestamp, ssrc, extension);
-            if (encryptionMode.box(inputBuffer, inputLen, buf, secretKey)) {
+            var mode = encryptionMode;
+            if (extension && mode.isRtpSize()) {
+                buf.writeBytes(inputBuffer, RTP_HEADER_EXTENSION_PREAMBLE_LENGTH);
+                inputLen -= RTP_HEADER_EXTENSION_PREAMBLE_LENGTH;
+            }
+            if (mode.box(inputBuffer, inputLen, buf, secretKey)) {
                 inputBuffer.release();
                 inputBufferIsOwned = false;
 
@@ -181,6 +198,19 @@ public class DiscordUDPConnection implements Closeable, ConnectionHandler<InetSo
                 inputBuffer.release();
             }
         }
+    }
+
+    /**
+     * @return the length of the header extension at the start of {@code data}, preamble included, or -1 if it doesn't
+     * fit in {@code len} bytes
+     */
+    private static int headerExtensionLength(ByteBuf data, int len) {
+        if (len < RTP_HEADER_EXTENSION_PREAMBLE_LENGTH) {
+            return -1;
+        }
+        // The preamble ends with the length of the extension in 32-bit words, without the preamble itself.
+        int length = RTP_HEADER_EXTENSION_PREAMBLE_LENGTH + data.getUnsignedShort(data.readerIndex() + 2) * 4;
+        return length <= len ? length : -1;
     }
 
     public char nextSeq() {

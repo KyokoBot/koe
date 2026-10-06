@@ -24,9 +24,11 @@ class DefaultEncryptionModes {
         // the jvm may not support this algorithm, so we need to check first if it is available
         if (Security.getAlgorithms("Cipher").contains(AES_GCM_NO_PADDING)) {
             modes.put("aead_aes256_gcm_rtpsize", AEADAES256GCMRTPSizeEncryptionMode::new); // recommended by Discord when available)
+            modes.put("aead_aes256_gcm", AEADAES256GCMEncryptionMode::new); // deprecated and discontinued by Discord as of 18th of November 2024
         }
 
         modes.put("aead_xchacha20_poly1305_rtpsize", AEADXChaCha20Poly1305RTPSizeEncryptionMode::new); // required by Discord
+        modes.put("xsalsa20_poly1305_lite_rtpsize", XSalsa20Poly1305LiteRTPSizeEncryptionMode::new); // deprecated and discontinued by Discord as of 18th of November 2024
         modes.put("xsalsa20_poly1305_lite", XSalsa20Poly1305LiteEncryptionMode::new); // deprecated and discontinued by Discord as of 18th of November 2024
         modes.put("xsalsa20_poly1305_suffix", XSalsa20Poly1305SuffixEncryptionMode::new); // deprecated and discontinued by Discord as of 18th of November 2024
         modes.put("xsalsa20_poly1305", XSalsa20Poly1305EncryptionMode::new); // deprecated and discontinued by Discord as of 18th of November 2024

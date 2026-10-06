@@ -38,9 +38,11 @@ class EncryptionModeOracleTest {
     // Counters start right below 2^32 to cover wraparound.
     private static final Map<String, Supplier<EncryptionMode>> DETERMINISTIC_MODES = Map.of(
             "aead_aes256_gcm_rtpsize", () -> new AEADAES256GCMRTPSizeEncryptionMode(0xFFFFFFFD),
+            "aead_aes256_gcm", () -> new AEADAES256GCMEncryptionMode(0xFFFFFFFD),
             "aead_xchacha20_poly1305_rtpsize", () -> new AEADXChaCha20Poly1305RTPSizeEncryptionMode(0xFFFFFFFD),
             "xsalsa20_poly1305", XSalsa20Poly1305EncryptionMode::new,
             "xsalsa20_poly1305_lite", () -> new XSalsa20Poly1305LiteEncryptionMode(0xFFFFFFFD),
+            "xsalsa20_poly1305_lite_rtpsize", () -> new XSalsa20Poly1305LiteRTPSizeEncryptionMode(0xFFFFFFFD),
             "xsalsa20_poly1305_suffix", () -> new XSalsa20Poly1305SuffixEncryptionMode(new Random(0x6b6f65)::nextBytes),
             "plain", PlainEncryptionMode::new
     );
@@ -141,9 +143,9 @@ class EncryptionModeOracleTest {
         }
     }
 
-    // The legacy _lite and _suffix modes don't bind the RTP header to the payload.
+    // The _lite and _suffix modes don't bind the RTP header to the payload.
     @ParameterizedTest
-    @ValueSource(strings = {"aead_aes256_gcm_rtpsize", "aead_xchacha20_poly1305_rtpsize", "xsalsa20_poly1305"})
+    @ValueSource(strings = {"aead_aes256_gcm_rtpsize", "aead_aes256_gcm", "aead_xchacha20_poly1305_rtpsize", "xsalsa20_poly1305"})
     void tamperedHeaderIsRejected(String name) {
         var packet = seal(EncryptionMode.get(name), 7, randomBytes(160));
         packet[2] ^= 0x01; // sequence number
@@ -213,7 +215,7 @@ class EncryptionModeOracleTest {
 
     // AES-GCM goes through JCE, which allocates internally, and plain is only used for testing.
     @ParameterizedTest
-    @ValueSource(strings = {"aead_xchacha20_poly1305_rtpsize", "xsalsa20_poly1305", "xsalsa20_poly1305_lite", "xsalsa20_poly1305_suffix"})
+    @ValueSource(strings = {"aead_xchacha20_poly1305_rtpsize", "xsalsa20_poly1305", "xsalsa20_poly1305_lite", "xsalsa20_poly1305_lite_rtpsize", "xsalsa20_poly1305_suffix"})
     void doesNotAllocatePerPacket(String name) {
         var threads = ManagementFactory.getThreadMXBean();
         assumeTrue(threads instanceof com.sun.management.ThreadMXBean

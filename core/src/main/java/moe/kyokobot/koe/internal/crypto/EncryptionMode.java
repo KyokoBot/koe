@@ -25,7 +25,19 @@ public interface EncryptionMode {
         }
     }
 
-    boolean box(ByteBuf plain, int start, ByteBuf output, byte[] secretKey);
+    /**
+     * Encrypts {@code len} bytes of {@code plain} into {@code output}, which already holds the unencrypted part of
+     * the RTP header.
+     */
+    boolean box(ByteBuf plain, int len, ByteBuf output, byte[] secretKey);
+
+    /**
+     * @return true if the header extension preamble is part of the unencrypted RTP header, false if it is encrypted
+     * along with the payload
+     */
+    default boolean isRtpSize() {
+        return false;
+    }
 
     String getName();
 

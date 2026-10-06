@@ -28,5 +28,9 @@ public interface ConnectionHandler<R> {
 
     CompletionStage<R> connect();
 
+    /**
+     * @param extension true if {@code data} starts with an RTP header extension, including its 4 byte preamble. The
+     *                  extension is sent as part of the RTP header and is not end-to-end encrypted.
+     */
     void sendFrame(CodecType codecType, byte payloadType, int timestamp, ByteBuf data, int start, boolean extension);
 }

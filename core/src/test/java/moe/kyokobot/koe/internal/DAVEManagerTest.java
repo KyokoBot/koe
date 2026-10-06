@@ -182,6 +182,24 @@ class DAVEManagerTest {
         assertNull(rtpPayload(udp, CodecType.VIDEO, frame));
     }
 
+    @Test
+    void headerExtensionIsNotPassedToDAVE() {
+        startSession(1);
+        var udp = new DiscordUDPConnection(connection, new InetSocketAddress(InetAddress.getLoopbackAddress(), 9), SSRC);
+        var key = new JsonArray();
+        for (int i = 0; i < 32; i++) key.add(0);
+        udp.handleSessionDescription(new JsonObject().add("mode", "plain").add("secret_key", key));
+        byte[] extension = {(byte) 0xBE, (byte) 0xDE, 0x00, 0x01, 0x10, (byte) 0xAA, 0x00, 0x00};
+        var frame = opusFrame();
+        var data = Arrays.copyOf(extension, extension.length + frame.length);
+        System.arraycopy(frame, 0, data, extension.length, frame.length);
+
+        // Before the key ratchet DAVE replaces the whole frame with silence, the extension must survive that.
+        var expected = Arrays.copyOf(extension, extension.length + OpusCodecInfo.SILENCE_FRAME.length);
+        System.arraycopy(OpusCodecInfo.SILENCE_FRAME, 0, expected, extension.length, OpusCodecInfo.SILENCE_FRAME.length);
+        assertArrayEquals(expected, rtpPayload(udp, CodecType.AUDIO, data, true));
+    }
+
     private void startSession(int protocolVersion) {
         dave.handleSessionDescription(new JsonObject().add("dave_protocol_version", protocolVersion), CHANNEL_ID);
     }
@@ -213,9 +231,13 @@ class DAVEManagerTest {
     }
 
     private static byte[] rtpPayload(DiscordUDPConnection udp, CodecType type, byte[] frame) {
+        return rtpPayload(udp, type, frame, false);
+    }
+
+    private static byte[] rtpPayload(DiscordUDPConnection udp, CodecType type, byte[] frame, boolean extension) {
         ByteBuf in = Unpooled.directBuffer(frame.length).writeBytes(frame);
         try {
-            var packet = udp.createPacket(type, (byte) 120, 0, in, frame.length, false);
+            var packet = udp.createPacket(type, (byte) 120, 0, in, frame.length, extension);
             if (packet == null) {
                 return null;
             }

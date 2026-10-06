@@ -26,10 +26,12 @@ final class ReferenceCrypto {
     static final int TAG_LENGTH = 16;
 
     static final Map<String, Receiver> RECEIVERS = Map.of(
-            "aead_aes256_gcm_rtpsize", new Receiver(4, ReferenceCrypto::openAesGcmRtpSize),
+            "aead_aes256_gcm_rtpsize", new Receiver(4, (packet, key) -> openAesGcm(packet, key, rtpSizeHeaderLength(packet))),
+            "aead_aes256_gcm", new Receiver(4, (packet, key) -> openAesGcm(packet, key, HEADER_LENGTH)),
             "aead_xchacha20_poly1305_rtpsize", new Receiver(4, ReferenceCrypto::openXChaChaRtpSize),
             "xsalsa20_poly1305", new Receiver(0, ReferenceCrypto::openXSalsa20),
-            "xsalsa20_poly1305_lite", new Receiver(4, ReferenceCrypto::openXSalsa20Lite),
+            "xsalsa20_poly1305_lite", new Receiver(4, (packet, key) -> openXSalsa20Lite(packet, key, HEADER_LENGTH)),
+            "xsalsa20_poly1305_lite_rtpsize", new Receiver(4, (packet, key) -> openXSalsa20Lite(packet, key, rtpSizeHeaderLength(packet))),
             "xsalsa20_poly1305_suffix", new Receiver(24, ReferenceCrypto::openXSalsa20Suffix),
             "plain", new Receiver(0, (packet, key) -> Arrays.copyOfRange(packet, HEADER_LENGTH, packet.length))
     );
@@ -38,14 +40,22 @@ final class ReferenceCrypto {
         //
     }
 
-    // aead_aes256_gcm_rtpsize: AAD is the RTP header, the nonce is a 32-bit counter appended to the packet
-    // and zero-padded to 12 bytes.
-    private static byte[] openAesGcmRtpSize(byte[] packet, byte[] key) throws GeneralSecurityException {
+    // The rtpsize modes also leave CSRCs and the header extension preamble unencrypted, the others only the fixed
+    // 12 byte header. The extension body is always encrypted.
+    private static int rtpSizeHeaderLength(byte[] packet) {
+        int csrcCount = packet[0] & 0x0f;
+        boolean extension = (packet[0] & 0x10) != 0;
+        return HEADER_LENGTH + csrcCount * 4 + (extension ? 4 : 0);
+    }
+
+    // aead_aes256_gcm: AAD is the unencrypted header, the nonce is a 32-bit counter appended to the packet and
+    // zero-padded to 12 bytes.
+    private static byte[] openAesGcm(byte[] packet, byte[] key, int headerLength) throws GeneralSecurityException {
         var nonce = Arrays.copyOf(Arrays.copyOfRange(packet, packet.length - 4, packet.length), 12);
         var cipher = Cipher.getInstance("AES/GCM/NoPadding");
         cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key, "AES"), new GCMParameterSpec(TAG_LENGTH * 8, nonce));
-        cipher.updateAAD(packet, 0, HEADER_LENGTH);
-        return cipher.doFinal(packet, HEADER_LENGTH, packet.length - HEADER_LENGTH - 4);
+        cipher.updateAAD(packet, 0, headerLength);
+        return cipher.doFinal(packet, headerLength, packet.length - headerLength - 4);
     }
 
     // aead_xchacha20_poly1305_rtpsize: same layout as above, nonce zero-padded to 24 bytes.
@@ -57,8 +67,9 @@ final class ReferenceCrypto {
 
         var cipher = Cipher.getInstance("ChaCha20-Poly1305");
         cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(subKey, "ChaCha20"), new IvParameterSpec(ietfNonce));
-        cipher.updateAAD(packet, 0, HEADER_LENGTH);
-        return cipher.doFinal(packet, HEADER_LENGTH, packet.length - HEADER_LENGTH - 4);
+        int headerLength = rtpSizeHeaderLength(packet);
+        cipher.updateAAD(packet, 0, headerLength);
+        return cipher.doFinal(packet, headerLength, packet.length - headerLength - 4);
     }
 
     // xsalsa20_poly1305: the nonce is the RTP header zero-padded to 24 bytes.
@@ -68,9 +79,9 @@ final class ReferenceCrypto {
     }
 
     // xsalsa20_poly1305_lite: a 32-bit counter is appended to the packet, zero-padded to 24 bytes.
-    private static byte[] openXSalsa20Lite(byte[] packet, byte[] key) throws GeneralSecurityException {
+    private static byte[] openXSalsa20Lite(byte[] packet, byte[] key, int headerLength) throws GeneralSecurityException {
         var nonce = Arrays.copyOf(Arrays.copyOfRange(packet, packet.length - 4, packet.length), 24);
-        return secretBoxOpen(Arrays.copyOfRange(packet, HEADER_LENGTH, packet.length - 4), nonce, key);
+        return secretBoxOpen(Arrays.copyOfRange(packet, headerLength, packet.length - 4), nonce, key);
     }
 
     // xsalsa20_poly1305_suffix: the full 24-byte nonce is appended to the packet.

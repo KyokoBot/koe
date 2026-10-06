@@ -14,8 +14,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class CipherBenchmarkTest {
     private static final String AES_GCM = "aead_aes256_gcm_rtpsize";
     private static final String XCHACHA20_POLY1305 = "aead_xchacha20_poly1305_rtpsize";
-    private static final Set<String> ENCRYPTED_MODES = Set.of(AES_GCM, XCHACHA20_POLY1305,
-            "xsalsa20_poly1305", "xsalsa20_poly1305_lite", "xsalsa20_poly1305_suffix");
+    private static final Set<String> ENCRYPTED_MODES = Set.of(AES_GCM, "aead_aes256_gcm", XCHACHA20_POLY1305,
+            "xsalsa20_poly1305", "xsalsa20_poly1305_lite", "xsalsa20_poly1305_lite_rtpsize", "xsalsa20_poly1305_suffix");
 
     @Test
     void ranksEveryEncryptedModeFromFastestToSlowest() {
