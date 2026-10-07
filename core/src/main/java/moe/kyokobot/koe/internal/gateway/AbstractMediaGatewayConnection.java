@@ -18,11 +18,17 @@ import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.concurrent.EventExecutor;
 import moe.kyokobot.koe.VoiceServerInfo;
+import moe.kyokobot.koe.codec.CodecInfo;
 import moe.kyokobot.koe.gateway.CloseCode;
 import moe.kyokobot.koe.gateway.MediaGatewayConnection;
 import moe.kyokobot.koe.gateway.MediaValve;
+import moe.kyokobot.koe.gateway.Op;
 import moe.kyokobot.koe.internal.MediaConnectionImpl;
 import moe.kyokobot.koe.internal.NettyBootstrapFactory;
+import moe.kyokobot.koe.internal.crypto.CipherPolicies;
+import moe.kyokobot.koe.internal.crypto.EncryptionMode;
+import moe.kyokobot.koe.internal.handler.DiscordUDPConnection;
+import moe.kyokobot.koe.internal.json.JsonArray;
 import moe.kyokobot.koe.internal.json.JsonObject;
 import moe.kyokobot.koe.internal.json.JsonParser;
 import org.jetbrains.annotations.NotNull;
@@ -32,13 +38,19 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLException;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 public abstract class AbstractMediaGatewayConnection implements MediaGatewayConnection {
     private static final Logger logger = LoggerFactory.getLogger(AbstractMediaGatewayConnection.class);
@@ -50,6 +62,7 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
     protected final SslContext sslContext;
     protected final ByteBufAllocator allocator;
     protected final CompletableFuture<Void> connectFuture;
+    protected final int version;
 
     protected EventExecutor eventExecutor;
     protected Channel channel;
@@ -58,6 +71,11 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
     private boolean started = false;
     private boolean open = false;
     private boolean closed = false;
+    private int ssrc;
+    private UUID rtcConnectionId;
+    private ScheduledFuture<?> heartbeatFuture;
+    private long lastHeartbeatSent;
+    private long ping;
 
     public AbstractMediaGatewayConnection(@NotNull MediaConnectionImpl connection,
                                           @NotNull VoiceServerInfo voiceServerInfo,
@@ -71,6 +89,7 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
 
             this.connection = Objects.requireNonNull(connection);
             this.voiceServerInfo = Objects.requireNonNull(voiceServerInfo);
+            this.version = version;
 
             this.websocketURI = new URI(String.format("wss://%s/?v=%d", endpoint, version));
             this.bootstrap = NettyBootstrapFactory.socket(connection.getOptions())
@@ -171,15 +190,272 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
         return open;
     }
 
-    protected abstract void identify();
+    @Override
+    public long getPing() {
+        return this.ping;
+    }
 
-    protected abstract void resume();
+    @Override
+    public void updateSpeaking(int mask) {
+        sendInternalPayload(Op.SPEAKING, new JsonObject()
+                .add("speaking", mask)
+                .add("delay", 0)
+                .add("ssrc", Integer.toUnsignedLong(ssrc)));
+    }
 
-    protected abstract void handlePayload(JsonObject object);
+    protected void identify() {
+        logger.debug("Identifying...");
+        sendInternalPayload(Op.IDENTIFY, identifyPayload());
+    }
 
-    protected abstract void handlePayload(ByteBuf byteBuf);
+    protected JsonObject identifyPayload() {
+        return new JsonObject()
+                .addAsString("server_id", connection.getGuildId())
+                .addAsString("user_id", connection.getClient().getClientId())
+                .add("session_id", voiceServerInfo.getSessionId())
+                .add("token", voiceServerInfo.getToken());
+    }
+
+    protected void resume() {
+        logger.debug("Resuming...");
+        sendInternalPayload(Op.RESUME, resumePayload());
+    }
+
+    protected JsonObject resumePayload() {
+        return new JsonObject()
+                .addAsString("server_id", connection.getGuildId())
+                .add("session_id", voiceServerInfo.getSessionId())
+                .add("token", voiceServerInfo.getToken());
+    }
+
+    protected Object heartbeatPayload() {
+        return System.currentTimeMillis();
+    }
+
+    /**
+     * @return the codecs announced when selecting the protocol
+     */
+    protected Collection<CodecInfo> codecs() {
+        return connection.getOptions().getCodecRegistry().getAudioCodecs();
+    }
+
+    /**
+     * Handles the opcodes all gateway versions share, newer versions override it to handle their own opcodes first.
+     */
+    protected void handlePayload(JsonObject object) {
+        var op = object.getInt("op");
+
+        switch (op) {
+            case Op.HELLO: {
+                var data = object.getObject("d");
+                int interval = data.getInt("heartbeat_interval");
+
+                logger.debug("Received HELLO, heartbeat interval: {}", interval);
+                setupHeartbeats(interval);
+                break;
+            }
+            case Op.READY: {
+                resumable = true;
+
+                var data = object.getObject("d");
+                var port = data.getInt("port");
+                var ip = data.getString("ip");
+                ssrc = data.getInt("ssrc");
+                var encryptionModes = data.getArray("modes")
+                        .stream()
+                        .map(o -> (String) o)
+                        .collect(Collectors.toList());
+                var address = new InetSocketAddress(ip, port);
+
+                connection.getDispatcher().gatewayReady(address, ssrc);
+                logger.debug("Voice READY, ssrc: {}", ssrc);
+                onReady();
+                if (version >= 6) {
+                    // Only sent on request, the official client asks right after READY too.
+                    sendInternalPayload(Op.VOICE_BACKEND_VERSION, new JsonObject());
+                }
+                selectProtocol("udp", address, encryptionModes);
+                break;
+            }
+            case Op.SESSION_DESCRIPTION: {
+                var data = object.getObject("d");
+                connectAttempt = 0;
+                logger.debug("Got session description: {}", data);
+
+                if (connection.getConnectionHandler() == null) {
+                    logger.warn("Received session description before protocol selection? (connection id = {})",
+                            this.rtcConnectionId);
+                    break;
+                }
+
+                connection.getDispatcher().sessionDescription(data);
+                connection.getConnectionHandler().handleSessionDescription(data);
+                onSessionDescription(data);
+                break;
+            }
+            case Op.HEARTBEAT_ACK: {
+                this.ping = System.currentTimeMillis() - this.lastHeartbeatSent;
+                break;
+            }
+            case Op.VOICE_BACKEND_VERSION: {
+                logger.debug("Voice backend version: {}", object.getObject("d"));
+                break;
+            }
+            case Op.RESUMED: {
+                connectAttempt = 0;
+
+                logger.debug("Resumed successfully");
+                break;
+            }
+            case Op.VIDEO: {
+                onStreamsChanged(object);
+
+                var data = object.getObject("d");
+                var user = data.getString("user_id");
+                var audioSsrc = data.getInt("audio_ssrc", 0);
+                var videoSsrc = data.getInt("video_ssrc", 0);
+                var rtxSsrc = data.getInt("rtx_ssrc", 0);
+                connection.getDispatcher().userStreamsChanged(user, audioSsrc, videoSsrc, rtxSsrc);
+                break;
+            }
+            case Op.CLIENT_CONNECT: {
+                var data = object.getObject("d");
+                var userIds = data.getArray("user_ids");
+
+                List<String> userIdList = userIds.stream()
+                        .map(o -> (String) o)
+                        .collect(Collectors.toList());
+                connection.getDispatcher().usersConnected(userIdList);
+                onUsersConnected(userIdList);
+                break;
+            }
+            case Op.CLIENT_DISCONNECT: {
+                var data = object.getObject("d");
+                var user = data.getString("user_id");
+                onUserDisconnected(user);
+                connection.getDispatcher().userDisconnected(user);
+                break;
+            }
+            default:
+                break;
+        }
+    }
+
+    protected void handlePayload(ByteBuf byteBuf) {
+        // no binary messages before v8
+    }
+
+    /**
+     * Called after READY was dispatched, right before selecting the protocol.
+     */
+    protected void onReady() {
+        //
+    }
+
+    /**
+     * Called after the connection handler got the session description.
+     */
+    protected void onSessionDescription(JsonObject data) {
+        //
+    }
+
+    /**
+     * Called with the whole VIDEO payload, before the listeners are notified.
+     */
+    protected void onStreamsChanged(JsonObject payload) {
+        //
+    }
+
+    /**
+     * Called after the listeners were notified.
+     */
+    protected void onUsersConnected(List<String> userIds) {
+        //
+    }
+
+    /**
+     * Called before the listeners are notified.
+     */
+    protected void onUserDisconnected(String userId) {
+        //
+    }
+
+    /**
+     * Called right after SELECT_PROTOCOL was sent, before announcing our streams.
+     */
+    protected void onProtocolSelected() {
+        //
+    }
+
+    private void setupHeartbeats(int interval) {
+        if (eventExecutor != null) {
+            heartbeatFuture = eventExecutor.scheduleAtFixedRate(this::heartbeat, interval, interval,
+                    TimeUnit.MILLISECONDS);
+        }
+    }
+
+    private void heartbeat() {
+        this.lastHeartbeatSent = System.currentTimeMillis();
+        sendInternalPayload(Op.HEARTBEAT, heartbeatPayload());
+    }
+
+    private void selectProtocol(String protocol, InetSocketAddress address, List<String> encryptionModes) {
+        var mode = EncryptionMode.select(encryptionModes, CipherPolicies.forOptions(connection.getOptions()));
+        logger.debug("Selected preferred encryption mode: {}", mode);
+
+        rtcConnectionId = UUID.randomUUID();
+        logger.debug("Generated new connection id: {}", rtcConnectionId);
+
+        // known values: ["udp", "webrtc"]
+        if (protocol.equals("udp")) {
+            var conn = new DiscordUDPConnection(connection, address, ssrc);
+            conn.connect().thenAccept(ourAddress -> {
+                logger.debug("Connected, our external address is: {}", ourAddress);
+                connection.getDispatcher().externalIPDiscovered(ourAddress);
+
+                var udpInfo = new JsonObject()
+                        .add("address", ourAddress.getAddress().getHostAddress())
+                        .add("port", ourAddress.getPort())
+                        .add("mode", mode);
+
+                var codecs = new JsonArray();
+                codecs().stream()
+                        .map(codecInfo -> codecInfo.toJson())
+                        .forEach(codecs::add);
+
+                sendInternalPayload(Op.SELECT_PROTOCOL, new JsonObject()
+                        .add("protocol", "udp")
+                        .add("codecs", codecs)
+                        .add("rtc_connection_id", rtcConnectionId.toString())
+                        .add("data", udpInfo)
+                        .combine(udpInfo));
+
+                onProtocolSelected();
+
+                sendInternalPayload(Op.VIDEO, new JsonObject()
+                        .add("audio_ssrc", Integer.toUnsignedLong(ssrc))
+                        .add("video_ssrc", 0)
+                        .add("rtx_ssrc", 0));
+            });
+
+            connection.setConnectionHandler(conn);
+            logger.debug("Waiting for session description...");
+        } else if (protocol.equals("webrtc")) {
+            // do ICE and then generate SDP with info like above?
+            throw new IllegalArgumentException("WebRTC protocol is not supported yet!");
+        }
+    }
 
     protected void onClose(int code, @Nullable String reason, boolean remote) {
+        closeSession(code, reason, remote);
+
+        var heartbeat = heartbeatFuture;
+        if (heartbeat != null) {
+            heartbeat.cancel(true);
+        }
+    }
+
+    private void closeSession(int code, @Nullable String reason, boolean remote) {
         if (!closed) {
             closed = true;
             open = false;
@@ -238,9 +514,6 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
             connection.getDispatcher().sessionLost(code, reason);
         }
     }
-
-    @Override
-    public abstract void updateSpeaking(int mask);
 
     public void sendInternalPayload(int op, Object d) {
         sendRaw(new JsonObject().add("op", op).add("d", d));

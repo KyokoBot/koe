@@ -79,7 +79,7 @@ public class MediaValveImpl implements MediaValve {
         }
     }
 
-    @Override public void removeUser(String userId) {
+    @Override public synchronized void removeUser(String userId) {
         LOG.debug("Removing streams for user {}", userId);
         this.unwantedStreams.remove(userId);
         this.sendToGateway();

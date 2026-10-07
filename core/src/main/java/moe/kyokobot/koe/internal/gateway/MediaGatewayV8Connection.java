@@ -2,40 +2,24 @@ package moe.kyokobot.koe.internal.gateway;
 
 import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.VoiceServerInfo;
-import moe.kyokobot.koe.internal.DAVEManager;
-import moe.kyokobot.koe.internal.crypto.CipherPolicies;
-import moe.kyokobot.koe.internal.crypto.EncryptionMode;
-import moe.kyokobot.koe.gateway.MediaValve;
 import moe.kyokobot.koe.gateway.Op;
+import moe.kyokobot.koe.internal.DAVEManager;
 import moe.kyokobot.koe.internal.MediaConnectionImpl;
-import moe.kyokobot.koe.internal.handler.DiscordUDPConnection;
-import moe.kyokobot.koe.internal.json.JsonArray;
 import moe.kyokobot.koe.internal.json.JsonObject;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
-public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
+/**
+ * Adds message buffering, the server re-delivers messages after the last acknowledged sequence number on resume.
+ * Koe implements DAVE only on this version.
+ */
+public class MediaGatewayV8Connection extends MediaGatewayV5Connection {
     private static final Logger logger = LoggerFactory.getLogger(MediaGatewayV8Connection.class);
 
-    private final MediaValve mediaValve = new MediaValveImpl(this);
     private final DAVEManager daveManager;
-    private int ssrc;
-    private SocketAddress address;
-    private List<String> encryptionModes;
-    private UUID rtcConnectionId;
-    private ScheduledFuture<?> heartbeatFuture;
-
-    private long lastHeartbeatSent;
-    private long ping;
     private int sequence = -1; // -1 means we haven't received any sequence yet
 
     public MediaGatewayV8Connection(MediaConnectionImpl connection, VoiceServerInfo voiceServerInfo) {
@@ -48,16 +32,8 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
         return this.daveManager;
     }
 
-    @Nullable
     @Override
-    public MediaValve getValve() {
-        return this.mediaValve;
-    }
-
-    @Override
-    protected void identify() {
-        logger.debug("Identifying...");
-
+    protected JsonObject identifyPayload() {
         int maxDAVEVersion = 0;
         if (daveManager != null) {
             maxDAVEVersion = daveManager.getMaxDAVEProtocolVersion();
@@ -65,25 +41,21 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
 
         logger.debug("Max DAVE Protocol Version: {}", maxDAVEVersion);
 
-        sendInternalPayload(Op.IDENTIFY, new JsonObject()
-                .addAsString("server_id", connection.getGuildId())
+        return super.identifyPayload()
                 .addAsString("channel_id", voiceServerInfo.getChannelId())
-                .addAsString("user_id", connection.getClient().getClientId())
-                .add("max_dave_protocol_version", maxDAVEVersion)
-                .add("session_id", voiceServerInfo.getSessionId())
-                .add("token", voiceServerInfo.getToken())
-                .add("video", true));
+                .add("max_dave_protocol_version", maxDAVEVersion);
     }
 
     @Override
-    protected void resume() {
-        logger.debug("Resuming...");
-        sendInternalPayload(Op.RESUME, new JsonObject()
-                .addAsString("server_id", connection.getGuildId())
-                .add("session_id", voiceServerInfo.getSessionId())
-                .add("token", voiceServerInfo.getToken())
-                .add("video", true)
-                .add("seq_ack", sequence));
+    protected JsonObject resumePayload() {
+        return super.resumePayload().add("seq_ack", sequence);
+    }
+
+    @Override
+    protected Object heartbeatPayload() {
+        return new JsonObject()
+                .add("t", System.currentTimeMillis())
+                .add("seq_ack", sequence);
     }
 
     @Override
@@ -95,117 +67,6 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
         }
 
         switch (op) {
-            case Op.HELLO: {
-                var data = object.getObject("d");
-                int interval = data.getInt("heartbeat_interval");
-
-                logger.debug("Received HELLO, heartbeat interval: {}", interval);
-                setupHeartbeats(interval);
-                break;
-            }
-            case Op.READY: {
-                resumable = true;
-
-                var data = object.getObject("d");
-                var port = data.getInt("port");
-                var ip = data.getString("ip");
-                ssrc = data.getInt("ssrc");
-                encryptionModes = data.getArray("modes")
-                        .stream()
-                        .map(o -> (String) o)
-                        .collect(Collectors.toList());
-
-                address = new InetSocketAddress(ip, port);
-
-                connection.getDispatcher().gatewayReady((InetSocketAddress) address, ssrc);
-                logger.debug("Voice READY, ssrc: {}", ssrc);
-                mediaValve.sendToGateway();
-                selectProtocol("udp");
-                break;
-            }
-            case Op.SESSION_DESCRIPTION: {
-                var data = object.getObject("d");
-                connectAttempt = 0;
-                logger.debug("Got session description: {}", data);
-
-                if (connection.getConnectionHandler() == null) {
-                    logger.warn("Received session description before protocol selection? (connection id = {})",
-                            this.rtcConnectionId);
-                    break;
-                }
-
-                connection.getDispatcher().sessionDescription(data);
-                connection.getConnectionHandler().handleSessionDescription(data);
-                if (daveManager != null) {
-                    daveManager.handleSessionDescription(data, voiceServerInfo.getChannelId());
-                }
-                break;
-            }
-            case Op.HEARTBEAT_ACK: {
-                this.ping = System.currentTimeMillis() - this.lastHeartbeatSent;
-                break;
-            }
-            case Op.RESUMED: {
-                connectAttempt = 0;
-
-                logger.debug("Resumed successfully");
-                break;
-            }
-            case Op.VIDEO: {
-                mediaValve.handleEvent(object);
-
-                var data = object.getObject("d");
-                var user = data.getString("user_id");
-                var audioSsrc = data.getInt("audio_ssrc", 0);
-                var videoSsrc = data.getInt("video_ssrc", 0);
-                var rtxSsrc = data.getInt("rtx_ssrc", 0);
-                connection.getDispatcher().userStreamsChanged(user, audioSsrc, videoSsrc, rtxSsrc);
-                break;
-            }
-            case Op.CLIENT_CONNECT: {
-                var data = object.getObject("d");
-                var userIds = data.getArray("user_ids");
-
-                List<String> userIdList = userIds.stream()
-                        .map(o -> (String) o)
-                        .collect(Collectors.toList());
-                connection.getDispatcher().usersConnected(userIdList);
-
-                if (daveManager != null) {
-                    daveManager.addUsers(userIdList);
-                }
-
-                break;
-            }
-            case Op.CLIENT_DISCONNECT: {
-                mediaValve.handleEvent(object);
-
-                var data = object.getObject("d");
-                var user = data.getString("user_id");
-                connection.getDispatcher().userDisconnected(user);
-
-                if (daveManager != null) {
-                    daveManager.removeUser(user);
-                }
-
-                break;
-            }
-            case Op.MEDIA_SINK_WANTS: {
-                // Sent only if `video` flag was true while identifying. At time of writing this comment Discord forces
-                // it to false on bots (so.. user bot time? /s) due to voice server bug that broke clients or something.
-                // After receiving this opcode client can send op 12 with ssrcs for video (audio + 1)
-                // and retransmission (audio + 2, not required but results in graphical issues if user joins a VC
-                // or even resizes the window) and start sending video data according to received quality hint -
-                // so if (d.any < 100) in this payload, the client should send video data with lowered resolution
-                // and bitrate.
-
-                break;
-            }
-            case Op.VOICE_BACKEND_VERSION: {
-                var data = object.getObject("d");
-                logger.debug("Voice backend version: {}", data);
-                break;
-            }
             case Op.SECURE_FRAMES_PREPARE_PROTOCOL_TRANSITION: {
                 var data = object.getObject("d");
                 logger.debug("Secure frames prepare protocol transition: {}", data);
@@ -248,6 +109,7 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
                 break;
             }
             default:
+                super.handlePayload(object);
                 break;
         }
     }
@@ -313,24 +175,25 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
     }
 
     @Override
-    protected void onClose(int code, @Nullable String reason, boolean remote) {
-        super.onClose(code, reason, remote);
-        if (this.heartbeatFuture != null) {
-            heartbeatFuture.cancel(true);
+    protected void onSessionDescription(JsonObject data) {
+        if (daveManager != null) {
+            daveManager.handleSessionDescription(data, voiceServerInfo.getChannelId());
         }
     }
 
     @Override
-    public long getPing() {
-        return this.ping;
+    protected void onUsersConnected(List<String> userIds) {
+        if (daveManager != null) {
+            daveManager.addUsers(userIds);
+        }
     }
 
     @Override
-    public void updateSpeaking(int mask) {
-        sendInternalPayload(Op.SPEAKING, new JsonObject()
-                .add("speaking", mask)
-                .add("delay", 0)
-                .add("ssrc", Integer.toUnsignedLong(ssrc)));
+    protected void onUserDisconnected(String userId) {
+        super.onUserDisconnected(userId);
+        if (daveManager != null) {
+            daveManager.removeUser(userId);
+        }
     }
 
     @Override
@@ -353,68 +216,5 @@ public class MediaGatewayV8Connection extends AbstractMediaGatewayConnection {
     public void sendSecureFramesReadyForTransition(int transitionId) {
         sendInternalPayload(Op.SECURE_FRAMES_READY_FOR_TRANSITION, new JsonObject()
                 .add("transition_id", transitionId));
-    }
-
-    private void setupHeartbeats(int interval) {
-        if (eventExecutor != null) {
-            heartbeatFuture = eventExecutor.scheduleAtFixedRate(this::heartbeat, interval, interval,
-                    TimeUnit.MILLISECONDS);
-        }
-    }
-
-    private void heartbeat() {
-        this.lastHeartbeatSent = System.currentTimeMillis();
-        sendInternalPayload(Op.HEARTBEAT, new JsonObject()
-                .add("t", System.currentTimeMillis())
-                .add("seq_ack", sequence));
-    }
-
-    private void selectProtocol(String protocol) {
-        var mode = EncryptionMode.select(encryptionModes, CipherPolicies.forOptions(connection.getOptions()));
-        logger.debug("Selected preferred encryption mode: {}", mode);
-
-        rtcConnectionId = UUID.randomUUID();
-        logger.debug("Generated new connection id: {}", rtcConnectionId);
-
-        // known values: ["udp", "webrtc"]
-        if (protocol.equals("udp")) {
-            var conn = new DiscordUDPConnection(connection, address, ssrc);
-            conn.connect().thenAccept(ourAddress -> {
-                logger.debug("Connected, our external address is: {}", ourAddress);
-                connection.getDispatcher().externalIPDiscovered(ourAddress);
-
-                var udpInfo = new JsonObject()
-                        .add("address", ourAddress.getAddress().getHostAddress())
-                        .add("port", ourAddress.getPort())
-                        .add("mode", mode);
-
-                var codecs = new JsonArray();
-                connection.getOptions().getCodecRegistry()
-                        .getAllCodecs()
-                        .stream()
-                        .map(codecInfo -> codecInfo.toJson())
-                        .forEach(codecs::add);
-
-                sendInternalPayload(Op.SELECT_PROTOCOL, new JsonObject()
-                        .add("protocol", "udp")
-                        .add("codecs", codecs)
-                        .add("rtc_connection_id", rtcConnectionId.toString())
-                        .add("data", udpInfo)
-                        .combine(udpInfo));
-
-                this.updateSpeaking(0);
-
-                sendInternalPayload(Op.VIDEO, new JsonObject()
-                        .add("audio_ssrc", Integer.toUnsignedLong(ssrc))
-                        .add("video_ssrc", 0)
-                        .add("rtx_ssrc", 0));
-            });
-
-            connection.setConnectionHandler(conn);
-            logger.debug("Waiting for session description...");
-        } else if (protocol.equals("webrtc")) {
-            // do ICE and then generate SDP with info like above?
-            throw new IllegalArgumentException("WebRTC protocol is not supported yet!");
-        }
     }
 }
