@@ -11,6 +11,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.playback.MutableAudioFrame;
 import dev.lavalink.youtube.YoutubeAudioSourceManager;
+import dev.lavalink.youtube.clients.*;
 import io.netty.buffer.ByteBuf;
 import moe.kyokobot.koe.KoeClient;
 import moe.kyokobot.koe.KoeEventListener;
@@ -105,7 +106,7 @@ public class TestBot extends ListenerAdapter implements VoiceDispatchInterceptor
 
     public AudioPlayerManager createAudioPlayerManager() {
         var manager = new DefaultAudioPlayerManager();
-        manager.registerSourceManager(new YoutubeAudioSourceManager());
+        manager.registerSourceManager(new YoutubeAudioSourceManager(new Web(), new WebEmbedded(), new Music(), new AndroidVr(), new Ios()));
         manager.registerSourceManager(SoundCloudAudioSourceManager.createDefault());
         manager.registerSourceManager(new HttpAudioSourceManager());
         return manager;
