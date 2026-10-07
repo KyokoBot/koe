@@ -36,7 +36,7 @@ dependencyResolutionManagement {
 
             library("jda", "net.dv8tion", "JDA").version("6.7.0")
 
-            version("libdave", "269cc586e")
+            version("libdave", "0.2.0")
             library("libdave-api", "moe.kyokobot.libdave", "api").versionRef("libdave")
             library("libdave-impl-jni", "moe.kyokobot.libdave", "impl-jni").versionRef("libdave")
             library("libdave-impl-ffm", "moe.kyokobot.libdave", "impl-ffm").versionRef("libdave")
