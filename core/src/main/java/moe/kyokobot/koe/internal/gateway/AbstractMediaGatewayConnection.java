@@ -8,9 +8,11 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.socket.SocketChannel;
-import io.netty.handler.codec.http.EmptyHttpHeaders;
+import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpClientCodec;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.websocketx.*;
 import io.netty.handler.ssl.SslContext;
@@ -23,6 +25,7 @@ import moe.kyokobot.koe.gateway.CloseCode;
 import moe.kyokobot.koe.gateway.MediaGatewayConnection;
 import moe.kyokobot.koe.gateway.MediaValve;
 import moe.kyokobot.koe.gateway.Op;
+import moe.kyokobot.koe.internal.BuildConstants;
 import moe.kyokobot.koe.internal.MediaConnectionImpl;
 import moe.kyokobot.koe.internal.NettyBootstrapFactory;
 import moe.kyokobot.koe.internal.crypto.CipherPolicies;
@@ -541,12 +544,20 @@ public abstract class AbstractMediaGatewayConnection implements MediaGatewayConn
         }
     }
 
+    private static final HttpHeaders HANDSHAKE_HEADERS;
+
+    static {
+        HANDSHAKE_HEADERS = new DefaultHttpHeaders();
+        HANDSHAKE_HEADERS.set(HttpHeaderNames.USER_AGENT,
+                "DiscordBot (https://github.com/KyokoBot/koe, " + BuildConstants.VERSION + ")");
+    }
+
     private class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> {
         private final WebSocketClientHandshaker handshaker;
 
         WebSocketClientHandler() {
             this.handshaker = WebSocketClientHandshakerFactory.newHandshaker(websocketURI, WebSocketVersion.V13,
-                    null, false, EmptyHttpHeaders.INSTANCE, 1280000);
+                    null, false, HANDSHAKE_HEADERS, 1280000);
         }
 
         @Override

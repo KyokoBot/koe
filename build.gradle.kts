@@ -10,9 +10,10 @@ plugins {
     id("me.champeau.gradle.japicmp") apply false
 }
 
-val gitVersionInfo = getGitVersion()
 val apiBaselineVersion = libs.versions.koe.api.baseline.get()
+val gitVersionInfo = getGitVersion("3.0")
 logger.lifecycle("Version: ${gitVersionInfo.version} (isCommitHash: ${gitVersionInfo.isCommitHash})")
+extra["koeDisplayVersion"] = gitVersionInfo.displayVersion
 
 subprojects {
     apply(plugin = "java-library")
@@ -162,20 +163,26 @@ subprojects {
     }
 }
 
-data class VersionInfo(val version: String, val isCommitHash: Boolean)
+/**
+ * @property version The Maven version: the tag for tagged builds, the commit hash otherwise.
+ * @property displayVersion The version reported at runtime: the tag for tagged builds, `<major>.x+git<hash>` otherwise.
+ */
+data class VersionInfo(val version: String, val displayVersion: String, val isCommitHash: Boolean)
 
-fun getGitVersion(): VersionInfo {
+fun getGitVersion(fallbackVersion: String): VersionInfo {
     val tagged = providers.exec {
         isIgnoreExitValue = true
         commandLine("git", "describe", "--exact-match", "--tags", "--dirty")
     }
     if (tagged.result.get().exitValue == 0) {
-        return VersionInfo(tagged.standardOutput.asText.get().trim(), false)
+        val tag = tagged.standardOutput.asText.get().trim()
+        return VersionInfo(tag, tag, false)
     }
 
     val commit = providers.exec {
         commandLine("git", "describe", "--match=NeVeRmAtCh", "--always", "--abbrev=9", "--dirty")
     }
+    val hash = commit.standardOutput.asText.get().trim()
 
-    return VersionInfo(commit.standardOutput.asText.get().trim(), true)
+    return VersionInfo(hash, "${fallbackVersion}+git$hash", true)
 }
