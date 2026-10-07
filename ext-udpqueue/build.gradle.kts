@@ -14,6 +14,15 @@ dependencies {
     testRuntimeOnly(libs.udpqueue.native.darwin)
 }
 
+tasks.named<me.champeau.gradle.japicmp.JapicmpTask>("apiCompatibilityCheck") {
+    // Not public API, pollers are created through UdpQueueFramePollerFactory.
+    methodExcludes.add(
+        "moe.kyokobot.koe.poller.udpqueue.UdpQueueOpusFramePoller#UdpQueueOpusFramePoller(" +
+            "moe.kyokobot.koe.poller.udpqueue.QueueManagerPool\$UdpQueueWrapper," +
+            "moe.kyokobot.koe.codec.CodecInstance,moe.kyokobot.koe.MediaConnection)"
+    )
+}
+
 mavenPublishing {
     pom {
         name = "ext-udpqueue"

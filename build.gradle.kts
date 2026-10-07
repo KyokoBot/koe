@@ -82,6 +82,9 @@ subprojects {
                 "moe.kyokobot.koe.internal", "moe.kyokobot.koe.internal.*",
                 "moe.kyokobot.koe.experimental", "moe.kyokobot.koe.experimental.*",
             )
+            // japicmp flags this as breaking because a default can conflict with another interface's default
+            // (JLS 13.5.6), but existing implementations had to override the abstract method, so their own wins.
+            compatibilityChangeExcludes.add("METHOD_ABSTRACT_NOW_DEFAULT")
 
             richReport {
                 title.set("${project.name}: API changes since $apiBaselineVersion")
